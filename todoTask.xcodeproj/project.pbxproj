@@ -29,6 +29,23 @@
 		8A619DEB2F37A00200C49093 /* todoTaskUITests.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = todoTaskUITests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
 /* End PBXFileReference section */
 
+/* Begin PBXFileSystemSynchronizedBuildFileExceptionSet section */
+		8A619E042F37A08200C49093 /* Exceptions for "todoTaskTests" folder in "todoTask" target */ = {
+			isa = PBXFileSystemSynchronizedBuildFileExceptionSet;
+			membershipExceptions = (
+				Assets.xcassets,
+			);
+			target = 8A619DD32F37A00000C49093 /* todoTask */;
+		};
+		8A619E052F37A08200C49093 /* Exceptions for "todoTaskTests" folder in "todoTaskTests" target */ = {
+			isa = PBXFileSystemSynchronizedBuildFileExceptionSet;
+			membershipExceptions = (
+				Assets.xcassets,
+			);
+			target = 8A619DE02F37A00200C49093 /* todoTaskTests */;
+		};
+/* End PBXFileSystemSynchronizedBuildFileExceptionSet section */
+
 /* Begin PBXFileSystemSynchronizedRootGroup section */
 		8A619DD62F37A00000C49093 /* todoTask */ = {
 			isa = PBXFileSystemSynchronizedRootGroup;
@@ -37,6 +54,10 @@
 		};
 		8A619DE42F37A00200C49093 /* todoTaskTests */ = {
 			isa = PBXFileSystemSynchronizedRootGroup;
+			exceptions = (
+				8A619E042F37A08200C49093 /* Exceptions for "todoTaskTests" folder in "todoTask" target */,
+				8A619E052F37A08200C49093 /* Exceptions for "todoTaskTests" folder in "todoTaskTests" target */,
+			);
 			path = todoTaskTests;
 			sourceTree = "<group>";
 		};
