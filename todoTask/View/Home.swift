@@ -9,19 +9,14 @@ import SwiftUI
 
 struct Home: View {
     var body: some View {
-        
-        VStack{
-           
-            ZStack{
-                Rectangle()
-                    .fill(LinearGradient(colors: [.color, .dark], startPoint: .bottom, endPoint: .top))
-                    .ignoresSafeArea()
-            }
+        ZStack {
+            Rectangle()
+                .fill(LinearGradient(colors: [.color, .dark], startPoint: .bottom, endPoint: .top))
+                .ignoresSafeArea()
             
-            Group{
-                if #available(iOS 26, *) {
+            Group {
+                if #available(iOS 26.2, *) {
                     NativeTabView()
-                    
                 } else {
                     NativeTabView()
                 }
@@ -33,190 +28,231 @@ struct Home: View {
 @ViewBuilder
 func NativeTabView() -> some View {
     TabView{
-        Tab.init("Home", systemImage: "house.fill"){
+        Tab.init("Today", systemImage: "checklist"){
             NavigationStack{
-                List {
-
-                }
-                .scrollContentBackground(.hidden)
-                .navigationTitle("Home")
+                today()
+                    .navigationTitle("Goals Of The day")
             }
-            .navigationBarBackButtonHidden(true)
+        }
+        Tab.init("Friends", systemImage: "person.2.fill"){
+            NavigationStack{
+                List{
+                    
+                }
+                .navigationTitle("Friends List")
+            }
         }
         Tab.init("Goals", systemImage: "target"){
             NavigationStack{
-                List {
-
+                List{
+                    
                 }
-                .scrollContentBackground(.hidden)
                 .navigationTitle("Goals")
             }
-            .navigationBarBackButtonHidden(true)
-        }
-        Tab.init("Progress", systemImage: "chart.bar.xaxis"){
-            NavigationStack{
-                List {
-
-                }
-                .scrollContentBackground(.hidden)
-                .navigationTitle("Your Progress")
-            }
-            .navigationBarBackButtonHidden(true)
         }
         Tab.init("Settings", systemImage: "gear"){
             NavigationStack{
-                List {
-
-                }
-                .scrollContentBackground(.hidden)
-                .navigationTitle("Settings")
+                Settings()
+                    .navigationTitle("Settings")
             }
-            .navigationBarBackButtonHidden(true)
         }
     }
+    
 }
 
-struct Goals: View {
+struct today: View {
+    @StateObject private var viewModel = HomeViewModel()
+    @StateObject private var vm = MiniCalendarViewModel()
     var body: some View {
-        NavigationStack{
-            Text("Goals")
-                .foregroundColor(.white)
-                .navigationTitle("Goals")
+        VStack(alignment: .leading){
+            Text(viewModel.formattedDate)
+                .foregroundColor(.primary)
+                .font(.largeTitle)
+                .bold()
+                .padding(.leading, 20)
             
+            
+            Text("THIS IS AN INSPIRING QOUTE.")
+                .padding(.leading, 20)
+            VStack(spacing: 20) {
+                // Month Picker
+                Menu {
+                    ForEach(vm.months, id: \.self) { month in
+                        Button {
+                            vm.changeMonth(month)
+                        } label: {
+                            Text(vm.monthTitle(month))
+                        }
+                    }
+                } label: {
+                    HStack(spacing: 6) {
+                        Text(vm.monthTitle(vm.selectedMonth))
+                            .font(.title2)
+                            .fontWeight(.semibold)
+                        
+                        Image(systemName: "chevron.up.chevron.down")
+                            .font(.caption)
+                    }
+                    .foregroundColor(.primary)
+                }
+                .padding(.leading, -150)
+                
+                // Days Row
+                HStack(spacing: 12) {
+                    
+                    Button(action: vm.previousWeek) {
+                        Image(systemName: "chevron.left")
+                    }
+                    
+                    ForEach(vm.visibleDays) { day in
+                        VStack(spacing: 6) {
+                            Text(vm.dayName(day.date))
+                                .font(.system(size: 10, weight: .regular))
+                                .opacity(0.6)
+                            
+                            Text(vm.dayNumber(day.date))
+                                .font(.system(size: 12, weight: .heavy))
+                                .frame(width: 30, height: 30)
+                                .background(
+                                    RoundedRectangle(cornerRadius: 12)
+                                        .fill(day.date == vm.selectedDate ? Color.white : Color.black.opacity(0.6))
+                                )
+                                .foregroundColor(day.date == vm.selectedDate ? .black : .white)
+                                .onTapGesture {
+                                    vm.selectedDate = day.date
+                                }
+                        }
+                    }
+                    
+                    Button(action: vm.nextWeek) {
+                        Image(systemName: "chevron.right")
+                    }
+                }
+            }
+            .padding()
+            .glassEffect(.regular, in: .rect(cornerRadius: 18))
+            .padding(.all)
+            
+            Text("Today's Tasks")
+                .foregroundColor(.primary)
+                .font(.largeTitle)
+                .bold()
+                .padding(.leading, 20)
+            List{
+                ZStack(alignment: .leading){
+                    Rectangle()
+                        .fill(.clear)
+                        .glassEffect(.regular, in: .rect(cornerRadius: 18))
+                    Text("Read 5 flash cards")
+                        .padding()
+                }
+                
+                ZStack(alignment: .leading){
+                    Rectangle()
+                        .fill(.clear)
+                        .glassEffect(.regular, in: .rect(cornerRadius: 18))
+                    Text("Read 5 flash cards")
+                        .padding()
+                }
+                
+                ZStack(alignment: .leading){
+                    Rectangle()
+                        .fill(.clear)
+                        .glassEffect(.regular, in: .rect(cornerRadius: 18))
+                    Text("Read 5 flash cards")
+                        .padding()
+                }
+                
+            }
             
         }
     }
 }
 
 struct Settings: View {
-    @State private var Uname : String = ""
-    @State private var Uemail : String = ""
-    @State private var Notify = false
-    
+    @State private var Uname: String = ""
+    @State private var Uemail: String = ""
     
     var body: some View {
-        NavigationStack{
-            Text("Settings")
-                .foregroundColor(.white)
-                .navigationTitle("Settings")
-                .navigationBarTitleDisplayMode(.inline)
-                .bold()
-                .toolbar{
-                    ToolbarItem(placement: .navigationBarTrailing){
-                        Button {
-                        } label: {
-                            Image(systemName: "pencil")
-                        }
-                    }
-                }
-            VStack(alignment: .center){
-                Spacer()
-                ZStack {
-                    Circle()
-                        .frame(width: 90, height: 90)
-                        .glassEffect(.regular.tint(.white.opacity(0.2)).interactive())
-                    
-                    Image(systemName: "person.fill")
-                        .font(.system(size: 42, weight: .bold))
-                        .blendMode(.destinationOut)
-                }
-                .compositingGroup()
-                .padding()
-                
+        NavigationStack {
+            VStack(alignment: .leading) {
                 Text("Jane Doe")
-                    .font(.system(size: 17, weight: .semibold))
-                    .foregroundColor(.white)
-                    .padding(1)
-                Text("JaneDoe@gmail.com")
-                    .tint(.white)
-                    .font(.system(size: 17, weight: .thin))
-                    .padding(.bottom,20)
-                ZStack{
-                    Rectangle()
-                        .frame(width: 362, height: 404)
-                        .glassEffect(.clear, in: .rect(cornerRadius: 24))
-                        .padding(.bottom, 50)
-                    VStack{
-                        Toggle("Notification", isOn: $Notify)
-                            .foregroundColor(.white)
-                            .padding(.bottom, 20)
-                            .padding(.top, -30)
-                        
-                        
-                        Rectangle()
-                            .frame(width: 300, height: 2)
-                            .foregroundColor(.white.opacity(0.3))
-                            .glassEffect()
-                        Button(action: {print("Display")}){
-                            HStack {
-                                Text("FAQ")
-                                    .foregroundColor(.white)
-                                
-                                Spacer()
-                                
-                                Image(systemName: "chevron.right")
-                                    .foregroundColor(.white.opacity(0.7))
+                    .font(.system(size: 28, weight: .bold))
+                    .foregroundColor(.primary)
+                    .padding(20)
+                    .toolbar{
+                        ToolbarItem(placement: .topBarTrailing){
+                            Button(action: { print("Display") }) {
+                                Image(systemName: "pencil")
+                                    .foregroundColor(.primary.opacity(0.7))
                             }
-                            .padding(.vertical, 12)
                         }
-                        Button(action: {print("Display")}){
-                            HStack {
-                                Text("Friends List")
-                                    .foregroundColor(.white)
-                                
-                                Spacer()
-                                
-                                Image(systemName: "chevron.right")
-                                    .foregroundColor(.white.opacity(0.7))
-                            }
-                            .padding(.vertical, 12)
-                        }
-                        Button(action: {print("Display")}){
-                            HStack {
-                                Text("Clear Goals")
-                                    .foregroundColor(.white)
-                                
-                                Spacer()
-                                
-                                Image(systemName: "chevron.right")
-                                    .foregroundColor(.white.opacity(0.7))
-                            }
-                            .padding(.vertical, 12)
-                        }
-                        Button(action: {print("Display")}){
-                            HStack {
-                                Text("About App")
-                                    .foregroundColor(.white)
-                                
-                                Spacer()
-                                
-                                Image(systemName: "chevron.right")
-                                    .foregroundColor(.white.opacity(0.7))
-                            }
-                            .padding(.vertical, 12)
-                        }
-                        Button(action: {print("Display")}){
-                            HStack {
-                                Text("Log Out")
-                                    .foregroundColor(Color(.lightRed))
-                                
-                                Spacer()
-                                
-                                Image(systemName: "power")
-                                    .foregroundColor(Color(.lightRed))
-                            }
-                            .padding(.vertical, 12)
-                        }
-                        
                     }
-                    .padding(.leading,50)
-                    .padding(.trailing,50)
+                
+                List {
+                    Button(action: { print("Display") }) {
+                        HStack {
+                            Text("Notification")
+                                .foregroundColor(.primary)
+                            
+                            Spacer()
+                            
+                            Image(systemName: "chevron.right")
+                                .foregroundColor(.primary.opacity(0.7))
+                        }
+                        .padding(.vertical, 12)
+                    }
+                    Button(action: { print("Display") }) {
+                        HStack {
+                            Text("Progress Report")
+                                .foregroundColor(.primary)
+                            
+                            Spacer()
+                            
+                            Image(systemName: "chevron.right")
+                                .foregroundColor(.primary.opacity(0.7))
+                        }
+                        .padding(.vertical, 12)
+                    }
+                    Button(action: { print("Display") }) {
+                        HStack {
+                            Text("Clear Goals")
+                                .foregroundColor(Color(.lightRed))
+                            
+                            Spacer()
+                            
+                            Image(systemName: "chevron.right")
+                                .foregroundColor(Color(.lightRed))
+                        }
+                        .padding(.vertical, 12)
+                    }
+                    Button(action: { print("Display") }) {
+                        HStack {
+                            Text("Log Out")
+                                .foregroundColor(Color(.lightRed))
+                            
+                            Spacer()
+                            
+                            Image(systemName: "power")
+                                .foregroundColor(Color(.lightRed))
+                        }
+                        .padding(.vertical, 12)
+                    }
                 }
+                //                    .frame(width: 396, height: 404)
+                //                    .background(.clear)
+                //                    .glassEffect(.regular, in: .rect(cornerRadius: 20))
+                .padding(.leading, 20)
+                .padding(.trailing, 20)
             }
         }
     }
 }
 
+
+
+
 #Preview {
     Home()
 }
+

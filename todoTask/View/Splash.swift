@@ -14,19 +14,18 @@ struct Splash: View {
                 Rectangle()
                     .fill(LinearGradient(colors: [.color, .dark], startPoint: .bottom, endPoint: .top))
                     .ignoresSafeArea()
+                Image("Background")
+                    .resizable()
+                    .ignoresSafeArea()
+                Image("Gliter")
+                    .resizable()
+                    .ignoresSafeArea()
                 Content()
                 
             }
         }
     }
     
-    struct Details: View {
-        var body: some View{
-
-
-        }
-    }
-
     struct Content: View {
         var body: some View{
             VStack{
@@ -36,27 +35,25 @@ struct Splash: View {
                     .foregroundColor(.white)
                 Text("Where one goal, Unfolds the world")
                     .foregroundColor(.white)
+                    .padding(.bottom, 250)
                 
-                Spacer()
                 NavigationLink("Start",destination: Enter())
                     .frame(width: 263, height: 48)
-                    .background(Color.white.opacity(0.3))
+                    .background(Color(.color).opacity(0.9))
                     .cornerRadius(30)
                     .bold()
                     .foregroundColor(.white)
                     .glassEffect(.regular.interactive())
-                    .padding()
+                    .padding(0.5)
                 
                 NavigationLink("Continue as Guest",destination: Home())
                     .frame(width: 263, height: 48)
-                    .background(Color.white.opacity(0.3))
                     .cornerRadius(30)
                     .bold()
                     .foregroundColor(.white)
-                    .glassEffect(.regular.interactive())
             }
-            .padding(.top, 100)
-            .padding(.bottom, 100)
+            .padding(.top, 250)
+            .padding(.bottom)
         }
         
     }
