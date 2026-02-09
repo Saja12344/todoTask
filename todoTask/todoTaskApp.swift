@@ -11,7 +11,7 @@ import SwiftUI
 struct todoTaskApp: App {
     var body: some Scene {
         WindowGroup {
-            ContentView()
+            IntegrationTestPart2View()
         }
     }
 }
