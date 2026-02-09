@@ -1,0 +1,30 @@
+//
+//  UserModel.swift
+//  toDotask
+//
+//  Created by saja khalid on 16/08/1447 AH.
+//
+
+import Foundation
+import CloudKit
+
+enum AuthMode: String, Codable {
+    case guest
+    case registered
+}
+
+struct User: Codable {
+    var id: String // recordName من CloudKit
+  
+    
+    var username: String
+    
+    // هل هو Guest أو Cloud
+    var authMode: AuthMode = .guest
+    
+    // مؤقتاً فقط، يتم ملؤه عند Fetch
+    var friends: [String] = []
+    
+    // مؤقتاً فقط، يمكن استخدامه عند Fetch
+    var ownedPlanets: [String] = []
+}
