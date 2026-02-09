@@ -23,6 +23,7 @@ enum PlanetState: String, Codable {
     case stolen      // مسروق
 }
 
+
 // ═══════════════════════════════════════════════════════════
 // MARK: - Planet Color (ألوان الكوكب)
 // ═══════════════════════════════════════════════════════════
@@ -60,15 +61,29 @@ struct PlanetDesign: Codable {
 // ═══════════════════════════════════════════════════════════
 // MARK: - Planet Info (معلومات الكوكب)
 // ═══════════════════════════════════════════════════════════
-
-struct PlanetInfo {
-    let goalID: String
-    let state: PlanetState
-    let visualTheme: String
-    let progressPercentage: Double
-    let isVisible: Bool
-    let animations: [String]
+struct Planet: Codable, Identifiable {
+    
+    // MARK: - Identity
+    
+    var id: String { recordID }
+    var recordID: String
+    var ownerID: String
+    
+    // MARK: - Core State
+    
+    var state: PlanetState
+    var goalID: String
+    
+    // MARK: - Progress
+    
+    var progressPercentage: Double
+    
+    // MARK: - Design
+    
+    var design: PlanetDesign?
+    var tasks: [String] = []
 }
+
 
 // ═══════════════════════════════════════════════════════════
 // MARK: - Planet Theme (ثيمات الكواكب)

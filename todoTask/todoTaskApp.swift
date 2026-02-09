@@ -12,6 +12,7 @@ struct todoTaskApp: App {
     var body: some Scene {
         WindowGroup {
             Splash()
+
         }
     }
 }

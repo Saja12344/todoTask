@@ -94,11 +94,53 @@ struct ProgressSnapshot: Codable {
 }
 
 // ═══════════════════════════════════════════════════════════
-// MARK: - Challenge Context (من سجى)
+// MARK: - Challenge State
+// ═══════════════════════════════════════════════════════════
+
+enum ChallengeState: String, Codable {
+    case draft
+    case pendingAcceptance
+    case active
+    case locked
+    case completed
+    case rejected
+}
+
+// ═══════════════════════════════════════════════════════════
+// MARK: - Challenge Model
+// ═══════════════════════════════════════════════════════════
+
+
+
+struct Challenge: Codable, Identifiable {
+    var id: String { recordID ?? UUID().uuidString }
+    
+    var recordID: String?
+    var challengerID: String
+    var opponentID: String?
+    
+    var state: ChallengeState
+    
+    // Planet Stakes optional
+    var planetStakeID: String?           // كوكب الـ challenger (optional)
+    var opponentPlanetID: String?        // كوكب opponent (optional)
+    
+    // Goal associated (optional)
+    var goalContext: Goal?               // الهدف المرتبط بالتحدي (optional)
+    
+    var createdAt: Date
+    var editDeadline: Date
+}
+
+
+// ═══════════════════════════════════════════════════════════
+// MARK: - Challenge Context
 // ═══════════════════════════════════════════════════════════
 
 struct ChallengeContext: Codable {
+    let challengeID: String       // ID للـ Challenge نفسه
     let challengerID: String
     let opponentID: String?
-    let planetStake: String
+    let planetStakeID: String?    // ID للكوكب لو موجود
+    let state: ChallengeState     // حالة التحدي الحالية
 }
