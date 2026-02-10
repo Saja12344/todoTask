@@ -16,6 +16,12 @@ struct Enter: View {
                 Rectangle()
                     .fill(LinearGradient(colors: [.color, .dark], startPoint: .bottom, endPoint: .top))
                     .ignoresSafeArea()
+                Image("Background")
+                    .resizable()
+                    .ignoresSafeArea()
+                Image("Gliter")
+                    .resizable()
+                    .ignoresSafeArea()
                 
                 if showSignUp {
                     signup() {
