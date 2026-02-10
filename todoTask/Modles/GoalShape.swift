@@ -39,12 +39,12 @@ enum GoalCategory: String, Codable, CaseIterable {
 // ═══════════════════════════════════════════════════════════
 // MARK: - Goal Type
 // ═══════════════════════════════════════════════════════════
-
-enum GoalType: String, Codable, CaseIterable {
-    case habit
-    case project
-    case learning
-    case fitness
-    case finance
-    case custom
+//
+enum GoalType: String, Codable {
+    case finishTotal
+    case repeatSchedule
+    case buildStreak
+    case levelUp
+    case milestones
+    case reduce
 }
