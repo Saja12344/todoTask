@@ -34,80 +34,58 @@ final class HomeViewModel: ObservableObject {
 
 
 final class MiniCalendarViewModel: ObservableObject {
-
-    // MARK: - Published
-    @Published private(set) var visibleDays: [CalendarDay] = []
     @Published var selectedDate: Date
-    @Published var selectedMonth: Date
+    @Published var displayedMonth: Date   // controls picker + visible month
 
-    // MARK: - Private
+
+    let today: Date = Date()
     private let calendar = Calendar.current
-    private var currentWeekStart: Date
 
     init() {
-        let today = Date()
-        self.selectedDate = today
-        self.selectedMonth = today
-        self.currentWeekStart = calendar.dateInterval(of: .weekOfMonth, for: today)!.start
-        generateWeek()
+        let now = Date()
+        self.selectedDate = now
+        self.displayedMonth = now
     }
 
-    // MARK: - Month Picker
-    var months: [Date] {
-        (0..<12).compactMap {
-            calendar.date(byAdding: .month, value: $0, to: startOfYear)
+    // MARK: - Month
+
+    var monthTitle: String {
+        let formatter = DateFormatter()
+        formatter.dateFormat = "MMMM"
+        return formatter.string(from: displayedMonth)
+    }
+
+    var availableMonths: [Date] {
+        let start = calendar.date(byAdding: .month, value: -6, to: today)!
+        return (0..<12).compactMap {
+            calendar.date(byAdding: .month, value: $0, to: start)
         }
     }
 
-    private var startOfYear: Date {
-        calendar.date(from: calendar.dateComponents([.year], from: Date()))!
-    }
+    func changeMonth(to date: Date) {
+        displayedMonth = date
 
-    func changeMonth(_ month: Date) {
-        selectedMonth = month
-        currentWeekStart = calendar.dateInterval(of: .weekOfMonth, for: month)!.start
-        generateWeek()
-    }
-
-    // MARK: - Week Navigation
-    func nextWeek() {
-        moveWeek(by: 1)
-    }
-
-    func previousWeek() {
-        moveWeek(by: -1)
-    }
-
-    private func moveWeek(by value: Int) {
-        guard let next = calendar.date(byAdding: .weekOfMonth, value: value, to: currentWeekStart),
-              calendar.isDate(next, equalTo: selectedMonth, toGranularity: .month)
-        else { return }
-
-        currentWeekStart = next
-        generateWeek()
-    }
-
-    // MARK: - Generate Days
-    private func generateWeek() {
-        visibleDays = (0..<7).compactMap { offset in
-            guard let date = calendar.date(byAdding: .day, value: offset, to: currentWeekStart),
-                  calendar.isDate(date, equalTo: selectedMonth, toGranularity: .month)
-            else { return nil }
-
-            return CalendarDay(date: date)
+        // keep selection sane
+        if !calendar.isDate(selectedDate, equalTo: date, toGranularity: .month) {
+            selectedDate = calendar.startOfDay(for: date)
         }
     }
 
-    // MARK: - Formatting
-    func monthTitle(_ date: Date) -> String {
-        date.formatted(.dateTime.month(.wide))
+    // MARK: - Week
+
+    var visibleWeek: [Date] {
+        guard let interval = calendar.dateInterval(of: .weekOfMonth, for: selectedDate)
+        else { return [] }
+
+        return (0..<7).compactMap {
+            calendar.date(byAdding: .day, value: $0, to: interval.start)
+        }
     }
 
-    func dayName(_ date: Date) -> String {
-        date.formatted(.dateTime.weekday(.abbreviated)).uppercased()
-    }
+    func moveWeek(by value: Int) {
+        selectedDate = calendar.date(byAdding: .weekOfYear, value: value, to: selectedDate)!
 
-    func dayNumber(_ date: Date) -> String {
-        date.formatted(.dateTime.day())
+        // sync month when crossing boundaries
+        displayedMonth = selectedDate
     }
 }
