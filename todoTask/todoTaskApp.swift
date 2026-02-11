@@ -8,7 +8,13 @@
 import SwiftUI
 
 @main
+
 struct todoTaskApp: App {
+    
+    init() {
+        NotificationPermissionManager.shared.requestPermissionIfNeeded()
+    }
+    
     var body: some Scene {
         WindowGroup {
             Splash()
@@ -16,3 +22,4 @@ struct todoTaskApp: App {
         }
     }
 }
+

@@ -89,3 +89,20 @@ final class MiniCalendarViewModel: ObservableObject {
         displayedMonth = selectedDate
     }
 }
+
+final class NotificationPermissionManager {
+
+    static let shared = NotificationPermissionManager()
+
+    private init() {}
+
+    func requestPermissionIfNeeded() {
+        let center = UNUserNotificationCenter.current()
+
+        center.getNotificationSettings { settings in
+            guard settings.authorizationStatus == .notDetermined else { return }
+
+            center.requestAuthorization(options: [.alert, .badge, .sound]) { _, _ in }
+        }
+    }
+}

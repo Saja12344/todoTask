@@ -7,6 +7,7 @@
 
 import SwiftUI
 
+
 struct Splash: View {
     var body: some View {
         NavigationStack{
@@ -21,6 +22,9 @@ struct Splash: View {
                     .resizable()
                     .ignoresSafeArea()
                 Content()
+                    .onAppear {
+                        requestNotificationPermission()
+                    }
                 
             }
         }

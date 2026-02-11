@@ -1,71 +1,45 @@
 //
-//  Home.swift
-//  OrbitDemo
+//  HomeComponents.swift
+//  todoTask
 //
-//  Created by Jana Abdulaziz Malibari on 07/02/2026.
+//  Created by Jana Abdulaziz Malibari on 11/02/2026.
 //
 
 import SwiftUI
 
-struct Home: View {
-    var body: some View {
-        ZStack {
-            Group {
-                if #available(iOS 26.2, *) {
-                    NativeTabView()
-                } else {
-                    NativeTabView()
-                }
-            }
-        }
-    }
+
+struct CheckBoxItem {
+    var name: String
+    var isChecked: Bool
 }
 
-@ViewBuilder
-func NativeTabView() -> some View {
-    TabView{
-        Tab.init("Today", systemImage: "checklist"){
-            NavigationStack{
-                today()
-            }
-            .navigationBarBackButtonHidden(true)
-            
-        }
-        Tab.init("Friends", systemImage: "person.2.fill"){
-            NavigationStack{
-                List{
-                    
+struct CheckBoxView: View {
+    @Binding var item: CheckBoxItem
+    
+    var body: some View {
+        HStack{
+            Text(item.name)
+            Spacer()
+            Image(systemName: item.isChecked ? "checkmark.circle.fill" :"circle")
+                .foregroundColor(item.isChecked ? .blue :.gray)
+                .font(.system(size: 22))
+                .onTapGesture {
+                    item.isChecked.toggle()
                 }
-                .navigationTitle("Friends List")
-            }
-            .navigationBarBackButtonHidden(true)
-            
-        }
-        Tab.init("Goals", systemImage: "target"){
-            NavigationStack{
-                Goals()
-            }
-            .navigationBarBackButtonHidden(true)
-            
-        }
-        Tab.init("Settings", systemImage: "gear"){
-            NavigationStack{
-                Settings()
-            }
-            .navigationBarBackButtonHidden(true)
-            
         }
     }
-    .accentColor(.accent)
-    
 }
 
 struct today: View {
     @StateObject private var viewModel = HomeViewModel()
     @StateObject private var vm = MiniCalendarViewModel()
+    @State private var items = [
+        CheckBoxItem(name: "Read 5 flash cards", isChecked: false),
+        CheckBoxItem(name: "Walk 1 km", isChecked: false),
+        CheckBoxItem(name: "Drink at least 4 water cups", isChecked: false)
+    ]
+    
     var body: some View {
-        
-        
         ZStack{
             Rectangle()
                 .fill(LinearGradient(colors: [.color, .dark], startPoint: .bottom, endPoint: .top))
@@ -110,21 +84,21 @@ struct today: View {
                                     .font(.headline)
                                     .foregroundColor(.white)
                                     .padding(.leading)
-
+                                
                                 Image(systemName: "chevron.up.chevron.down")
                                     .font(.caption)
                                     .foregroundColor(.white)
                             }
                         }
                         HStack(spacing: 5) {
-
+                            
                             Button {
                                 vm.moveWeek(by: -1)
                             } label: {
                                 Image(systemName: "chevron.left")
                                     .foregroundColor(.white)
                             }
-
+                            
                             ForEach(vm.visibleWeek, id: \.self) { date in
                                 DayView(
                                     date: date,
@@ -135,7 +109,7 @@ struct today: View {
                                     vm.selectedDate = date
                                 }
                             }
-
+                            
                             Button {
                                 vm.moveWeek(by: 1)
                             } label: {
@@ -152,38 +126,15 @@ struct today: View {
                     .font(.largeTitle)
                     .bold()
                     .padding(.leading, 20)
-                ZStack{
-                    
-                    List{
-                        ZStack(alignment: .leading){
-                            Rectangle()
-                                .fill(.clear)
-                                .glassEffect(.regular, in: .rect(cornerRadius: 18))
-                            Text("Read 5 flash cards")
-                                .padding()
-                        }
-                        
-                        ZStack(alignment: .leading){
-                            Rectangle()
-                                .fill(.clear)
-                                .glassEffect(.regular, in: .rect(cornerRadius: 18))
-                            Text("Read 5 flash cards")
-                                .padding()
-                        }
-                        
-                        ZStack(alignment: .leading){
-                            Rectangle()
-                                .fill(.clear)
-                                .glassEffect(.regular, in: .rect(cornerRadius: 18))
-                            Text("Read 5 flash cards")
-                                .padding()
-                        }
-                        
+                
+                List{
+                    ForEach($items, id: \.name) { $item in
+                        CheckBoxView(item: $item)
                     }
-                    .listRowBackground(Color.clear)
-                    .scrollContentBackground(.hidden)
-                    .background(Color.clear)
                 }
+                .listRowBackground(Color.clear)
+                .scrollContentBackground(.hidden)
+                .background(Color.clear)
                 
             }
         }
@@ -193,23 +144,37 @@ struct today: View {
 
 struct Goals: View {
     var body: some View {
-        ZStack{
-            Rectangle()
-                .fill(LinearGradient(colors: [.color, .dark], startPoint: .bottom, endPoint: .top))
-                .ignoresSafeArea()
-            Image("Background 1")
-                .resizable()
-                .ignoresSafeArea()
-            Image("Gliter")
-                .resizable()
-                .ignoresSafeArea()
+        NavigationStack{
+            ZStack{
+                Rectangle()
+                    .fill(LinearGradient(colors: [.color, .dark], startPoint: .bottom, endPoint: .top))
+                    .ignoresSafeArea()
+                Image("Background 1")
+                    .resizable()
+                    .ignoresSafeArea()
+                Image("Gliter")
+                    .resizable()
+                    .ignoresSafeArea()
+                    .toolbar{
+                        ToolbarItem(placement: .navigationBarTrailing) {
+                            Button(action: {
+                                print("Button tapped!")
+                            }) {
+                                Image(systemName: "plus")
+                            }
+                            .foregroundStyle(.white)
+                        }
+                    }
+            }
+            .colorScheme(.dark)
         }
     }
 }
-
 struct Settings: View {
     @State private var Uname: String = ""
     @State private var Uemail: String = ""
+    @State private var showSettingsButton = false
+    
     
     var body: some View {
         NavigationStack {
@@ -239,7 +204,9 @@ struct Settings: View {
                     
                     VStack {
                         List {
-                            Button(action: { print("Display") }) {
+                            Button(action: {  if let url = URL(string: UIApplication.openSettingsURLString) {
+                                UIApplication.shared.open(url)
+                            } }) {
                                 HStack {
                                     Text("Notification")
                                         .foregroundColor(.primary)
@@ -250,6 +217,13 @@ struct Settings: View {
                                         .foregroundColor(.primary.opacity(0.7))
                                 }
                                 .padding(.vertical, 12)
+                            }
+                            .onAppear {
+                                notificationDenied { denied in
+                                    DispatchQueue.main.async {
+                                        showSettingsButton = denied
+                                    }
+                                }
                             }
                             Button(action: { print("Display") }) {
                                 HStack {
@@ -304,22 +278,22 @@ struct DayView: View {
     let date: Date
     let selectedDate: Date
     let today: Date
-
+    
     private let calendar = Calendar.current
-
+    
     var isSelected: Bool {
         calendar.isDate(date, inSameDayAs: selectedDate)
     }
-
+    
     var isToday: Bool {
         calendar.isDate(date, inSameDayAs: today)
     }
-
+    
     var body: some View {
         VStack(spacing: 4) {
             Text(date, format: .dateTime.weekday(.abbreviated))
                 .font(.caption2)
-
+            
             Text(date, format: .dateTime.day())
                 .font(.headline)
         }
@@ -328,8 +302,8 @@ struct DayView: View {
             isSelected
             ? Color.white
             : isToday
-                ? Color.accent.opacity(0.35)
-                : Color.color.opacity(0.8)
+            ? Color.accent.opacity(0.35)
+            : Color.color.opacity(0.8)
         )
         .foregroundColor(isSelected ? .black : .white)
         .clipShape(RoundedRectangle(cornerRadius: 12))
@@ -337,8 +311,24 @@ struct DayView: View {
     }
 }
 
+func requestNotificationPermission() {
+    UNUserNotificationCenter.current()
+        .requestAuthorization(options: [.alert, .badge, .sound]) { granted, error in
+            DispatchQueue.main.async {
+                if granted {
+                    print("Notifications allowed")
+                } else {
+                    print("Notifications denied")
+                }
+            }
+        }
+}
 
-
+func notificationDenied(_ completion: @escaping (Bool) -> Void) {
+    UNUserNotificationCenter.current().getNotificationSettings { settings in
+        completion(settings.authorizationStatus == .denied)
+    }
+}
 #Preview {
-    Home()
+    Settings()
 }
