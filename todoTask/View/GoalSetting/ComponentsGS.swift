@@ -1,3 +1,11 @@
+//
+//  Components.swift
+//  todoTask
+//
+//  Created by شهد عبدالله القحطاني on 22/08/1447 AH.
+//
+
+
 import SwiftUI
 
 // MARK: - Shared Background Component
@@ -17,10 +25,8 @@ struct AppBackground: View {
             Image("Gliter")
                 .resizable()
                 .scaledToFit()
-                .scaleEffect(1.9)
-                .opacity(1.3)
-                .contrast(1.8)
-                .saturation(1.8)
+                .scaleEffect(1.2)
+                .contrast(1.9)
                 .ignoresSafeArea()
         }
     }
@@ -40,7 +46,7 @@ struct AppNavigationBar: View {
                     .foregroundColor(.white)
                     .frame(width: 50, height: 50)
                     .background(Color.clear)
-                    .glassEffect(in: Circle())
+                    .glassEffect(.clear.tint(Color.black.opacity(0.4)), in: .rect(cornerRadius: 24))
                     .overlay(
                         Circle()
                             .stroke(Color.white.opacity(0.3), lineWidth: 1)
@@ -62,7 +68,7 @@ struct AppNavigationBar: View {
                     .padding(.horizontal, 30)
                     .padding(.vertical, 12)
                     .background(Color.clear)
-                    .glassEffect(in: RoundedRectangle(cornerRadius: 25))
+                    .glassEffect(.clear.tint(Color.black.opacity(0.4)), in: .rect(cornerRadius: 24))
                     .overlay(
                         RoundedRectangle(cornerRadius: 25)
                             .stroke(Color.white.opacity(0.3), lineWidth: 1)
@@ -86,28 +92,10 @@ struct GlassCard<Content: View>: View {
             content
         }
         .padding(9)
-        .padding(.vertical, 33)  // 👈 زود الرقم (كان 10)
+        .padding(.vertical, 33)
         .frame(maxWidth: .infinity)
-        .glassEffect(
-            .clear,
-            in: .rect(cornerRadius: 24)
-        )
-        .overlay(
-            RoundedRectangle(cornerRadius: 24)
-                .fill(
-                    LinearGradient(
-                        colors: [
-                            Color.clear,
-                            Color.black.opacity(0.58)
-                        ],
-                        startPoint: .top,
-                        endPoint: .bottom
-                    )
-                )
-                .blendMode(.overlay)
-                .allowsHitTesting(false)
-            
-        )
+        .glassEffect(.clear.tint(Color.black.opacity(0.4)), in: .rect(cornerRadius: 24))
+        
     }
 }
 
@@ -133,7 +121,7 @@ struct GlassTextField: View {
             .foregroundColor(.white)
             .padding()
             .background(Color.clear)
-            .glassEffect(in: RoundedRectangle(cornerRadius: 12))
+            .glassEffect(.clear.tint(Color.black.opacity(0.4)), in: .rect(cornerRadius: 24))
             .overlay(
                 RoundedRectangle(cornerRadius: 12)
                     .stroke(Color.white.opacity(0.9), lineWidth: 1)
@@ -160,7 +148,7 @@ struct NumberStepper: View {
                 Image(systemName: "minus")
                     .font(.system(size: 22, weight: .bold))  // 🔄 كبّرنا الخط من 20 إلى 22
                     .foregroundColor(.white)
-                    .frame(width: 20, height: 20)  // 🔄 كبّرنا الإطار من 44 إلى
+                    .frame(width: 15, height: 15)  // 🔄 كبّرنا الإطار من 44 إلى
             }
             
             Spacer()
@@ -185,8 +173,8 @@ struct NumberStepper: View {
                     // ❌ شلنا .background و .glassEffect
             }
         }
-        .padding(.horizontal, 25)  // ✅ أضفنا مسافة داخلية أفقية
-        .padding(.vertical, 2)    // ✅ أضفنا مسافة داخلية رأسية
+        .padding(.horizontal, 20)  // ✅ أضفنا مسافة داخلية أفقية
+        .padding(.vertical, 1)    // ✅ أضفنا مسافة داخلية رأسية
         .background(
             RoundedRectangle(cornerRadius: 18)  // ✅ خلفية مستديرة
                 .fill(Color.black.opacity(0.45))  // ✅ لون داكن شفاف
@@ -194,7 +182,6 @@ struct NumberStepper: View {
     }
 }
 
-// MARK: - Week Days Selector
 // MARK: - Week Days Selector
 struct WeekDaysSelector: View {
     @Binding var selectedDays: Set<Int>
@@ -240,11 +227,11 @@ struct TimePickerRow: View {
             DatePicker("", selection: $startTime, displayedComponents: .hourAndMinute)
                 .labelsHidden()
                 .colorScheme(.dark)
-                .padding(.horizontal, 12)  // 🔄 غيرنا من .padding(8) إلى horizontal
-                .padding(.vertical, 10)    // ✅ أضفنا vertical padding
+                .padding(.horizontal, 15)  // 🔄 غيرنا من .padding(8) إلى horizontal
+                .padding(.vertical, 18)    // ✅ أضفنا vertical padding
                 .background(
                     RoundedRectangle(cornerRadius: 12)  // 🔄 غيرنا من 10 إلى 12
-                        .fill(Color.black.opacity(0.4))  // ✅ بدلنا glassEffect بخلفية داكنة
+                        .fill(Color.black.opacity(0.8))  // ✅ بدلنا glassEffect بخلفية داكنة
                 )
                 // ❌ شلنا .background(Color.clear) و .glassEffect
             
@@ -289,8 +276,8 @@ struct GlassDatePicker: View {
             DatePicker("", selection: $date, displayedComponents: .date)
                 .labelsHidden()
                 .colorScheme(.dark)
-                .padding(.horizontal, 16)  // ✅ أضفنا padding أفقي
-                .padding(.vertical, 10)    // ✅ أضفنا padding رأسي
+                .padding(.horizontal, 45)  // ✅ أضفنا padding أفقي
+                .padding(.vertical, 16)    // ✅ أضفنا padding رأسي
                
         }
     }
@@ -336,6 +323,23 @@ struct GlassToggle: View {
     }
 }
 
+// MARK: - Custom Text Field
+struct CustomTextField: View {
+    let placeholder: String
+    @Binding var text: String
+    
+    var body: some View {
+        TextField(placeholder, text: $text)
+            .foregroundColor(.white)
+            .font(.system(size: 17))
+            .padding(.horizontal, 24)
+            .padding(.vertical, 13)
+            .background(
+                RoundedRectangle(cornerRadius: 18)
+                    .fill(Color.black.opacity(0.45))
+            )
+    }
+}
 // MARK: - Slider Component
 struct GlassSlider: View {
     @Binding var value: Double

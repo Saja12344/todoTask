@@ -19,7 +19,7 @@ struct GoalShapeView: View {
             Image("Gliter")
                 .resizable()
                 .scaledToFit()
-                .scaleEffect(1.9)
+                .scaleEffect(1.2)
                 .opacity(1.3)
                 .contrast(1.8)
                 .saturation(1.8)
