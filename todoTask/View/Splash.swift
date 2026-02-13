@@ -9,6 +9,8 @@ import SwiftUI
 
 
 struct Splash: View {
+    @EnvironmentObject private var userVM: UserViewModel
+    
     var body: some View {
         NavigationStack {
             ZStack{
@@ -31,6 +33,9 @@ struct Splash: View {
     }
     
     struct Content: View {
+        @EnvironmentObject private var userVM: UserViewModel
+        @State private var navigateHome = false
+        
         var body: some View{
             VStack{
                 Text("WELCOME TO ORB.IT")
@@ -53,11 +58,20 @@ struct Splash: View {
                 }
                 
                 withAnimation(.easeIn.speed(1.5)) {
-                    NavigationLink("Continue as Guest",destination: Home())
+                    // Continue as Guest: create guest locally, then go Home
+                    NavigationLink(
+                        destination: Home(),
+                        isActive: $navigateHome
+                    ) {
+                        Button("Continue as Guest") {
+                            userVM.startAsGuest()
+                            navigateHome = true
+                        }
                         .frame(width: 210, height: 48)
                         .cornerRadius(30)
                         .bold()
                         .foregroundColor(.white)
+                    }
                 }
             }
             .padding(.top, 250)
@@ -69,5 +83,6 @@ struct Splash: View {
 
 #Preview {
     Splash()
+        .environmentObject(UserViewModel())
 }
 

@@ -187,7 +187,13 @@ struct Settings: View {
     @State private var Uname: String = ""
     @State private var Uemail: String = ""
     @State private var showSettingsButton = false
-    
+
+    // Add sheet state
+    @State private var isEditingName: Bool = false
+    @State private var draftName: String = ""
+    // Guest logout confirmation alert state
+    @State private var showGuestLogoutAlert: Bool = false
+
     private var displayName: String {
         if let name = userVM.currentUser?.username, !name.isEmpty {
             return name
@@ -219,7 +225,6 @@ struct Settings: View {
                     .font(.system(size: 28, weight: .bold))
                     .foregroundColor(.primary)
                     .padding(.horizontal, 20)
-                    .padding(.top, 20)
                 
                 // Short ID below the name
                 Text("ID: \(displayID)")
@@ -309,9 +314,13 @@ struct Settings: View {
                             .glassEffect()
                         
                         Button(action: {
-                            // Log out: clear local user.
-                            userVM.clearLocalUser()
-                            // RootRouterView will now show Enter() automatically.
+                            // For guests, confirm before clearing data
+                            if userVM.currentUser?.authMode == .guest {
+                                showGuestLogoutAlert = true
+                            } else {
+                                // Registered users: log out immediately
+                                userVM.clearLocalUser()
+                            }
                         }) {
                             HStack {
                                 Text("Log Out")
@@ -323,16 +332,41 @@ struct Settings: View {
                     .colorScheme(.dark)
                 }
             }
+            .padding(.top, -90)
         }
+        // Removed the toolbar logout button per your request
         .toolbar{
             ToolbarItem(placement: .topBarTrailing){
                 Button(action: {
-                    print("Button tapped!")
+                    // Prepare and present username editor
+                    draftName = userVM.currentUser?.username ?? ""
+                    isEditingName = true
                 }) {
                     Image(systemName: "pencil")
                 }
                 .foregroundStyle(.white)
             }
+        }
+        // Guest-only confirmation alert
+        .alert("Log Out?", isPresented: $showGuestLogoutAlert) {
+            Button("Cancel", role: .cancel) { }
+            Button("Log Out", role: .destructive) {
+                userVM.clearLocalUser()
+            }
+        } message: {
+            Text("You are continuing as a guest. Logging out will erase all local data.")
+        }
+        .sheet(isPresented: $isEditingName) {
+            EditUsernameSheet(
+                initialName: userVM.currentUser?.username ?? "",
+                onCancel: { isEditingName = false },
+                onSave: { newName in
+                    Task { await userVM.updateUsername(to: newName) }
+                    isEditingName = false
+                }
+            )
+            .presentationDetents([PresentationDetent.height(220)])
+            .presentationDragIndicator(.visible)
         }
         .colorScheme(.dark)
     }
@@ -375,6 +409,70 @@ struct DayView: View {
     }
 }
 
+// MARK: - Edit Username Sheet
+private struct EditUsernameSheet: View {
+    @State private var name: String
+    let onCancel: () -> Void
+    let onSave: (String) -> Void
+    
+    init(initialName: String, onCancel: @escaping () -> Void, onSave: @escaping (String) -> Void) {
+        self._name = State(initialValue: initialName)
+        self.onCancel = onCancel
+        self.onSave = onSave
+    }
+    
+    var body: some View {
+        VStack(spacing: 12) {
+            HStack {
+                Button(action: onCancel) {
+                    Image(systemName: "xmark")
+                        .font(.system(size: 24, weight: .semibold))
+                        .cornerRadius(50)
+                        .foregroundColor(.white.opacity(0.9))
+                }
+                .frame(width: 40, height: 40)
+                .cornerRadius(50)
+                .glassEffect(.clear.tint(.white.opacity(0.4)).interactive(), in: .rect(cornerRadius: 50))
+                
+                Spacer()
+                
+                // Title
+                Text("Edit Username")
+                    .font(.headline)
+                    .foregroundColor(.white)
+                    .padding(.top, 4)
+                
+                Spacer()
+                
+                Button(action: {
+                    let trimmed = name.trimmingCharacters(in: .whitespacesAndNewlines)
+                    guard !trimmed.isEmpty else { return }
+                    onSave(trimmed)
+                }) {
+                    Image(systemName: "checkmark")
+                        .font(.system(size: 24, weight: .semibold))
+                        .foregroundColor(.white)
+                        
+                }
+                .frame(width: 40, height: 40)
+                .cornerRadius(50)
+                .glassEffect(.clear.tint(.blue).interactive(), in: .rect(cornerRadius: 50))
+            }
+            .padding(.horizontal, 4)
+            // Text field
+            TextField("Username", text: $name)
+                .textInputAutocapitalization(.never)
+                .disableAutocorrection(true)
+                .padding()
+                .background(Color.black.opacity(0.25))
+                .cornerRadius(10)
+                .foregroundColor(.white)
+        }
+        .padding()
+        .preferredColorScheme(.dark)
+    }
+}
+
 func requestNotificationPermission() {
     UNUserNotificationCenter.current()
         .requestAuthorization(options: [.alert, .badge, .sound]) { granted, error in
@@ -397,4 +495,3 @@ func notificationDenied(_ completion: @escaping (Bool) -> Void) {
     Settings()
         .environmentObject(UserViewModel())
 }
-
