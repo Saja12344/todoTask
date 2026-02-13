@@ -10,11 +10,9 @@ import UserNotifications
 
 struct Home: View {
     var body: some View {
-        ZStack {
-            NativeTabView()
-                .navigationBarBackButtonHidden(true)
-        }
-        .colorScheme(.dark)
+        NativeTabView()
+            .navigationBarBackButtonHidden(true)
+            .colorScheme(.dark)
     }
 }
 
@@ -24,22 +22,25 @@ func NativeTabView() -> some View {
         Tab.init("Today", systemImage: "checklist"){
             NavigationStack{
                 today()
+                    .navigationTitle("Goals Of The Day")
             }
-        }
-        Tab.init("Friends", systemImage: "person.2.fill"){
-            NavigationStack{
-
-            }
-            
         }
         Tab.init("Goals", systemImage: "target"){
             NavigationStack{
                 Goals()
+                    .navigationTitle("Achived Goals")
+            }
+        }
+        Tab.init("Friends", systemImage: "person.2.fill"){
+            NavigationStack{
+                EmptyView()
+                    .navigationTitle("Friends List")
             }
         }
         Tab.init("Settings", systemImage: "gear"){
             NavigationStack{
                 Settings()
+                    .navigationTitle("Settings")
             }
         }
     }

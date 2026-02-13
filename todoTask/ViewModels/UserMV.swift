@@ -27,13 +27,16 @@ class UserViewModel: ObservableObject {
     
     @Published var currentUser: User?
     
-    private let container = CKContainer.default()
+    // Note: If you use CloudKit, re-enable this when your entitlements are set.
+//    private let container = CKContainer.default()
     private lazy var publicDB = container.publicCloudDatabase
     
     private let userDefaultsKey = "currentUser"
     
-//    let appleID = try await container.userRecordID()
-
+    // MARK: - Derived state
+    var isLoggedIn: Bool {
+        currentUser != nil
+    }
     
     // MARK: - App Entry Point
     
@@ -139,8 +142,15 @@ class UserViewModel: ObservableObject {
         if let data = UserDefaults.standard.data(forKey: userDefaultsKey),
            let user = try? JSONDecoder().decode(User.self, from: data) {
             currentUser = user
+        } else {
+            currentUser = nil
         }
     }
     
-    
+    // Clear local session (for logout / fresh start)
+    func clearLocalUser() {
+        UserDefaults.standard.removeObject(forKey: userDefaultsKey)
+        currentUser = nil
+    }
 }
+

@@ -10,14 +10,15 @@ import SwiftUI
 
 struct Splash: View {
     var body: some View {
-        NavigationStack{
+        NavigationStack {
             ZStack{
                 Rectangle()
                     .fill(LinearGradient(colors: [.color, .dark], startPoint: .bottom, endPoint: .top))
                     .ignoresSafeArea()
-                Image("Background")
+                Image("Background 3")
                     .resizable()
                     .ignoresSafeArea()
+                    .opacity(0.5)
                 Image("Gliter")
                     .resizable()
                     .ignoresSafeArea()
@@ -25,7 +26,6 @@ struct Splash: View {
                     .onAppear {
                         requestNotificationPermission()
                     }
-                
             }
         }
     }
@@ -33,7 +33,7 @@ struct Splash: View {
     struct Content: View {
         var body: some View{
             VStack{
-                Text("WELCOME TO ORBIT")
+                Text("WELCOME TO ORB.IT")
                     .bold()
                     .font(Font.largeTitle)
                     .foregroundColor(.white)
@@ -41,20 +41,24 @@ struct Splash: View {
                     .foregroundColor(.white)
                     .padding(.bottom, 250)
                 
-                NavigationLink("Start",destination: Enter())
-                    .frame(width: 263, height: 48)
-                    .background(Color(.color).opacity(0.9))
-                    .cornerRadius(30)
-                    .bold()
-                    .foregroundColor(.white)
-                    .glassEffect(.regular.interactive())
-                    .padding(0.5)
+                withAnimation(.easeIn.speed(1.5)) {
+                    NavigationLink("Start",destination: Enter())
+                        .frame(width: 210, height: 48)
+                        .background(Color(.accent).opacity(0.1))
+                        .cornerRadius(30)
+                        .bold()
+                        .foregroundColor(.white)
+                        .glassEffect(.clear.interactive())
+                        .padding(0.5)
+                }
                 
-                NavigationLink("Continue as Guest",destination: Home())
-                    .frame(width: 263, height: 48)
-                    .cornerRadius(30)
-                    .bold()
-                    .foregroundColor(.white)
+                withAnimation(.easeIn.speed(1.5)) {
+                    NavigationLink("Continue as Guest",destination: Home())
+                        .frame(width: 210, height: 48)
+                        .cornerRadius(30)
+                        .bold()
+                        .foregroundColor(.white)
+                }
             }
             .padding(.top, 250)
             .padding(.bottom)
@@ -66,3 +70,4 @@ struct Splash: View {
 #Preview {
     Splash()
 }
+
