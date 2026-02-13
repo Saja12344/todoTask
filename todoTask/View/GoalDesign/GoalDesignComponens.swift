@@ -1,3 +1,9 @@
+//
+//  GoalDesignComponents.swift
+//  OrbitDemo
+//
+//  Created by Ruba Alghamdi on 07/02/2026.
+//
 
 import SwiftUI
 
@@ -9,7 +15,7 @@ public struct ScrollOffsetKey: PreferenceKey {
     }
 }
 
-// MARK: - Gradient Stop Dot (tap to edit, long-press to delete)
+// MARK: - Gradient Stop Dot (tap to edit, context menu delete)
 public struct GradientStopDot: View {
     @Binding var color: Color
     var onDelete: () -> Void
@@ -21,7 +27,6 @@ public struct GradientStopDot: View {
 
     public var body: some View {
         ZStack {
-            // Clean dot (no icon)
             Circle()
                 .fill(color)
                 .frame(width: 44, height: 44)
@@ -29,7 +34,7 @@ public struct GradientStopDot: View {
                     Circle().stroke(Color.white.opacity(0.20), lineWidth: 1)
                 )
 
-            // Invisible ColorPicker (still opens on tap)
+            // Invisible ColorPicker (opens on tap)
             ColorPicker("", selection: $color)
                 .labelsHidden()
                 .opacity(0.02)
@@ -74,9 +79,9 @@ public struct EffectThumb: View {
 public struct PlanetOrbView: View {
     let size: CGFloat
     let gradientColors: [Color]
-    let glow: Double                  // 0... (you used 0...0.25)
-    let textureAssetName: String?     // "effect1"... etc
-    let textureOpacity: Double        // 0...1
+    let glow: Double
+    let textureAssetName: String?
+    let textureOpacity: Double
 
     public init(
         size: CGFloat,
@@ -93,30 +98,29 @@ public struct PlanetOrbView: View {
     }
 
     private var glowColor: Color { gradientColors.first ?? .purple }
-    private var glowSpread: CGFloat { 40 + CGFloat(glow) * 280 } // scaled for 0...0.25 range
+    private var glowSpread: CGFloat { 40 + CGFloat(glow) * 280 }
     private var auraBlur: CGFloat { 18 + CGFloat(glow) * 120 }
     private var shadowRadius: CGFloat { 10 + CGFloat(glow) * 160 }
 
     public var body: some View {
         ZStack {
-            // OUTER AURA (bigger than orb -> never clipped)
             Circle()
                 .fill(glowColor.opacity(0.10 + glow * 1.1))
                 .frame(width: size + glowSpread, height: size + glowSpread)
                 .blur(radius: auraBlur)
 
-            // MAIN ORB
             ZStack {
                 Circle()
                     .fill(
                         LinearGradient(
-                            colors: gradientColors.count >= 2 ? gradientColors : [glowColor, glowColor.opacity(0.7)],
+                            colors: gradientColors.count >= 2
+                            ? gradientColors
+                            : [glowColor, glowColor.opacity(0.7)],
                             startPoint: .topLeading,
                             endPoint: .bottomTrailing
                         )
                     )
 
-                // Sphere depth highlight
                 Circle()
                     .fill(
                         RadialGradient(
@@ -128,7 +132,6 @@ public struct PlanetOrbView: View {
                     )
                     .blendMode(.softLight)
 
-                // Effect PNG (ALWAYS hard light)
                 if let textureAssetName {
                     Image(textureAssetName)
                         .resizable()
@@ -139,7 +142,6 @@ public struct PlanetOrbView: View {
                         .opacity(textureOpacity)
                 }
 
-                // Edge glow ring tinted by first stop
                 Circle()
                     .stroke(glowColor.opacity(0.18 + glow * 1.2), lineWidth: 2)
                     .blur(radius: 8 + glow * 80)
@@ -148,11 +150,9 @@ public struct PlanetOrbView: View {
             .shadow(
                 color: glowColor.opacity(0.15 + glow * 2.0),
                 radius: shadowRadius,
-                x: 0,
-                y: 0
+                x: 0, y: 0
             )
         }
-        // EXTRA canvas so glow isn't cropped by parent frames/cards
         .frame(width: size + 160, height: size + 160)
         .drawingGroup()
     }

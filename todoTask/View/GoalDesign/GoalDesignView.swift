@@ -1,20 +1,15 @@
+//
+//  GoalDesignView.swift
+//  OrbitDemo
+//
+//  Created by Ruba Alghamdi on 07/02/2026.
+//
 
 import SwiftUI
 
 struct GoalDesign: View {
 
-    @State private var glow: Double = 0.12
-    @State private var textureOpacity: Double = 0.85
-
-    @State private var gradientStops: [Color] = PlanetDesignPresets.defaultStops
-
-    private let effects: [String] = PlanetDesignPresets.effects
-    @State private var selectedEffectIndex: Int = 0
-
-    @State private var scrollY: CGFloat = 0
-
-    // Keep your type if it exists (or delete this line if unused)
-    @State private var selectedGoal: GoalType?
+    @State private var vm = GoalDesignViewModel()
 
     var body: some View {
         ZStack {
@@ -33,24 +28,21 @@ struct GoalDesign: View {
                     VStack(spacing: 0) {
                         PlanetOrbView(
                             size: 180,
-                            gradientColors: gradientStops,
-                            glow: glow,
-                            textureAssetName: effects[safe: selectedEffectIndex],
-                            textureOpacity: textureOpacity
+                            gradientColors: vm.gradientStops,
+                            glow: vm.glow,
+                            textureAssetName: vm.selectedEffectAsset,
+                            textureOpacity: vm.textureOpacity
                         )
-                        // (Edit 1) lifted up a little:
                         .padding(.top, 40)
-                        .offset(y: -12)          // <- lift
+                        .offset(y: -80)
                         .padding(.bottom, 30)
 
-                        // Space so scrolling content can pass the orb area
                         Spacer().frame(height: 180)
                     }
 
                     // ===== SCROLL content =====
                     ScrollView(showsIndicators: false) {
 
-                        // Track scroll offset
                         GeometryReader { proxy in
                             Color.clear
                                 .preference(
@@ -60,32 +52,25 @@ struct GoalDesign: View {
                         }
                         .frame(height: 0)
 
-                        // Start the card below the orb
-                        Spacer().frame(height: 220)
+                        Spacer().frame(height: 270)
 
-                        // CARD
                         GlassCard {
                             VStack(alignment: .leading, spacing: 18) {
 
                                 // MARK: - Planet Colors
                                 SectionHeader(title: "Planet Colors")
+                                    .padding(.top, -20)
 
                                 ScrollView(.horizontal, showsIndicators: false) {
                                     HStack(spacing: 12) {
-                                        ForEach(gradientStops.indices, id: \.self) { i in
-                                            GradientStopDot(color: $gradientStops[i]) {
-                                                guard gradientStops.count > 2 else { return }
-                                                withAnimation(.easeInOut) {
-                                                    gradientStops.remove(at: i)
-                                                }
+                                        ForEach(vm.gradientStops.indices, id: \.self) { i in
+                                            GradientStopDot(color: $vm.gradientStops[i]) {
+                                                vm.deleteStop(at: i)
                                             }
                                         }
 
-                                        // Add stop
                                         Button {
-                                            withAnimation(.easeInOut) {
-                                                gradientStops.append(.purple)
-                                            }
+                                            vm.addStop()
                                         } label: {
                                             ZStack {
                                                 Circle().fill(Color.white.opacity(0.08))
@@ -104,40 +89,36 @@ struct GoalDesign: View {
                                     Image(systemName: "sun.min")
                                         .foregroundStyle(.white.opacity(0.7))
 
-                                    Slider(value: $glow, in: 0...0.25)
+                                    Slider(value: $vm.glow, in: 0...0.15)
 
                                     Image(systemName: "sun.max.fill")
                                         .foregroundStyle(.white.opacity(0.85))
                                 }
 
-                                // MARK: - Effect (uses PNG thumbnails)
+                                // MARK: - Effect
                                 SectionHeader(title: "Effect")
 
                                 ScrollView(.horizontal, showsIndicators: false) {
                                     HStack(spacing: 10) {
-                                        ForEach(Array(effects.enumerated()), id: \.offset) { i, asset in
-                                            EffectThumb(assetName: asset, isSelected: i == selectedEffectIndex)
-                                                .onTapGesture {
-                                                    withAnimation(.easeInOut) {
-                                                        selectedEffectIndex = i
-                                                    }
-                                                }
+                                        ForEach(Array(vm.effects.enumerated()), id: \.offset) { i, asset in
+                                            EffectThumb(assetName: asset, isSelected: i == vm.selectedEffectIndex)
+                                                .onTapGesture { vm.selectEffect(i) }
                                         }
                                     }
                                     .padding(.vertical, 2)
                                 }
 
-                                // Effect intensity
                                 HStack {
                                     Text("Intensity")
                                         .foregroundStyle(.white.opacity(0.75))
                                         .font(.system(size: 14, weight: .medium))
 
-                                    Slider(value: $textureOpacity, in: 0...1)
+                                    Slider(value: $vm.textureOpacity, in: 0...1)
                                 }
                                 .padding(.top, 6)
                             }
                             .padding(.vertical, 6)
+                            .padding(.horizontal, 6)
                         }
                         .padding(.horizontal, 16)
                         .padding(.bottom, 40)
@@ -146,19 +127,11 @@ struct GoalDesign: View {
                     }
                     .coordinateSpace(name: "scroll")
                     .onPreferenceChange(ScrollOffsetKey.self) { value in
-                        scrollY = value
+                        vm.scrollY = value
                     }
                 }
             }
         }
-    }
-}
-
-// MARK: - Safe index helper
-private extension Array {
-    subscript(safe index: Int) -> Element? {
-        guard indices.contains(index) else { return nil }
-        return self[index]
     }
 }
 

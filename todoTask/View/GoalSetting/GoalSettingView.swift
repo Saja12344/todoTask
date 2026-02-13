@@ -1,3 +1,11 @@
+//
+//  Components.swift
+//  todoTask
+//
+//  Created by شهد عبدالله القحطاني on 22/08/1447 AH.
+//
+
+
 import SwiftUI
 
 struct FinishTotalView: View {
@@ -15,7 +23,7 @@ struct FinishTotalView: View {
             // Background
             AppBackground()
             
-            VStack(spacing: 0) {
+            VStack(spacing: 77) {
                 // Navigation
                 AppNavigationBar(
                     title: "Finish a Total",
@@ -41,9 +49,13 @@ struct FinishTotalView: View {
                                 }
                                 
                                 // Unit
-                                VStack(alignment: .leading, spacing: 8) {
+                                VStack(alignment: .leading, spacing: 11) {
                                     SectionHeader(title: "Unit:")
-                                    TextField("e.g. Inches, Bottles, Cans", text: $unit)
+                                    CustomTextField(
+                                        placeholder: "eg. Inches, Bottles, Cats",
+                                        text: $unit
+                                    )
+                                    
                                         .foregroundColor(.white.opacity(0.5))
                                         .font(.system(size: 15))
                                 }
