@@ -17,9 +17,13 @@ enum FriendRequestStatus: String, Codable,Equatable {
     case rejected
 }
 
-struct FriendRequest: Codable {
+struct FriendRequest: Codable, Identifiable{
     var recordID: String? // CKRecord.ID.recordName
     var from: String      // User.recordID
     var to: String        // User.recordID
     var status: FriendRequestStatus
+    
+    var id: String {
+           recordID ?? UUID().uuidString
+       }
 }
