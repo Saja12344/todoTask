@@ -42,3 +42,18 @@ struct Energytoday: Identifiable {
     let value: String
     let icon: String
 }
+
+// Centralized static options to reuse across the app
+extension Energytoday {
+    static let defaults: [Energytoday] = [
+        Energytoday(title: "Take Break",
+                    value: "1",
+                    icon: "figure.mind.and.body"),
+        Energytoday(title: "Average",
+                    value: "2",
+                    icon: "figure.mixed.cardio"),
+        Energytoday(title: "Hardcore",
+                    value: "3",
+                    icon: "figure.strengthtraining.traditional")
+    ]
+}

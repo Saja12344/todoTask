@@ -24,7 +24,7 @@ final class HomeViewModel: ObservableObject {
     
     private static func format(date: Date) -> String {
         let formatter = DateFormatter()
-        formatter.dateFormat = "d, MMM, yyyy"
+        formatter.dateFormat = "d MMM, yyyy"
         formatter.locale = Locale(identifier: "en_US_POSIX")
         
         let base = formatter.string(from: date)
