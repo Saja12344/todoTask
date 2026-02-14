@@ -15,11 +15,12 @@ enum AuthMode: String, Codable {
     case registered
 }
 
-struct User: Codable {
+struct User: Codable, Identifiable {
     var id: String // recordName من CloudKit
   
     
     var username: String
+    var email: String
     
     // هل هو Guest أو Cloud
     var authMode: AuthMode = .guest

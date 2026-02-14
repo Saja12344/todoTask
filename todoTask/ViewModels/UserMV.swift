@@ -21,6 +21,8 @@ import Combine
 enum UserError: Error {
     case iCloudUnavailable
     case notGuest
+    case userAlreadyExists
+    case invalidCredentials
 }
 
 class UserViewModel: ObservableObject {
@@ -49,6 +51,26 @@ class UserViewModel: ObservableObject {
     // Creates a guest with:
     // - id: 8-char token
     // - username: "Guest-" + 6-char token (e.g., Guest-A23SSW)
+    
+    
+//    func startAsGuest() {
+//        // Generate tokens
+//        let randomID = randomToken(length: 8)
+//        let usernameSuffix = randomToken(length: 6)
+//        let guestUsername = "Guest-\(usernameSuffix)"
+//        
+//        // Build guest user
+//        let guest = User(
+//            id: randomID,
+//            username: guestUsername,
+//            authMode: .guest,
+//            friends: [],
+//            ownedPlanets: []
+//        )
+//        
+//        currentUser = guest
+//        saveLocally()
+//    }
     func startAsGuest() {
         // Generate tokens
         let randomID = randomToken(length: 8)
@@ -57,8 +79,10 @@ class UserViewModel: ObservableObject {
         
         // Build guest user
         let guest = User(
-            id: randomID,
-            username: guestUsername,
+
+            id: UUID().uuidString,
+            username: "Guest",
+            email: "",
             authMode: .guest,
             friends: [],
             ownedPlanets: []
@@ -84,36 +108,47 @@ class UserViewModel: ObservableObject {
     }
     
     // MARK: - Login مباشرة (Registered via iCloud)
-    func loginWithiCloud() async throws {
-        let status = try await container.accountStatus()
-        guard status == .available else {
-            throw UserError.iCloudUnavailable
-        }
-        
-        let appleID = try await container.userRecordID()
+    func loginWithApple(id: String, name: PersonNameComponents?, email: String?) async throws {
+
+
+        let recordID = CKRecord.ID(recordName: id)
         
         do {
-            let record = try await publicDB.record(for: appleID)
+            // حاول تجيب المستخدم من الكلاود
+            let record = try await publicDB.record(for: recordID)
             
-            currentUser = User(
+            // ✅ المستخدم موجود → Login
+            let user = User(
                 id: record.recordID.recordName,
                 username: record["username"] as? String ?? "User",
+                email: record["email"] as? String ?? (email ?? ""),
                 authMode: .registered,
                 friends: record["friends"] as? [String] ?? [],
                 ownedPlanets: record["ownedPlanets"] as? [String] ?? []
             )
+
+            currentUser = user
             
         } catch {
-            let newRecord = CKRecord(recordType: "User", recordID: appleID)
-            newRecord["username"] = "New User" as CKRecordValue
-            newRecord["friends"] = [] as CKRecordValue
-            newRecord["ownedPlanets"] = [] as CKRecordValue
-            
+            // ✅ المستخدم مو موجود → Sign Up تلقائي
+            let newRecord = CKRecord(recordType: "User", recordID: recordID)
+            newRecord["username"] = (name?.formatted() ?? "New User") as CKRecordValue
+            newRecord["email"] = (email ?? "") as CKRecordValue
+            // شرط: إذا الحقول موجودة ضعها، إذا لا خليها nil
+                 if let friends: [String] = nil { // حاليا فارغة، خليها nil
+                     newRecord["friends"] = friends as CKRecordValue
+                 }
+
+                 if let ownedPlanets: [String] = nil { // حاليا فارغة، خليها nil
+                     newRecord["ownedPlanets"] = ownedPlanets as CKRecordValue
+                 }
+
             let saved = try await publicDB.save(newRecord)
-            
+
             currentUser = User(
                 id: saved.recordID.recordName,
-                username: "New User",
+                username: name?.formatted() ?? "New User",
+                email: email ?? "",
                 authMode: .registered,
                 friends: [],
                 ownedPlanets: []

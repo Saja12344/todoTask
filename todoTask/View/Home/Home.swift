@@ -33,7 +33,7 @@ func NativeTabView() -> some View {
         }
         Tab.init("Friends", systemImage: "person.2.fill"){
             NavigationStack{
-                EmptyView()
+                FriendsV()
                     .navigationTitle("Friends List")
             }
         }
