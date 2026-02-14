@@ -39,7 +39,7 @@ struct RootRouterView: View {
                 Splash() // or Splash() if you still want intro before auth
             } else {
                 // Existing user session → go straight to Home
-                Home()
+                GoalTasksView()
             }
         }
     }

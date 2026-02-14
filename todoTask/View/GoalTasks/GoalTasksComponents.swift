@@ -4,31 +4,20 @@
 //
 //  Created by Ruba Alghamdi on 25/08/1447 AH.
 //
-
 import SwiftUI
 
-struct TaskRow: View {
+struct BulletTaskRow: View {
     var title: String
-    var isDone: Bool
 
     var body: some View {
-        HStack(spacing: 14) {
-            ZStack {
-                Circle()
-                    .stroke(.white.opacity(0.35), lineWidth: 2)
-                    .frame(width: 30, height: 30)
-
-                if isDone {
-                    Image(systemName: "checkmark")
-                        .font(.caption.weight(.bold))
-                        .foregroundColor(.white)
-                }
-            }
+        HStack(alignment: .top, spacing: 12) {
+            Text("•")
+                .font(.title3)
+                .foregroundStyle(.white.opacity(0.9))
 
             Text(title)
                 .foregroundStyle(.white)
-                .opacity(isDone ? 0.6 : 1.0)
-                .strikethrough(isDone, color: .white.opacity(0.35))
+                .opacity(0.92)
 
             Spacer()
         }
