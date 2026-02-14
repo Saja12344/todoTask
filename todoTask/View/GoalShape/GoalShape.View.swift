@@ -2,6 +2,7 @@ import SwiftUI
 
 struct GoalShapeView: View {
     @State private var selectedGoal: GoalType?
+    @State private var showSettings = false
     
     var body: some View {
         ZStack {
@@ -15,7 +16,6 @@ struct GoalShapeView: View {
                 )
                 .ignoresSafeArea()
             
-            // Background Image
             Image("Gliter")
                 .resizable()
                 .scaledToFit()
@@ -26,31 +26,30 @@ struct GoalShapeView: View {
                 .ignoresSafeArea()
             
             VStack {
-                
                 HStack {
-
                     Button(action: {
-                        // Back action
+                        if showSettings {
+                            withAnimation {
+                                showSettings = false
+                            }
+                        }
                     }) {
                         Image(systemName: "chevron.left")
                             .font(.title2)
                             .foregroundColor(.white)
                             .frame(width: 50, height: 50)
                             .background(Color.clear)
-                            .glassEffect(
-                                .clear,
-                                in: .rect(cornerRadius: 24)
-                            )
-                            .overlay(
-                                Circle()
-                                    .stroke(Color.white.opacity(0.3), lineWidth: 1)
-                            )
+                            .glassEffect(.clear.tint(Color.black.opacity(0.4)), in: .rect(cornerRadius: 24))
                     }
+                    
                     Spacer()
-
-                    // Next Button
+                    
                     Button(action: {
-                        // Next action
+                        if !showSettings && selectedGoal != nil {
+                            withAnimation {
+                                showSettings = true
+                            }
+                        }
                     }) {
                         Text("Next")
                             .font(.headline)
@@ -58,95 +57,133 @@ struct GoalShapeView: View {
                             .padding(.horizontal, 30)
                             .padding(.vertical, 12)
                             .background(Color.clear)
-                            .glassEffect(
-                                .clear,
-                                in: .rect(cornerRadius: 24)
-                            )
-                            .overlay(
-                                RoundedRectangle(cornerRadius: 25)
-                                    .stroke(Color.white.opacity(0.3), lineWidth: 1)
-                            )
+                            .glassEffect(.clear.tint(Color.black.opacity(0.4)), in: .rect(cornerRadius: 24))
                     }
                 }
                 .padding()
-                // Title
-                Text("Select Your Goal Shape")
+                
+                Text(showSettings ? getTitle(for: selectedGoal) : "Select Your Goal Shape")
                     .font(.system(size: 32, weight: .bold))
                     .foregroundColor(.white)
-                    .padding(.top, 20)
+                    .padding(.top, 1)
                 
                 Spacer()
                 
-                // Goal Grid
-                LazyVGrid(columns: [
-                    GridItem(.flexible(), spacing: 16),
-                    GridItem(.flexible(), spacing: 20)
-                ], spacing: 15) {
-                    GoalCard(
-                        icon: "scope",
-                        title: "Finish a Total",
-                        description: "Reach a set number",
-                        isSelected: selectedGoal == .finishTotal
-                    ) {
-                        selectedGoal = .finishTotal
+                if !showSettings {
+                    LazyVGrid(columns: [
+                        GridItem(.flexible(), spacing: 16),
+                        GridItem(.flexible(), spacing: 20)
+                    ], spacing: 15) {
+                        GoalCard(
+                            icon: "scope",
+                            title: "Finish a Total",
+                            description: "Reach a set number",
+                            isSelected: selectedGoal == .finishTotal
+                        ) {
+                            selectedGoal = .finishTotal
+                        }
+                        
+                        GoalCard(
+                            icon: "calendar.badge.clock",
+                            title: "Repeat on Schedule",
+                            description: "Do something on certain days each week",
+                            isSelected: selectedGoal == .repeatSchedule
+                        ) {
+                            selectedGoal = .repeatSchedule
+                        }
+                        
+                        GoalCard(
+                            icon: "flame.fill",
+                            title: "Build a Streak",
+                            description: "Do it every day without stopping",
+                            isSelected: selectedGoal == .buildStreak
+                        ) {
+                            selectedGoal = .buildStreak
+                        }
+                        
+                        GoalCard(
+                            icon: "chart.line.uptrend.xyaxis",
+                            title: "Level Up Gradually",
+                            description: "Start small and slowly do more",
+                            isSelected: selectedGoal == .levelUp
+                        ) {
+                            selectedGoal = .levelUp
+                        }
+                        
+                        GoalCard(
+                            icon: "flag.checkered",
+                            title: "Finish by Milestones",
+                            description: "Complete a goal step by step",
+                            isSelected: selectedGoal == .milestones
+                        ) {
+                            selectedGoal = .milestones
+                        }
+                        
+                        GoalCard(
+                            icon: "arrow.down.circle",
+                            title: "Reduce Something",
+                            description: "Do less of something or stay under a limit",
+                            isSelected: selectedGoal == .reduce
+                        ) {
+                            selectedGoal = .reduce
+                        }
                     }
+                    .padding(.horizontal, 17)
                     
-                    GoalCard(
-                        icon: "calendar.badge.clock",
-                        title: "Repeat on Schedule",
-                        description: "Do something on certain days each week",
-                        isSelected: selectedGoal == .repeatSchedule
-                    ) {
-                        selectedGoal = .repeatSchedule
-                    }
-                    
-                    GoalCard(
-                        icon: "flame.fill",
-                        title: "Build a Streak",
-                        description: "Do it every day without stopping",
-                        isSelected: selectedGoal == .buildStreak
-                    ) {
-                        selectedGoal = .buildStreak
-                    }
-                    
-                    GoalCard(
-                        icon: "chart.line.uptrend.xyaxis",
-                        title: "Level Up Gradually",
-                        description: "Start small and slowly do more",
-                        isSelected: selectedGoal == .levelUp
-                    ) {
-                        selectedGoal = .levelUp
-                    }
-                    
-                    GoalCard(
-                        icon: "flag.checkered",
-                        title: "Finish by Milestones",
-                        description: "Complete a goal step by step",
-                        isSelected: selectedGoal == .milestones
-                    ) {
-                        selectedGoal = .milestones
-                    }
-                    
-                    GoalCard(
-                        icon: "arrow.down.circle",
-                        title: "Reduce Something",
-                        description: "Do less of something or stay under a limit",
-                        isSelected: selectedGoal == .reduce
-                    ) {
-                        selectedGoal = .reduce
+                }
+                else{
+
+                    ScrollView {
+                        VStack(spacing: 16) {
+                            Spacer().frame(height: 40)
+                            
+                            switch selectedGoal {
+                            case .finishTotal:
+                                FinishTotalContent()
+                                
+                            case .repeatSchedule:
+                                RepeatScheduleContent()
+                                
+                            case .buildStreak:
+                                BuildStreakContent()
+                                
+                            case .levelUp:
+                                LevelUpContent()
+                                
+                            case .milestones:
+                                MilestonesContent()
+                                
+                            case .reduce:
+                                ReduceContent()
+                                
+                            case .none:
+                                EmptyView()
+                            }
+                            
+                            Spacer().frame(height: 40)
+                        }
+                        .padding(.horizontal, 20)
                     }
                 }
-                .padding(.horizontal, 17)
                 
                 Spacer()
             }
         }
     }
+    
+    private func getTitle(for goalType: GoalType?) -> String {
+        switch goalType {
+        case .finishTotal: return "Finish a Total"
+        case .repeatSchedule: return "Repeat on Schedule"
+        case .buildStreak: return "Build a Streak"
+        case .levelUp: return "Level Up Gradually"
+        case .milestones: return "Finish by Milestones"
+        case .reduce: return "Reduce Something"
+        case .none: return "Settings"
+        }
+    }
 }
 
-// Preview
-struct GoalShapeView_Previews: PreviewProvider {
-    static var previews: some View {
-        GoalShapeView()
-    }
+#Preview {
+    GoalShapeView()
 }
