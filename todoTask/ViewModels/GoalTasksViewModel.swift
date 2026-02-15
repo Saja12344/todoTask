@@ -5,7 +5,7 @@
 //  Created by Ruba Alghamdi on 25/08/1447 AH.
 //
 
-import SwiftUI
+import Foundation
 import Observation
 
 @Observable
@@ -13,36 +13,26 @@ final class GoalTasksViewModel {
 
     var goalTitle: String = "Learn Spanish By September"
 
+    
+    var maxTasks: Int = 30
+
     var tasks: [GoalTask] = [
-        .init(title: "read 5 flash cards"),
-        .init(title: "learn 3 new words")
+        .init(spec: .init(action: "study", quantity: 5, unit: "flashcards")),
+        .init(spec: .init(action: "learn", quantity: 3, unit: "words"))
     ]
 
-    var newTaskText: String = ""
+    var progress: Double { 0.0 }
 
-    var progress: Double {
-        guard !tasks.isEmpty else { return 0 }
-        let done = tasks.filter { $0.isDone }.count
-        return Double(done) / Double(tasks.count)
-    }
+    func addTask(spec: TaskSpec) {
+        let a = spec.action.trimmingCharacters(in: .whitespacesAndNewlines)
+        let u = spec.unit.trimmingCharacters(in: .whitespacesAndNewlines)
 
-    func toggle(_ task: GoalTask) {
-        guard let i = tasks.firstIndex(where: { $0.id == task.id }) else { return }
-        tasks[i].isDone.toggle()
-    }
+        guard !a.isEmpty else { return }
+        guard !u.isEmpty else { return }
+        guard spec.quantity > 0 else { return }
+        guard tasks.count < maxTasks else { return }
 
-    func addTask() {
-        let t = newTaskText.trimmingCharacters(in: .whitespacesAndNewlines)
-        guard !t.isEmpty else { return }
-        tasks.append(.init(title: t))
-        newTaskText = ""
-    }
-
-    func updateTaskTitle(taskID: UUID, newTitle: String) {
-        let trimmed = newTitle.trimmingCharacters(in: .whitespacesAndNewlines)
-        guard !trimmed.isEmpty else { return }
-        guard let idx = tasks.firstIndex(where: { $0.id == taskID }) else { return }
-        tasks[idx].title = trimmed
+        tasks.append(.init(spec: .init(action: a, quantity: spec.quantity, unit: u)))
     }
 
     func deleteTask(taskID: UUID) {
