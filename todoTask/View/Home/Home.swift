@@ -9,6 +9,9 @@ import SwiftUI
 import UserNotifications
 
 struct Home: View {
+    @EnvironmentObject var userVM: UserViewModel
+    @State private var showLoginPopup = false
+    
     var body: some View {
         NativeTabView()
             .navigationBarBackButtonHidden(true)
@@ -49,4 +52,6 @@ func NativeTabView() -> some View {
 }
 #Preview {
     Home()
+    .environmentObject(UserViewModel())
+
 }

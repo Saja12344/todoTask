@@ -72,7 +72,7 @@ struct today: View {
     var body: some View {
         ZStack{
             Rectangle()
-                .fill(LinearGradient(colors: [.color, .dark], startPoint: .bottom, endPoint: .top))
+                .fill(LinearGradient(colors: [.darkBlu, .dark], startPoint: .bottom, endPoint: .top))
                 .ignoresSafeArea()
             Image("Background 4")
                 .resizable()
@@ -265,7 +265,7 @@ struct Goals: View {
     var body: some View {
         ZStack{
             Rectangle()
-                .fill(LinearGradient(colors: [.color, .dark], startPoint: .bottom, endPoint: .top))
+                .fill(LinearGradient(colors: [.darkBlu, .dark], startPoint: .bottom, endPoint: .top))
                 .ignoresSafeArea()
             Image("Gliter")
                 .resizable()
@@ -315,7 +315,7 @@ struct Settings: View {
     var body: some View {
         ZStack {
             Rectangle()
-                .fill(LinearGradient(colors: [.color, .dark], startPoint: .bottom, endPoint: .top))
+                .fill(LinearGradient(colors: [.darkBlu, .dark], startPoint: .bottom, endPoint: .top))
                 .ignoresSafeArea()
             Image("Background")
                 .resizable()
@@ -460,18 +460,18 @@ struct Settings: View {
         } message: {
             Text("You are continuing as a guest. Logging out will erase all local data.")
         }
-        .sheet(isPresented: $isEditingName) {
-            EditUsernameSheet(
-                initialName: userVM.currentUser?.username ?? "",
-                onCancel: { isEditingName = false },
-                onSave: { newName in
-                    Task { await userVM.updateUsername(to: newName) }
-                    isEditingName = false
-                }
-            )
-            .presentationDetents([PresentationDetent.height(220)])
-            .presentationDragIndicator(.visible)
-        }
+//        .sheet(isPresented: $isEditingName) {
+//            EditUsernameSheet(
+//                initialName: userVM.currentUser?.username ?? "",
+//                onCancel: { isEditingName = false },
+//                onSave: { newName in
+//                    Task { await userVM.updateUsername(to: newName) }
+//                    isEditingName = false
+//                }
+//            )
+//            .presentationDetents([PresentationDetent.height(220)])
+//            .presentationDragIndicator(.visible)
+//        }
         .colorScheme(.dark)
     }
 }
@@ -505,9 +505,9 @@ struct DayView: View {
             ? Color.white.opacity(0.9)
             : isToday
             ? Color.accent.opacity(0.35)
-            : Color.color.opacity(0.8)
+            : Color.darkBlu.opacity(0.8)
         )
-        .foregroundColor(isSelected ? Color(.color) : .white)
+        .foregroundColor(isSelected ? Color(.darkBlu) : .white)
         .clipShape(RoundedRectangle(cornerRadius: 12))
         .glassEffect(.clear.interactive(), in: .rect(cornerRadius: 12))
     }
