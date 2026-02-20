@@ -11,6 +11,8 @@ import SwiftUI
 struct todoTaskApp: App {
 
     @StateObject private var userVM = UserViewModel()
+    @StateObject private var goalStore = OrbGoalStore()
+
 
     init() {
         NotificationPermissionManager.shared.requestPermissionIfNeeded()
@@ -20,6 +22,7 @@ struct todoTaskApp: App {
         WindowGroup {
             RootRouterView()
                 .environmentObject(userVM)
+                .environmentObject(goalStore)
                 .onAppear {
                     // Restore previously saved local (guest or registered) session if any
                     userVM.loadLocalUser()
@@ -39,7 +42,7 @@ struct RootRouterView: View {
                 Splash() // or Splash() if you still want intro before auth
             } else {
                 // Existing user session → go straight to Home
-                GoalTasksView()
+                Home()
             }
         }
     }

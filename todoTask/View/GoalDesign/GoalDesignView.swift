@@ -8,6 +8,10 @@
 import SwiftUI
 
 struct GoalDesign: View {
+    @EnvironmentObject private var store: OrbGoalStore
+    @Environment(\.dismiss) private var dismiss
+    @State private var goalTitle: String = ""
+    @State private var totalTasks: Int = 10
 
     @State private var vm = GoalDesignViewModel()
 
@@ -18,9 +22,10 @@ struct GoalDesign: View {
             VStack(spacing: 0) {
                 AppNavigationBar(
                     title: "Design Your Orb",
-                    onBack: {},
-                    onNext: {}
+                    onBack: { dismiss() },
+                    onNext: { saveGoal() }
                 )
+
 
                 ZStack(alignment: .top) {
 
@@ -55,6 +60,7 @@ struct GoalDesign: View {
                         Spacer().frame(height: 270)
 
                         GlassCard {
+
                             VStack(alignment: .leading, spacing: 18) {
 
                                 // MARK: - Planet Colors
@@ -133,11 +139,35 @@ struct GoalDesign: View {
             }
         }
     }
+    private func saveGoal() {
+        let title = goalTitle.trimmingCharacters(in: .whitespacesAndNewlines)
+        let safeTitle = title.isEmpty ? "New Goal" : title
+
+        let design = OrbDesign(
+            glow: vm.glow,
+            textureOpacity: vm.textureOpacity,
+            textureAssetName: vm.selectedEffectAsset,
+            gradientStops: vm.gradientStops.map { RGBAColor.from($0) }
+        )
+
+        let goal = OrbGoal(
+            id: UUID(),
+            title: safeTitle,
+            totalTasks: max(1, totalTasks),
+            doneTasks: 0,
+            design: design
+        )
+
+        store.add(goal)
+        dismiss()
+    }
+
 }
 
 // Preview
 struct GoalDesign_Previews: PreviewProvider {
     static var previews: some View {
         GoalDesign()
+            .environmentObject(OrbGoalStore())
     }
 }
