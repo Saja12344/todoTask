@@ -9,7 +9,7 @@ struct GoalShapeView: View {
             Rectangle()
                 .fill(
                     LinearGradient(
-                        colors: [.color, .dark],
+                        colors: [.darkBlu, .dark],
                         startPoint: .bottom,
                         endPoint: .top
                     )

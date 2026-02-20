@@ -7,6 +7,7 @@
 
 import SwiftUI
 
+
 @main
 struct todoTaskApp: App {
 
@@ -28,7 +29,9 @@ struct todoTaskApp: App {
                     userVM.loadLocalUser()
                 }
         }
+        
     }
+    
 }
 
 // Root router decides which view to show based on user state
@@ -37,14 +40,21 @@ struct RootRouterView: View {
 
     var body: some View {
         Group {
-            if userVM.currentUser == nil {
-                // No saved user (new install, logout, or app deleted)
-                Splash() // or Splash() if you still want intro before auth
+            if userVM.isCheckingAuth {
+                ProgressView() 
+            } else if userVM.currentUser == nil {
+                Enter()
             } else {
                 // Existing user session → go straight to Home
                 Home()
             }
         }
+        .onAppear {
+            userVM.loadLocalUser()
+            userVM.checkAppleCredentialState()
+        }
     }
 }
+
+
 

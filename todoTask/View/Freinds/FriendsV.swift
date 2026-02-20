@@ -19,7 +19,7 @@ struct FriendsV: View {
         NavigationStack {
             ZStack {
                 // الخلفية
-                LinearGradient(colors: [.color, .dark], startPoint: .bottom, endPoint: .top)
+                LinearGradient(colors: [.darkBlu, .dark], startPoint: .bottom, endPoint: .top)
                     .ignoresSafeArea()
                 Image("Gliter")
                     .resizable()
@@ -27,8 +27,8 @@ struct FriendsV: View {
                 
                 VStack(spacing: 15) {
                     // User ID
-                    if let user = friendRequestVM.currentUser {
-                        Text("Your ID: \(user.id.prefix(6))")
+                    if let user = userVM.currentUser {
+                        Text("Your ID: \"\(user.username)\"")
                             .font(.caption)
                             .foregroundColor(.gray)
                     }
