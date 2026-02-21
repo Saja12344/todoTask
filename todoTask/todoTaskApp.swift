@@ -39,16 +39,16 @@ struct RootRouterView: View {
     @EnvironmentObject private var userVM: UserViewModel
 
     var body: some View {
-        Group {
-            if userVM.isCheckingAuth {
-                ProgressView() 
-            } else if userVM.currentUser == nil {
-                Enter()
-            } else {
-                // Existing user session → go straight to Home
+//        Group {
+//            if userVM.isCheckingAuth {
+//                ProgressView() 
+//            } else if userVM.currentUser == nil {
+//                Enter()
+//            } else {
+//                // Existing user session → go straight to Home
                 Home()
-            }
-        }
+//            }
+//        }
         .onAppear {
             userVM.loadLocalUser()
             userVM.checkAppleCredentialState()

@@ -15,6 +15,14 @@ struct GoalDesign: View {
 
     @State private var vm = GoalDesignViewModel()
 
+    // Optional callback for flow-managed save
+    let onSaveDesign: ((OrbDesign) -> Void)?
+
+    // Backward-compatible init: default nil keeps old usages working
+    init(onSaveDesign: ((OrbDesign) -> Void)? = nil) {
+        self.onSaveDesign = onSaveDesign
+    }
+
     var body: some View {
         ZStack {
             AppBackground()
@@ -137,18 +145,25 @@ struct GoalDesign: View {
                     }
                 }
             }
-        }
+        }.toolbar(.hidden, for: .tabBar)
     }
     private func saveGoal() {
-        let title = goalTitle.trimmingCharacters(in: .whitespacesAndNewlines)
-        let safeTitle = title.isEmpty ? "New Goal" : title
-
         let design = OrbDesign(
             glow: vm.glow,
             textureOpacity: vm.textureOpacity,
             textureAssetName: vm.selectedEffectAsset,
             gradientStops: vm.gradientStops.map { RGBAColor.from($0) }
         )
+
+        if let onSaveDesign {
+            // Flow-managed save: pass design up
+            onSaveDesign(design)
+            return
+        }
+
+        // Backward compatibility: if used standalone, still save goal here
+        let title = goalTitle.trimmingCharacters(in: .whitespacesAndNewlines)
+        let safeTitle = title.isEmpty ? "New Goal" : title
 
         let goal = OrbGoal(
             id: UUID(),
@@ -161,7 +176,7 @@ struct GoalDesign: View {
         store.add(goal)
         dismiss()
     }
-
+        
 }
 
 // Preview

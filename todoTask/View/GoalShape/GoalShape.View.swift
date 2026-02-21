@@ -3,12 +3,21 @@ import SwiftUI
 struct GoalShapeView: View {
     @State private var selectedGoal: GoalType?
     @State private var showSettings = false
-    
-    init(selectedGoal: GoalType? = nil, showSettings: Bool = false) {
+
+    // Parent-driven completion
+    let onFinished: ((GoalType) -> Void)?
+    let onBack: (() -> Void)?
+
+    init(selectedGoal: GoalType? = nil,
+         showSettings: Bool = false,
+         onFinished: ((GoalType) -> Void)? = nil,
+         onBack: (() -> Void)? = nil) {
         self._selectedGoal = State(initialValue: selectedGoal)
         self._showSettings = State(initialValue: showSettings)
+        self.onFinished = onFinished
+        self.onBack = onBack
     }
-    
+
     var body: some View {
         ZStack {
             Rectangle()
@@ -20,7 +29,7 @@ struct GoalShapeView: View {
                     )
                 )
                 .ignoresSafeArea()
-            
+
             Image("Gliter")
                 .resizable()
                 .scaledToFit()
@@ -29,7 +38,7 @@ struct GoalShapeView: View {
                 .contrast(1.8)
                 .saturation(1.8)
                 .ignoresSafeArea()
-            
+
             VStack {
                 HStack {
                     Button(action: {
@@ -37,6 +46,8 @@ struct GoalShapeView: View {
                             withAnimation {
                                 showSettings = false
                             }
+                        } else {
+                            onBack?()
                         }
                     }) {
                         Image(systemName: "chevron.left")
@@ -46,13 +57,20 @@ struct GoalShapeView: View {
                             .background(Color.clear)
                             .glassEffect(.clear.tint(Color.black.opacity(0.4)), in: .rect(cornerRadius: 24))
                     }
-                    
+
                     Spacer()
-                    
+
                     Button(action: {
-                        if !showSettings && selectedGoal != nil {
-                            withAnimation {
-                                showSettings = true
+                        if !showSettings {
+                            if selectedGoal != nil {
+                                withAnimation {
+                                    showSettings = true
+                                }
+                            }
+                        } else {
+                            // Finished settings → notify parent with selected type
+                            if let type = selectedGoal {
+                                onFinished?(type)
                             }
                         }
                     }) {
@@ -66,14 +84,14 @@ struct GoalShapeView: View {
                     }
                 }
                 .padding()
-                
+
                 Text(showSettings ? getTitle(for: selectedGoal) : "Select Your Goal Shape")
                     .font(.system(size: 32, weight: .bold))
                     .foregroundColor(.white)
                     .padding(.top, 1)
-                
+
                 Spacer()
-                
+
                 if !showSettings {
                     LazyVGrid(columns: [
                         GridItem(.flexible(), spacing: 16),
@@ -87,7 +105,7 @@ struct GoalShapeView: View {
                         ) {
                             selectedGoal = .finishTotal
                         }
-                        
+
                         GoalCard(
                             icon: "calendar.badge.clock",
                             title: "Repeat on Schedule",
@@ -96,7 +114,7 @@ struct GoalShapeView: View {
                         ) {
                             selectedGoal = .repeatSchedule
                         }
-                        
+
                         GoalCard(
                             icon: "flame.fill",
                             title: "Build a Streak",
@@ -105,7 +123,7 @@ struct GoalShapeView: View {
                         ) {
                             selectedGoal = .buildStreak
                         }
-                        
+
                         GoalCard(
                             icon: "chart.line.uptrend.xyaxis",
                             title: "Level Up Gradually",
@@ -114,7 +132,7 @@ struct GoalShapeView: View {
                         ) {
                             selectedGoal = .levelUp
                         }
-                        
+
                         GoalCard(
                             icon: "flag.checkered",
                             title: "Finish by Milestones",
@@ -123,7 +141,7 @@ struct GoalShapeView: View {
                         ) {
                             selectedGoal = .milestones
                         }
-                        
+
                         GoalCard(
                             icon: "arrow.down.circle",
                             title: "Reduce Something",
@@ -134,46 +152,46 @@ struct GoalShapeView: View {
                         }
                     }
                     .padding(.horizontal, 17)
-                    
+
                 } else {
                     ScrollView {
                         VStack(spacing: 16) {
                             Spacer().frame(height: 40)
-                            
+
                             switch selectedGoal {
                             case .finishTotal:
                                 FinishTotalContent()
-                                
+
                             case .repeatSchedule:
                                 RepeatScheduleContent()
-                                
+
                             case .buildStreak:
                                 BuildStreakContent()
-                                
+
                             case .levelUp:
                                 LevelUpContent()
-                                
+
                             case .milestones:
                                 MilestonesContent()
-                                
+
                             case .reduce:
                                 ReduceContent()
-                                
+
                             case .none:
                                 EmptyView()
                             }
-                            
+
                             Spacer().frame(height: 40)
                         }
                         .padding(.horizontal, 20)
                     }
                 }
-                
+
                 Spacer()
             }
-        }
+        }.toolbar(.hidden, for: .tabBar)
     }
-    
+
     func getTitle(for goalType: GoalType?) -> String {
         switch goalType {
         case .finishTotal: return "Finish a Total"
@@ -188,5 +206,5 @@ struct GoalShapeView: View {
 }
 
 #Preview {
-    GoalShapeView()
+    GoalShapeView(onFinished: { _ in }, onBack: {})
 }
