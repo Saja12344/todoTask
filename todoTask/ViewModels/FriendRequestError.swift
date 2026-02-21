@@ -34,41 +34,41 @@ class FriendRequestViewModel: ObservableObject {
     @Published var friends: [User] = []
 
 
+//
+//    init() {
+//        loadDummyData()
+//    }
 
-    init() {
-        loadDummyData()
-    }
-
-    func loadDummyData() {
-        // المستخدم الحالي
-        currentUser = User(id: "user_001", username: "Saja", email: "saja@test.com", authMode: .registered, friends: [], ownedPlanets: [])
-        
-        allUsers = [
-             User(id: "user_002", username: "Ahmed", email: "ahmed@test.com", authMode: .registered),
-             User(id: "user_003", username: "Lina", email: "lina@test.com", authMode: .registered),
-             User(id: "user_004", username: "Omar", email: "omar@test.com", authMode: .registered),
-             User(id: "user_005", username: "Mona", email: "mona@test.com", authMode: .registered)
-         ]
-
-        friends = [
-        ]
-        
-        // طلبات صديق مستلمة (تم قبولها)
-        receivedRequests = [
-            FriendRequest(recordID: "req_001", from: "user_002", to: "user_001", status: .accepted),
-            FriendRequest(recordID: "req_002", from: "user_003", to: "user_001", status: .accepted)
-        ]
-
-        // طلبات صديق معلقة (pending)
-        pendingRequests = [
-            FriendRequest(recordID: "req_003", from: "user_001", to: "user_005", status: .pending),
-            
-            FriendRequest(recordID: "req_004",
-             from: "user_001", to: "user_003", status: .pending),
-      
-        ]
-    
-    }
+//    func loadDummyData() {
+//        // المستخدم الحالي
+//        currentUser = User(id: "user_001", username: "Saja", email: "saja@test.com", authMode: .registered, friends: [], ownedPlanets: [])
+//        
+//        allUsers = [
+//             User(id: "user_002", username: "Ahmed", email: "ahmed@test.com", authMode: .registered),
+//             User(id: "user_003", username: "Lina", email: "lina@test.com", authMode: .registered),
+//             User(id: "user_004", username: "Omar", email: "omar@test.com", authMode: .registered),
+//             User(id: "user_005", username: "Mona", email: "mona@test.com", authMode: .registered)
+//         ]
+//
+//        friends = [
+//        ]
+//        
+//        // طلبات صديق مستلمة (تم قبولها)
+//        receivedRequests = [
+//            FriendRequest(recordID: "req_001", from: "user_002", to: "user_001", status: .accepted),
+//            FriendRequest(recordID: "req_002", from: "user_003", to: "user_001", status: .accepted)
+//        ]
+//
+//        // طلبات صديق معلقة (pending)
+//        pendingRequests = [
+//            FriendRequest(recordID: "req_003", from: "user_001", to: "user_005", status: .pending),
+//            
+//            FriendRequest(recordID: "req_004",
+//             from: "user_001", to: "user_003", status: .pending),
+//      
+//        ]
+//    
+//    }
 
     // البحث فقط يبحث في الـ friends للعرض التجريبي
     func searchUsersDum(by username: String, currentUserID: String) async -> [User] {

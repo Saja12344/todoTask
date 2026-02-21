@@ -7,7 +7,6 @@
 
 import SwiftUI
 
-
 struct CheckBoxItem {
     var name: String
     var isChecked: Bool
@@ -44,16 +43,36 @@ struct CheckBoxView: View {
 struct today: View {
     @StateObject private var viewModel = HomeViewModel()
     @StateObject private var vm = MiniCalendarViewModel()
+    @StateObject private var energyVM = DailyEnergyViewModel() // NEW
+    
     @State private var items = [
         CheckBoxItem(name: "Read 5 flash cards", isChecked: false),
         CheckBoxItem(name: "Walk 1 km", isChecked: false),
         CheckBoxItem(name: "Drink at least 4 water cups", isChecked: false)
     ]
     
+    // Track selected energy level for visual feedback
+    @State private var selectedEnergyID: String? = nil
+    
+    // Deterministic quote of the day (same quote for the entire day)
+    private var dailyQuote: String {
+        let calendar = Calendar.current
+        // Use startOfDay to be stable across time during the day
+        let start = calendar.startOfDay(for: Date())
+        // Create a stable day number (days since 1970)
+        let seconds = start.timeIntervalSince1970
+        let days = Int(seconds / 86_400) // 86400 seconds per day
+        
+        let all = Quotes.all
+        guard !all.isEmpty else { return "" }
+        let index = abs(days) % all.count
+        return all[index]
+    }
+    
     var body: some View {
         ZStack{
             Rectangle()
-                .fill(LinearGradient(colors: [.color, .dark], startPoint: .bottom, endPoint: .top))
+                .fill(LinearGradient(colors: [.darkBlu, .dark], startPoint: .bottom, endPoint: .top))
                 .ignoresSafeArea()
             Image("Background 4")
                 .resizable()
@@ -66,12 +85,11 @@ struct today: View {
             VStack(alignment: .leading){
                 Text(viewModel.formattedDate)
                     .foregroundColor(.primary)
-                    .font(.largeTitle)
+                    .font(.system(size: 28, weight: .bold))
                     .bold()
                     .padding(.leading, 20)
                 
-                
-                Text("THIS IS AN INSPIRING QOUTE.")
+                Text(dailyQuote)
                     .padding(.leading, 20)
                 
                 ZStack (alignment: .center){
@@ -152,8 +170,94 @@ struct today: View {
                     }
                 }
             }
+            
+            // Energy prompt — show once per day
+            if energyVM.showPromptForToday {
+                ZStack {
+                    Color.black.opacity(0.6)
+                        .ignoresSafeArea()
+                    RoundedRectangle(cornerRadius: 20)
+                        .frame(width: 350, height: 260)
+                        .glassEffect(.regular, in: .rect(cornerRadius: 20))
+                    VStack(spacing: 10){
+                       Text("What’s your energy level today?")
+                            .bold()
+                        HStack{
+                            ForEach(Energytoday.defaults){ level in
+                                Button {
+                                    Task {
+                                        await energyVM.setEnergyForToday(level)
+                                        // Update selection and print the level name
+                                        await MainActor.run {
+                                            selectedEnergyID = level.id.uuidString
+                                            print("Selected energy level: \(level.title)")
+                                        }
+                                    }
+                                } label: {
+                                    VStack(spacing: 12){
+                                        Image(systemName: level.icon)
+                                            .font(.system(size: 35, weight: .regular))
+                                            .foregroundColor(.white)
+                                        Text(level.title)
+                                            .foregroundColor(.white)
+                                            .font(.system(size: 16, weight: .medium))
+                                    }
+                                    .frame(width: 105, height: 120)
+                                    .background(Color.clear)
+                                    .overlay(
+                                        RoundedRectangle(cornerRadius: 25)
+                                            .stroke(
+                                                selectedEnergyID == level.id.uuidString ? Color.accent : Color.clear,
+                                                lineWidth: 2
+                                            )
+                                    )
+                                }
+                                .glassEffect(.clear.interactive(), in: .rect(cornerRadius: 25))
+                            }
+                        }
+                        // Show selected level name below the buttons
+                        if let selectedID = selectedEnergyID,
+                           let selected = Energytoday.defaults.first(where: { $0.id.uuidString == selectedID }) {
+                            Text("Selected: \(selected.title)")
+                                .font(.caption)
+                                .foregroundColor(.white.opacity(0.9))
+                                .padding(.top, 4)
+                        } else if let entry = energyVM.todayEntry {
+                            // If already saved earlier today, reflect it
+                            Text("Selected: \(entry.title)")
+                                .font(.caption)
+                                .foregroundColor(.white.opacity(0.9))
+                                .padding(.top, 4)
+                        } else {
+                            Text("you can change it later in settings")
+                                .font(.caption)
+                                .padding(.top)
+                        }
+                    }
+                    .padding(.horizontal)
+                }
+                .transition(.opacity)
+                .animation(.easeInOut, value: energyVM.showPromptForToday)
+                .task {
+                    // Ensure prompt reflects latest local state on appear
+                    energyVM.refreshToday()
+                    // Initialize selectedEnergyID from saved entry if exists
+                    if let entry = energyVM.todayEntry {
+                        selectedEnergyID = Energytoday.defaults.first(where: { $0.title == entry.title })?.id.uuidString
+                    }
+                }
+            }
         }
         .colorScheme(.dark)
+        .onAppear {
+            // Record daily open centrally so it counts even if Report isn’t opened
+            LoginTracker.recordTodayOpened()
+
+            energyVM.refreshToday()
+            if let entry = energyVM.todayEntry {
+                selectedEnergyID = Energytoday.defaults.first(where: { $0.title == entry.title })?.id.uuidString
+            }
+        }
     }
 }
 
@@ -161,7 +265,7 @@ struct Goals: View {
     var body: some View {
         ZStack{
             Rectangle()
-                .fill(LinearGradient(colors: [.color, .dark], startPoint: .bottom, endPoint: .top))
+                .fill(LinearGradient(colors: [.darkBlu, .dark], startPoint: .bottom, endPoint: .top))
                 .ignoresSafeArea()
             Image("Gliter")
                 .resizable()
@@ -211,7 +315,7 @@ struct Settings: View {
     var body: some View {
         ZStack {
             Rectangle()
-                .fill(LinearGradient(colors: [.color, .dark], startPoint: .bottom, endPoint: .top))
+                .fill(LinearGradient(colors: [.darkBlu, .dark], startPoint: .bottom, endPoint: .top))
                 .ignoresSafeArea()
             Image("Background")
                 .resizable()
@@ -356,18 +460,18 @@ struct Settings: View {
         } message: {
             Text("You are continuing as a guest. Logging out will erase all local data.")
         }
-        .sheet(isPresented: $isEditingName) {
-            EditUsernameSheet(
-                initialName: userVM.currentUser?.username ?? "",
-                onCancel: { isEditingName = false },
-                onSave: { newName in
-                    Task { await userVM.updateUsername(to: newName) }
-                    isEditingName = false
-                }
-            )
-            .presentationDetents([PresentationDetent.height(220)])
-            .presentationDragIndicator(.visible)
-        }
+//        .sheet(isPresented: $isEditingName) {
+//            EditUsernameSheet(
+//                initialName: userVM.currentUser?.username ?? "",
+//                onCancel: { isEditingName = false },
+//                onSave: { newName in
+//                    Task { await userVM.updateUsername(to: newName) }
+//                    isEditingName = false
+//                }
+//            )
+//            .presentationDetents([PresentationDetent.height(220)])
+//            .presentationDragIndicator(.visible)
+//        }
         .colorScheme(.dark)
     }
 }
@@ -401,9 +505,9 @@ struct DayView: View {
             ? Color.white.opacity(0.9)
             : isToday
             ? Color.accent.opacity(0.35)
-            : Color.color.opacity(0.8)
+            : Color.darkBlu.opacity(0.8)
         )
-        .foregroundColor(isSelected ? Color(.color) : .white)
+        .foregroundColor(isSelected ? Color(.darkBlu) : .white)
         .clipShape(RoundedRectangle(cornerRadius: 12))
         .glassEffect(.clear.interactive(), in: .rect(cornerRadius: 12))
     }
@@ -491,7 +595,8 @@ func notificationDenied(_ completion: @escaping (Bool) -> Void) {
         completion(settings.authorizationStatus == .denied)
     }
 }
+
 #Preview {
-    Settings()
+    today()
         .environmentObject(UserViewModel())
 }

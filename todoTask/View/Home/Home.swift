@@ -9,6 +9,9 @@ import SwiftUI
 import UserNotifications
 
 struct Home: View {
+    @EnvironmentObject var userVM: UserViewModel
+    @State private var showLoginPopup = false
+    
     var body: some View {
         NativeTabView()
             .navigationBarBackButtonHidden(true)
@@ -27,16 +30,16 @@ func NativeTabView() -> some View {
         }
         Tab.init("Goals", systemImage: "target"){
             NavigationStack{
-                Goals()
+                GoalsPage()
                     .navigationTitle("Achived Goals")
             }
         }
-        Tab.init("Friends", systemImage: "person.2.fill"){
-            NavigationStack{
-                FriendsV()
-                    .navigationTitle("Friends List")
-            }
-        }
+//        Tab.init("Friends", systemImage: "person.2.fill"){
+//            NavigationStack{
+//                FriendsV()
+//                    .navigationTitle("Friends List")
+//            }
+//        }
         Tab.init("Settings", systemImage: "gear"){
             NavigationStack{
                 Settings()
@@ -49,4 +52,6 @@ func NativeTabView() -> some View {
 }
 #Preview {
     Home()
+    .environmentObject(UserViewModel())
+
 }
