@@ -4,6 +4,11 @@ struct GoalShapeView: View {
     @State private var selectedGoal: GoalType?
     @State private var showSettings = false
     
+    init(selectedGoal: GoalType? = nil, showSettings: Bool = false) {
+        self._selectedGoal = State(initialValue: selectedGoal)
+        self._showSettings = State(initialValue: showSettings)
+    }
+    
     var body: some View {
         ZStack {
             Rectangle()
@@ -130,9 +135,7 @@ struct GoalShapeView: View {
                     }
                     .padding(.horizontal, 17)
                     
-                }
-                else{
-
+                } else {
                     ScrollView {
                         VStack(spacing: 16) {
                             Spacer().frame(height: 40)
@@ -171,7 +174,7 @@ struct GoalShapeView: View {
         }
     }
     
-    private func getTitle(for goalType: GoalType?) -> String {
+    func getTitle(for goalType: GoalType?) -> String {
         switch goalType {
         case .finishTotal: return "Finish a Total"
         case .repeatSchedule: return "Repeat on Schedule"
