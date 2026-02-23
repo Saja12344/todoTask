@@ -50,32 +50,32 @@ struct TimeWindow: Codable {
 // ═══════════════════════════════════════════════════════════
 // MARK: - Goal Settings (الإعدادات الكاملة)
 // ═══════════════════════════════════════════════════════════
-
-struct GoalSettings {
-    // Common
-    var targetNumber: Int?
-    var unit: String?
-    var deadlineDate: Date?
-    var daysAWeek: [Weekday] = []
-    
-    // Time
-    var timeWindow: TimeWindow?
-    var dailyEffort: Double = 50.0
-    
-    // Flexibility
-    var makeupAllowed: Bool = false
-    var breakDays: Int = 0
-    
-    // Activity (للياقة/تعلم)
-    var activity: String?
-    var targetLevel: String?
-    var stepUpPace: String?
-    var recoveryWeek: Bool = false
-    
-    // Scope (للمشاريع)
-    var scopeSize: String?
-    var dailyTimePreference: Int?
-}
+//
+//struct GoalSettings {
+//    // Common
+//    var targetNumber: Int?
+//    var unit: String?
+//    var deadlineDate: Date?
+//    var daysAWeek: [Weekday] = []
+//    
+//    // Time
+//    var timeWindow: TimeWindow?
+//    var dailyEffort: Double = 50.0
+//    
+//    // Flexibility
+//    var makeupAllowed: Bool = false
+//    var breakDays: Int = 0
+//    
+//    // Activity (للياقة/تعلم)
+//    var activity: String?
+//    var targetLevel: String?
+//    var stepUpPace: String?
+//    var recoveryWeek: Bool = false
+//    
+//    // Scope (للمشاريع)
+//    var scopeSize: String?
+//    var dailyTimePreference: Int?
+//}
 
 // ═══════════════════════════════════════════════════════════
 // MARK: - Goal Config (للإنشاء)

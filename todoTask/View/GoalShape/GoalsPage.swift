@@ -2,7 +2,7 @@
 //  GoalsPage.swift
 //  todoTask
 //
-//  Created by Ruba Alghamdi on 27/08/1447 AH.
+//  استبدل الملف الموجود بهذا كاملاً
 //
 
 import SwiftUI
@@ -11,51 +11,40 @@ private enum CreationStep: Hashable {
     case write
     case suggested(shape: GoalShape, text: String)
     case manual(typePrefill: GoalType?)
+    case form(type: GoalType)
     case design
 }
 
 struct GoalsPage: View {
     @EnvironmentObject private var store: OrbGoalStore
 
-    // Navigation path for full-page flow
-    @State private var path: [CreationStep] = []
-
+    @State private var path:           [CreationStep] = []
     @State private var showDeleteConfirm = false
     @State private var goalPendingDelete: OrbGoal?
+    @State private var draftTitle:     String        = ""
+    @State private var chosenType:     GoalType?     = nil
+    @State private var chosenSettings: GoalSettings? = nil
 
-    // Creation flow state
-    @State private var draftTitle: String = ""
-    @State private var chosenType: GoalType?
+    // طاقة اليوم لتعديل عدد المهام
+    @StateObject private var energyVM = DailyEnergyViewModel()
 
-    private let columns: [GridItem] = [
-        GridItem(.adaptive(minimum: 170), spacing: 16)
-    ]
+    private let columns: [GridItem] = [GridItem(.adaptive(minimum: 170), spacing: 16)]
 
     var body: some View {
         NavigationStack(path: $path) {
             ZStack {
-                // Background
                 Rectangle()
                     .fill(LinearGradient(colors: [Color("color"), Color("dark")], startPoint: .bottom, endPoint: .top))
                     .ignoresSafeArea()
-
-                Image("Background 4")
-                    .resizable()
-                    .ignoresSafeArea()
-                    .opacity(0.35)
-
-                Image("Gliter")
-                    .resizable()
-                    .ignoresSafeArea()
+                Image("Background 4").resizable().ignoresSafeArea().opacity(0.35)
+                Image("Gliter").resizable().ignoresSafeArea()
 
                 ScrollView(showsIndicators: false) {
                     VStack(alignment: .leading, spacing: 14) {
-
                         Text("Your Orbs")
                             .font(.system(size: 22, weight: .semibold))
                             .foregroundStyle(.white)
-                            .padding(.horizontal, 16)
-                            .padding(.top, 8)
+                            .padding(.horizontal, 16).padding(.top, 8)
 
                         LazyVGrid(columns: columns, spacing: 16) {
                             ForEach(store.goals) { goal in
@@ -69,9 +58,7 @@ struct GoalsPage: View {
                                     Button(role: .destructive) {
                                         goalPendingDelete = goal
                                         showDeleteConfirm = true
-                                    } label: {
-                                        Label("Delete Orb", systemImage: "trash")
-                                    }
+                                    } label: { Label("Delete Orb", systemImage: "trash") }
                                 }
                                 .onLongPressGesture(minimumDuration: 0.6) {
                                     goalPendingDelete = goal
@@ -80,39 +67,30 @@ struct GoalsPage: View {
                             }
                         }
                         .padding(.horizontal, 16)
-
                         Spacer().frame(height: 30)
                     }
                 }
             }
             .toolbar {
                 ToolbarItem(placement: .navigationBarTrailing) {
-                    Button {
-                        startCreation()
-                    } label: { Image(systemName: "plus") }
-                    .foregroundStyle(.white)
+                    Button { startCreation() } label: { Image(systemName: "plus") }
+                        .foregroundStyle(.white)
                 }
             }
-            .confirmationDialog(
-                "Delete this orb?",
-                isPresented: $showDeleteConfirm,
-                titleVisibility: .visible
-            ) {
+            .confirmationDialog("Delete this orb?", isPresented: $showDeleteConfirm, titleVisibility: .visible) {
                 Button("Delete", role: .destructive) {
-                    if let g = goalPendingDelete {
-                        store.delete(goalID: g.id)
-                    }
+                    if let g = goalPendingDelete { store.delete(goalID: g.id) }
                     goalPendingDelete = nil
                 }
-                Button("Cancel", role: .cancel) {
-                    goalPendingDelete = nil
-                }
-            } message: {
-                Text("This will remove the orb and its progress.")
-            }
+                Button("Cancel", role: .cancel) { goalPendingDelete = nil }
+            } message: { Text("This will remove the orb and its progress.") }
             .colorScheme(.dark)
+            .onAppear { energyVM.refreshToday() }
+
+            // ── Navigation destinations ───────────────────────────
             .navigationDestination(for: CreationStep.self) { step in
                 switch step {
+
                 case .write:
                     WriteGoalView(onDone: { title, suggestion in
                         draftTitle = title
@@ -121,10 +99,7 @@ struct GoalsPage: View {
                         } else {
                             path.append(.manual(typePrefill: nil))
                         }
-                    }, onCancel: {
-                        // Pop back to list
-                        _ = path.popLast()
-                    })
+                    }, onCancel: { _ = path.popLast() })
                     .navigationBarBackButtonHidden(true)
 
                 case let .suggested(shape, text):
@@ -132,46 +107,63 @@ struct GoalsPage: View {
                         goalText: text,
                         suggestedShape: shape,
                         onFinish: { type in
-                            // CHECKMARK → go to input/form first (not design)
                             chosenType = type
-                            path.append(.manual(typePrefill: type)) // opens GoalShapeView in settings mode
+                            path.append(.form(type: type))
                         },
-                        onChangeShape: {
-                            // CHANGE → go to selection screen
-                            path.append(.manual(typePrefill: nil))
-                        },
-                        onBack: {
-                            _ = path.popLast()
-                        }
+                        onChangeShape: { path.append(.manual(typePrefill: nil)) },
+                        onBack: { _ = path.popLast() }
                     )
                     .navigationBarBackButtonHidden(true)
 
                 case let .manual(typePrefill):
                     GoalShapeView(
                         selectedGoal: typePrefill,
-                        showSettings: typePrefill != nil,
-                        onFinished: { type in
-                            // After finishing the form, proceed to design
-                            chosenType = type
+                        showSettings: false,
+                        onFinished: { type, settings in
+                            chosenType     = type
+                            chosenSettings = settings
+                            path.append(.form(type: type))
+                        },
+                        onBack: { _ = path.popLast() }
+                    )
+                    .navigationBarBackButtonHidden(true)
+
+                case let .form(type):
+                    GoalShapeView(
+                        selectedGoal: type,
+                        showSettings: true,
+                        onFinished: { type, settings in
+                            chosenType     = type
+                            chosenSettings = settings
                             path.append(.design)
                         },
-                        onBack: {
-                            _ = path.popLast()
-                        }
+                        onBack: { _ = path.popLast() }
                     )
                     .navigationBarBackButtonHidden(true)
 
                 case .design:
                     GoalDesign { design in
-                        let newGoal = OrbGoal(
-                            id: UUID(),
-                            title: draftTitle.isEmpty ? "New Goal" : draftTitle,
-                            totalTasks: 10,
-                            doneTasks: 0,
-                            design: design
+                        // 1. أنشئ الـ Goal
+                        var newGoal = OrbGoal(
+                            id:       UUID(),
+                            title:    draftTitle.isEmpty ? "New Goal" : draftTitle,
+                            design:   design,
+                            settings: chosenSettings
                         )
+
+                        // 2. ولّد المهام بناءً على الإعدادات + طاقة اليوم
+                        let factor = energyFactor(from: energyVM.todayEntry)
+
+                        if let settings = chosenSettings {
+                            newGoal.tasks = TaskGenerator.generate(
+                                from: settings,
+                                goalTitle: newGoal.title,
+                                energyFactor: energyFactor(from: energyVM.todayEntry)
+                            )
+                        }
+
+                        // 3. احفظ
                         store.add(newGoal)
-                        // After saving, pop back to the list
                         path.removeAll()
                     }
                     .environmentObject(store)
@@ -183,24 +175,29 @@ struct GoalsPage: View {
     }
 
     private func startCreation() {
-        draftTitle = ""
-        chosenType = nil
-        path = [.write]
+        draftTitle     = ""
+        chosenType     = nil
+        chosenSettings = nil
+        path           = [.write]
+    }
+
+    private func energyFactor(from entry: DailyEnergyEntry?) -> Double {
+        guard let entry else { return 0.7 }
+        switch entry.value {
+        case "3": return 1.0
+        case "1": return 0.5
+        default:  return 0.7
+        }
     }
 }
 
+// MARK: - GoalGridCard
 private struct GoalGridCard: View {
     let goal: OrbGoal
     @State private var anim: Double = 0
 
-    private var progressPercentText: String {
-        let p = Int(round(goal.progress * 100))
-        return "\(p)%"
-    }
-
     var body: some View {
         let float = CGFloat(sin(anim) * 1.4)
-
         VStack(spacing: 4) {
             PlanetOrbView(
                 size: 72,
@@ -218,88 +215,35 @@ private struct GoalGridCard: View {
 
             VStack(alignment: .leading, spacing: 8) {
                 Text(goal.title)
-                    .font(.system(size: 15, weight: .semibold))
-                    .foregroundStyle(.white)
-                    .lineLimit(1)
-                    .truncationMode(.tail)
-
+                    .font(.system(size: 15, weight: .semibold)).foregroundStyle(.white).lineLimit(1)
                 HStack(spacing: 8) {
                     ProgressView(value: goal.progress)
-                        .tint(.white)
-                        .frame(maxWidth: .infinity)
-                        .scaleEffect(x: 1, y: 0.9, anchor: .center)
-
-                    Text(progressPercentText)
-                        .font(.system(size: 12, weight: .semibold))
-                        .foregroundStyle(.white.opacity(0.9))
+                        .tint(.white).frame(maxWidth: .infinity).scaleEffect(x: 1, y: 0.9, anchor: .center)
+                    Text("\(Int(goal.progress * 100))%")
+                        .font(.system(size: 12, weight: .semibold)).foregroundStyle(.white.opacity(0.9))
                         .frame(minWidth: 34, alignment: .trailing)
                 }
-
                 Text("\(goal.doneTasks)/\(goal.totalTasks) tasks")
-                    .font(.system(size: 12, weight: .medium))
-                    .foregroundStyle(.white.opacity(0.75))
+                    .font(.system(size: 12, weight: .medium)).foregroundStyle(.white.opacity(0.75))
             }
             .padding(10)
-            .background(
-                RoundedRectangle(cornerRadius: 14)
-                    .fill(.black.opacity(0.28))
-            )
+            .background(RoundedRectangle(cornerRadius: 14).fill(.black.opacity(0.28)))
             .offset(y: -65)
         }
-        .padding(12)
-        .frame(width: 180, height: 208)
+        .padding(12).frame(width: 180, height: 208)
         .background(
-            RoundedRectangle(cornerRadius: 18)
-                .fill(.white.opacity(0.06))
-                .overlay(
-                    RoundedRectangle(cornerRadius: 18)
-                        .stroke(.white.opacity(0.12), lineWidth: 1)
-                )
+            RoundedRectangle(cornerRadius: 18).fill(.white.opacity(0.06))
+                .overlay(RoundedRectangle(cornerRadius: 18).stroke(.white.opacity(0.12), lineWidth: 1))
         )
         .contentShape(RoundedRectangle(cornerRadius: 18))
         .shadow(color: .black.opacity(0.22), radius: 8, x: 0, y: 5)
     }
 }
 
-struct FloatingSpec: Equatable {
-    let base: CGPoint
-    let size: CGFloat
-    let amplitude: CGSize
-    let speed: Double
-    let phase: Double
-
-    static func random(in canvas: CGSize) -> FloatingSpec {
-        let top: CGFloat = 90
-        let bottom: CGFloat = 70
-        let side: CGFloat = 40
-
-        let x = CGFloat.random(in: side...(max(side, canvas.width - side)))
-        let y = CGFloat.random(in: top...(max(top, canvas.height - bottom)))
-
-        return FloatingSpec(
-            base: CGPoint(x: x, y: y),
-            size: CGFloat.random(in: 90...140),
-            amplitude: CGSize(width: .random(in: 10...35), height: .random(in: 10...42)),
-            speed: Double.random(in: 0.35...0.75),
-            phase: Double.random(in: 0...(Double.pi * 2))
-        )
-    }
-
-    static func defaultSpec(in canvas: CGSize) -> FloatingSpec {
-        FloatingSpec(
-            base: CGPoint(x: canvas.width * 0.5, y: canvas.height * 0.4),
-            size: 120,
-            amplitude: CGSize(width: 20, height: 25),
-            speed: 0.5,
-            phase: 0
-        )
-    }
-}
-
-#Preview{
+#Preview {
     let store = OrbGoalStore()
     if store.goals.isEmpty { store.add(.mock) }
-    return GoalsPage()
-        .environmentObject(store)
-        .preferredColorScheme(.dark)
+    return GoalsPage().environmentObject(store).preferredColorScheme(.dark)
 }
+
+

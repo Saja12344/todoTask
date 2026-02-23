@@ -1,15 +1,14 @@
-
 //
-//  OrbGoalPersistence.swift.swift
+//  OrbGoalPersistence.swift
 //  todoTask
 //
-//  Created by Ruba Alghamdi on 27/08/1447 AH.
+//  استبدل الملف الموجود بهذا كاملاً
 //
 
 import Foundation
 
 struct OrbGoalPersistence {
-    private let key = "orb_goals_v1"
+    private let key = "orb_goals_v2"  // v2 للموديل الجديد
 
     func save(_ goals: [OrbGoal]) {
         do {
@@ -21,12 +20,12 @@ struct OrbGoalPersistence {
     }
 
     func load() -> [OrbGoal] {
-        guard let data = UserDefaults.standard.data(forKey: key) else { return [OrbGoal.mock] } // start with 1 mock if empty
+        guard let data = UserDefaults.standard.data(forKey: key) else { return [.mock] }
         do {
             return try JSONDecoder().decode([OrbGoal].self, from: data)
         } catch {
             print("❌ Load goals failed:", error)
-            return [OrbGoal.mock]
+            return [.mock]
         }
     }
 }

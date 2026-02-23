@@ -2,11 +2,13 @@
 //  HomeComponents.swift
 //  todoTask
 //
-//  Created by Jana Abdulaziz Malibari on 11/02/2026.
+//  استبدل الملف الموجود بهذا كاملاً
 //
 
 import SwiftUI
+import UserNotifications
 
+// MARK: - CheckBoxItem
 struct CheckBoxItem {
     var name: String
     var isChecked: Bool
@@ -14,23 +16,21 @@ struct CheckBoxItem {
 
 struct CheckBoxView: View {
     @Binding var item: CheckBoxItem
-    
+
     var body: some View {
         ZStack {
             RoundedRectangle(cornerRadius: 20)
                 .frame(width: 330, height: 60)
                 .foregroundColor(.clear)
                 .glassEffect(.clear, in: .rect(cornerRadius: 20))
-            HStack{
+            HStack {
                 Text(item.name)
                 Spacer()
-                Image(systemName: item.isChecked ? "checkmark.circle.fill" :"circle")
-                    .foregroundColor(item.isChecked ? .blue :.gray)
+                Image(systemName: item.isChecked ? "checkmark.circle.fill" : "circle")
+                    .foregroundColor(item.isChecked ? .blue : .gray)
                     .font(.system(size: 32))
                     .glassEffect(.clear.interactive())
-                    .onTapGesture {
-                        item.isChecked.toggle()
-                    }
+                    .onTapGesture { item.isChecked.toggle() }
             }
             .padding(.all, 10)
             .padding(.leading, 30)
@@ -40,219 +40,154 @@ struct CheckBoxView: View {
     }
 }
 
+// MARK: - today (Main Home View)
 struct today: View {
+    @EnvironmentObject private var store: OrbGoalStore
     @StateObject private var viewModel = HomeViewModel()
-    @StateObject private var vm = MiniCalendarViewModel()
-    @StateObject private var energyVM = DailyEnergyViewModel() // NEW
-    
-    @State private var items = [
-        CheckBoxItem(name: "Read 5 flash cards", isChecked: false),
-        CheckBoxItem(name: "Walk 1 km", isChecked: false),
-        CheckBoxItem(name: "Drink at least 4 water cups", isChecked: false)
-    ]
-    
-    // Track selected energy level for visual feedback
+    @StateObject private var calVM     = MiniCalendarViewModel()
+    @StateObject private var energyVM  = DailyEnergyViewModel()
+
     @State private var selectedEnergyID: String? = nil
-    
-    // Deterministic quote of the day (same quote for the entire day)
-    private var dailyQuote: String {
-        let calendar = Calendar.current
-        // Use startOfDay to be stable across time during the day
-        let start = calendar.startOfDay(for: Date())
-        // Create a stable day number (days since 1970)
-        let seconds = start.timeIntervalSince1970
-        let days = Int(seconds / 86_400) // 86400 seconds per day
-        
-        let all = Quotes.all
-        guard !all.isEmpty else { return "" }
-        let index = abs(days) % all.count
-        return all[index]
+
+    // اليوم المحدد في الكالندر
+    private var selectedDate: Date { calVM.selectedDate }
+
+    // المهام المجدولة لليوم المحدد من كل الأهداف
+    private var todayItems: [(goal: OrbGoal, task: GoalTask)] {
+        store.todayTasks(for: selectedDate)
     }
-    
+
+    private var dailyQuote: String {
+        let cal   = Calendar.current
+        let start = cal.startOfDay(for: Date())
+        let days  = Int(start.timeIntervalSince1970 / 86_400)
+        let all   = Quotes.all
+        guard !all.isEmpty else { return "" }
+        return all[abs(days) % all.count]
+    }
+
     var body: some View {
-        ZStack{
+        ZStack {
             Rectangle()
                 .fill(LinearGradient(colors: [.darkBlu, .dark], startPoint: .bottom, endPoint: .top))
                 .ignoresSafeArea()
-            Image("Background 4")
-                .resizable()
-                .ignoresSafeArea()
-                .opacity(0.4)
-            Image("Gliter")
-                .resizable()
-                .ignoresSafeArea()
-            
-            VStack(alignment: .leading){
+            Image("Background 4").resizable().ignoresSafeArea().opacity(0.4)
+            Image("Gliter").resizable().ignoresSafeArea()
+
+            VStack(alignment: .leading, spacing: 0) {
+
+                // ── Date + Quote ─────────────────────────────────
                 Text(viewModel.formattedDate)
                     .foregroundColor(.primary)
                     .font(.system(size: 28, weight: .bold))
-                    .bold()
                     .padding(.leading, 20)
-                
+
                 Text(dailyQuote)
                     .padding(.leading, 20)
-                
-                ZStack (alignment: .center){
+                    .padding(.bottom, 8)
+
+                // ── Mini Calendar ─────────────────────────────────
+                ZStack(alignment: .center) {
                     Rectangle()
                         .frame(width: 385, height: 134)
                         .foregroundColor(.clear)
                         .glassEffect(.regular, in: .rect(cornerRadius: 20))
-                    
-                    VStack(alignment: .leading ,spacing: 20) {
+
+                    VStack(alignment: .leading, spacing: 20) {
                         Menu {
-                            ForEach(vm.availableMonths, id: \.self) { month in
-                                Button {
-                                    vm.changeMonth(to: month)
-                                } label: {
+                            ForEach(calVM.availableMonths, id: \.self) { month in
+                                Button { calVM.changeMonth(to: month) } label: {
                                     Text(month, format: .dateTime.month(.wide))
                                 }
                             }
                         } label: {
                             HStack(spacing: 6) {
-                                Text(vm.monthTitle)
-                                    .font(.headline)
-                                    .foregroundColor(.white)
-                                    .padding(.leading)
-                                
-                                Image(systemName: "chevron.up.chevron.down")
-                                    .font(.caption)
-                                    .foregroundColor(.white)
+                                Text(calVM.monthTitle).font(.headline).foregroundColor(.white).padding(.leading)
+                                Image(systemName: "chevron.up.chevron.down").font(.caption).foregroundColor(.white)
                             }
                         }
+
                         HStack(spacing: 5) {
-                            
-                            Button {
-                                vm.moveWeek(by: -1)
-                            } label: {
-                                Image(systemName: "chevron.left")
-                                    .foregroundColor(.white)
+                            Button { calVM.moveWeek(by: -1) } label: {
+                                Image(systemName: "chevron.left").foregroundColor(.white)
                             }
-                            
-                            ForEach(vm.visibleWeek, id: \.self) { date in
-                                DayView(
-                                    date: date,
-                                    selectedDate: vm.selectedDate,
-                                    today: vm.today
-                                )
-                                .onTapGesture {
-                                    vm.selectedDate = date
-                                }
+                            ForEach(calVM.visibleWeek, id: \.self) { date in
+                                DayView(date: date, selectedDate: calVM.selectedDate, today: calVM.today)
+                                    .onTapGesture { calVM.selectedDate = date }
                             }
-                            
-                            Button {
-                                vm.moveWeek(by: 1)
-                            } label: {
-                                Image(systemName: "chevron.right")
-                                    .foregroundColor(.white)
+                            Button { calVM.moveWeek(by: 1) } label: {
+                                Image(systemName: "chevron.right").foregroundColor(.white)
                             }
                         }
                     }
                 }
                 .padding(.leading, 7)
-                
-                Text("Today's Tasks")
-                    .foregroundColor(.primary)
-                    .font(.largeTitle)
-                    .bold()
-                    .padding(.leading, 20)
-                
-                ZStack{
-                    RoundedRectangle(cornerRadius: 20)
-                        .frame(width: 350,height: 300)
-                        .foregroundColor(.clear)
-                    ScrollView {
-                        VStack(alignment: .center) {
-                            ForEach($items, id: \.name) { $item in
-                                CheckBoxView(item: $item)
-                            }
-                        }
-                        .padding(.leading, 23)
+                .padding(.bottom, 12)
+
+                // ── Today's Tasks Header ─────────────────────────
+                HStack {
+                    Text("Today's Tasks")
+                        .foregroundColor(.primary).font(.largeTitle).bold().padding(.leading, 20)
+                    Spacer()
+                    // إجمالي المهام المكتملة اليوم
+                    let done  = todayItems.filter { $0.task.isDone }.count
+                    let total = todayItems.count
+                    if total > 0 {
+                        Text("\(done)/\(total)")
+                            .font(.subheadline.weight(.semibold))
+                            .foregroundColor(.white.opacity(0.7))
+                            .padding(.trailing, 20)
                     }
                 }
-            }
-            
-            // Energy prompt — show once per day
-            if energyVM.showPromptForToday {
+
+                // ── Tasks List ────────────────────────────────────
                 ZStack {
-                    Color.black.opacity(0.6)
-                        .ignoresSafeArea()
                     RoundedRectangle(cornerRadius: 20)
-                        .frame(width: 350, height: 260)
-                        .glassEffect(.regular, in: .rect(cornerRadius: 20))
-                    VStack(spacing: 10){
-                       Text("What’s your energy level today?")
-                            .bold()
-                        HStack{
-                            ForEach(Energytoday.defaults){ level in
-                                Button {
-                                    Task {
-                                        await energyVM.setEnergyForToday(level)
-                                        // Update selection and print the level name
-                                        await MainActor.run {
-                                            selectedEnergyID = level.id.uuidString
-                                            print("Selected energy level: \(level.title)")
-                                        }
+                        .frame(width: 350, height: 300)
+                        .foregroundColor(.clear)
+
+                    if todayItems.isEmpty {
+                        VStack(spacing: 10) {
+                            Image(systemName: "moon.stars").font(.system(size: 36)).foregroundColor(.white.opacity(0.3))
+                            Text("No tasks scheduled for this day")
+                                .foregroundColor(.white.opacity(0.5)).font(.subheadline)
+                            Text("Add a goal or pick another day")
+                                .foregroundColor(.white.opacity(0.3)).font(.caption)
+                        }
+                        .frame(height: 300)
+                    } else {
+                        ScrollView {
+                            VStack(alignment: .center, spacing: 8) {
+                                ForEach(todayItems, id: \.task.id) { item in
+                                    TodayTaskRow(
+                                        task:     item.task,
+                                        goalName: item.goal.title
+                                    ) {
+                                        store.toggleTodayTask(goalID: item.goal.id, taskID: item.task.id)
                                     }
-                                } label: {
-                                    VStack(spacing: 12){
-                                        Image(systemName: level.icon)
-                                            .font(.system(size: 35, weight: .regular))
-                                            .foregroundColor(.white)
-                                        Text(level.title)
-                                            .foregroundColor(.white)
-                                            .font(.system(size: 16, weight: .medium))
-                                    }
-                                    .frame(width: 105, height: 120)
-                                    .background(Color.clear)
-                                    .overlay(
-                                        RoundedRectangle(cornerRadius: 25)
-                                            .stroke(
-                                                selectedEnergyID == level.id.uuidString ? Color.accent : Color.clear,
-                                                lineWidth: 2
-                                            )
-                                    )
                                 }
-                                .glassEffect(.clear.interactive(), in: .rect(cornerRadius: 25))
                             }
+                            .padding(.leading, 23)
+                            .padding(.vertical, 8)
                         }
-                        // Show selected level name below the buttons
-                        if let selectedID = selectedEnergyID,
-                           let selected = Energytoday.defaults.first(where: { $0.id.uuidString == selectedID }) {
-                            Text("Selected: \(selected.title)")
-                                .font(.caption)
-                                .foregroundColor(.white.opacity(0.9))
-                                .padding(.top, 4)
-                        } else if let entry = energyVM.todayEntry {
-                            // If already saved earlier today, reflect it
-                            Text("Selected: \(entry.title)")
-                                .font(.caption)
-                                .foregroundColor(.white.opacity(0.9))
-                                .padding(.top, 4)
-                        } else {
-                            Text("you can change it later in settings")
-                                .font(.caption)
-                                .padding(.top)
-                        }
-                    }
-                    .padding(.horizontal)
-                }
-                .transition(.opacity)
-                .animation(.easeInOut, value: energyVM.showPromptForToday)
-                .task {
-                    // Ensure prompt reflects latest local state on appear
-                    energyVM.refreshToday()
-                    // Initialize selectedEnergyID from saved entry if exists
-                    if let entry = energyVM.todayEntry {
-                        selectedEnergyID = Energytoday.defaults.first(where: { $0.title == entry.title })?.id.uuidString
+                        .frame(height: 300)
                     }
                 }
+
+                Spacer()
+            }
+
+            // ── Energy Prompt (مرة في اليوم) ─────────────────────
+            if energyVM.showPromptForToday {
+                EnergyPromptOverlay(
+                    energyVM:        energyVM,
+                    selectedEnergyID: $selectedEnergyID
+                )
             }
         }
         .colorScheme(.dark)
         .onAppear {
-            // Record daily open centrally so it counts even if Report isn’t opened
             LoginTracker.recordTodayOpened()
-
             energyVM.refreshToday()
             if let entry = energyVM.todayEntry {
                 selectedEnergyID = Energytoday.defaults.first(where: { $0.title == entry.title })?.id.uuidString
@@ -261,251 +196,200 @@ struct today: View {
     }
 }
 
-struct Goals: View {
+// MARK: - TodayTaskRow
+struct TodayTaskRow: View {
+    let task:     GoalTask
+    let goalName: String
+    let onToggle: () -> Void
+
     var body: some View {
-        ZStack{
-            Rectangle()
-                .fill(LinearGradient(colors: [.darkBlu, .dark], startPoint: .bottom, endPoint: .top))
-                .ignoresSafeArea()
-            Image("Gliter")
-                .resizable()
-                .ignoresSafeArea()
-        }
-        .colorScheme(.dark)
-        .toolbar {
-            ToolbarItem(placement: .navigationBarTrailing) {
-                Button(action: {
-                    print("Button tapped!")
-                }) {
-                    Image(systemName: "plus")
+        ZStack {
+            RoundedRectangle(cornerRadius: 20)
+                .frame(width: 330, height: 68)
+                .foregroundColor(.clear)
+                .glassEffect(.clear, in: .rect(cornerRadius: 20))
+
+            HStack {
+                VStack(alignment: .leading, spacing: 2) {
+                    Text(task.title)
+                        .foregroundColor(.white)
+                        .font(.system(size: 14, weight: .medium))
+                        .strikethrough(task.isDone, color: .white.opacity(0.5))
+                        .opacity(task.isDone ? 0.5 : 1)
+                        .lineLimit(2)
+                    Text(goalName)
+                        .font(.caption)
+                        .foregroundColor(.white.opacity(0.5))
                 }
-                .foregroundStyle(.white)
+                Spacer()
+                Image(systemName: task.isDone ? "checkmark.circle.fill" : "circle")
+                    .foregroundColor(task.isDone ? .blue : .gray)
+                    .font(.system(size: 28))
+                    .onTapGesture { onToggle() }
+                    .animation(.easeInOut(duration: 0.2), value: task.isDone)
             }
+            .padding(.horizontal, 20)
         }
+        .padding(.trailing, 20)
     }
 }
 
-struct Settings: View {
-    @EnvironmentObject private var userVM: UserViewModel
+// MARK: - EnergyPromptOverlay
+struct EnergyPromptOverlay: View {
+    @ObservedObject var energyVM: DailyEnergyViewModel
+    @Binding var selectedEnergyID: String?
 
-    @State private var Uname: String = ""
-    @State private var Uemail: String = ""
-    @State private var showSettingsButton = false
-
-    // Add sheet state
-    @State private var isEditingName: Bool = false
-    @State private var draftName: String = ""
-    // Guest logout confirmation alert state
-    @State private var showGuestLogoutAlert: Bool = false
-
-    private var displayName: String {
-        if let name = userVM.currentUser?.username, !name.isEmpty {
-            return name
+    var body: some View {
+        ZStack {
+            Color.black.opacity(0.6).ignoresSafeArea()
+            RoundedRectangle(cornerRadius: 20)
+                .frame(width: 350, height: 260)
+                .glassEffect(.regular, in: .rect(cornerRadius: 20))
+            VStack(spacing: 10) {
+                Text("What's your energy level today?").bold()
+                HStack {
+                    ForEach(Energytoday.defaults) { level in
+                        Button {
+                            Task {
+                                await energyVM.setEnergyForToday(level)
+                                await MainActor.run { selectedEnergyID = level.id.uuidString }
+                            }
+                        } label: {
+                            VStack(spacing: 12) {
+                                Image(systemName: level.icon).font(.system(size: 35)).foregroundColor(.white)
+                                Text(level.title).foregroundColor(.white).font(.system(size: 16, weight: .medium))
+                            }
+                            .frame(width: 105, height: 120)
+                            .overlay(
+                                RoundedRectangle(cornerRadius: 25)
+                                    .stroke(selectedEnergyID == level.id.uuidString ? Color.accent : Color.clear, lineWidth: 2)
+                            )
+                        }
+                        .glassEffect(.clear.interactive(), in: .rect(cornerRadius: 25))
+                    }
+                }
+                if let sid = selectedEnergyID,
+                   let sel = Energytoday.defaults.first(where: { $0.id.uuidString == sid }) {
+                    Text("Selected: \(sel.title)").font(.caption).foregroundColor(.white.opacity(0.9))
+                } else {
+                    Text("you can change it later in settings").font(.caption).padding(.top)
+                }
+            }
+            .padding(.horizontal)
         }
-        return "Guest"
+        .transition(.opacity)
+        .animation(.easeInOut, value: energyVM.showPromptForToday)
     }
-    
-    private var displayID: String {
-        if let id = userVM.currentUser?.id, !id.isEmpty {
-            return String(id.prefix(8)) + "..."
-        }
-        return "N/A"
-    }
-    
+}
+
+// MARK: - Goals (placeholder tab)
+struct Goals: View {
     var body: some View {
         ZStack {
             Rectangle()
                 .fill(LinearGradient(colors: [.darkBlu, .dark], startPoint: .bottom, endPoint: .top))
                 .ignoresSafeArea()
-            Image("Background")
-                .resizable()
+            Image("Gliter").resizable().ignoresSafeArea()
+        }
+        .colorScheme(.dark)
+    }
+}
+
+// MARK: - Settings
+struct Settings: View {
+    @EnvironmentObject private var userVM: UserViewModel
+    @State private var showSettingsButton = false
+    @State private var isEditingName: Bool = false
+    @State private var draftName: String = ""
+    @State private var showGuestLogoutAlert: Bool = false
+
+    private var displayName: String {
+        if let name = userVM.currentUser?.username, !name.isEmpty { return name }
+        return "Guest"
+    }
+    private var displayID: String {
+        if let id = userVM.currentUser?.id, !id.isEmpty { return String(id.prefix(8)) + "..." }
+        return "N/A"
+    }
+
+    var body: some View {
+        ZStack {
+            Rectangle()
+                .fill(LinearGradient(colors: [.darkBlu, .dark], startPoint: .bottom, endPoint: .top))
                 .ignoresSafeArea()
-            Image("Gliter")
-                .resizable()
-                .ignoresSafeArea()
+            Image("Background").resizable().ignoresSafeArea()
+            Image("Gliter").resizable().ignoresSafeArea()
+
             VStack(alignment: .leading, spacing: 4) {
-                // Username
-                Text(displayName)
-                    .font(.system(size: 28, weight: .bold))
-                    .foregroundColor(.primary)
-                    .padding(.horizontal, 20)
-                
-                // Short ID below the name
-                Text("ID: \(displayID)")
-                    .font(.caption)
-                    .foregroundColor(.white.opacity(0.7))
-                    .padding(.horizontal, 20)
-                    .padding(.bottom, 8)
-                
-                Text("App Management")
-                    .padding(.leading, 20)
-                
+                Text(displayName).font(.system(size: 28, weight: .bold)).foregroundColor(.primary).padding(.horizontal, 20)
+                Text("ID: \(displayID)").font(.caption).foregroundColor(.white.opacity(0.7)).padding(.horizontal, 20).padding(.bottom, 8)
+                Text("App Management").padding(.leading, 20)
+
                 ZStack {
-                    RoundedRectangle(cornerRadius: 30)
-                        .frame(width: 360, height: 220)
-                        .foregroundColor(.clear)
-                        .glassEffect(.clear, in: .rect(cornerRadius: 30))
-                    VStack(alignment: .leading, spacing: 10){
-                        
+                    RoundedRectangle(cornerRadius: 30).frame(width: 360, height: 220).foregroundColor(.clear).glassEffect(.clear, in: .rect(cornerRadius: 30))
+                    VStack(alignment: .leading, spacing: 10) {
                         Button(action: {
-                            if let url = URL(string: UIApplication.openSettingsURLString) {
-                                UIApplication.shared.open(url)
-                            }
-                        }) {
-                            HStack {
-                                Text("Notification")
-                                    .foregroundColor(.white)
-                            }
-                            .padding(.vertical, 12)
-                        }
-                        .onAppear {
-                            notificationDenied { denied in
-                                DispatchQueue.main.async {
-                                    showSettingsButton = denied
-                                }
-                            }
-                        }
-                        Rectangle()
-                            .frame(width: 320, height: 2)
-                            .foregroundColor(.white.opacity(0.3))
-                            .glassEffect()
-                        
-                        NavigationLink(destination: Report()) {
-                            HStack {
-                                Text("Progress Report")
-                                    .foregroundColor(.white)
-                            }
-                            .padding(.vertical, 12)
-                        }
-                        Rectangle()
-                            .frame(width: 320, height: 2)
-                            .foregroundColor(.white.opacity(0.3))
-                            .glassEffect()
-                        
-                        NavigationLink(destination: Energy()) {
-                            HStack {
-                                Text("Energy Settings")
-                                    .foregroundColor(.white)
-                            }
-                            .padding(.vertical, 12)
-                        }
-                        .colorScheme(.dark)
+                            if let url = URL(string: UIApplication.openSettingsURLString) { UIApplication.shared.open(url) }
+                        }) { HStack { Text("Notification").foregroundColor(.white) }.padding(.vertical, 12) }
+                        Rectangle().frame(width: 320, height: 2).foregroundColor(.white.opacity(0.3)).glassEffect()
+                        NavigationLink(destination: Report()) { HStack { Text("Progress Report").foregroundColor(.white) }.padding(.vertical, 12) }
+                        Rectangle().frame(width: 320, height: 2).foregroundColor(.white.opacity(0.3)).glassEffect()
+                        NavigationLink(destination: Energy()) { HStack { Text("Energy Settings").foregroundColor(.white) }.padding(.vertical, 12) }
                     }
                     .padding(.leading, 10)
                 }
-                
-                Text("Account Management")
-                    .padding(.leading, 20)
-                    .padding(.top, 20)
-                
+
+                Text("Account Management").padding(.leading, 20).padding(.top, 20)
                 ZStack {
-                    RoundedRectangle(cornerRadius: 30)
-                        .frame(width: 360, height: 140)
-                        .foregroundColor(.clear)
-                        .glassEffect(.clear, in: .rect(cornerRadius: 30))
-                    VStack(alignment: .leading, spacing: 10){
-                        
-                        Button(action: { print("Display") }) {
-                            HStack {
-                                Text("Clear Goals")
-                                    .foregroundColor(Color(.lightRed))
-                            }
-                            .padding(.vertical, 12)
-                        }
-                        Rectangle()
-                            .frame(width: 320, height: 2)
-                            .foregroundColor(.white.opacity(0.3))
-                            .glassEffect()
-                        
+                    RoundedRectangle(cornerRadius: 30).frame(width: 360, height: 140).foregroundColor(.clear).glassEffect(.clear, in: .rect(cornerRadius: 30))
+                    VStack(alignment: .leading, spacing: 10) {
+                        Button(action: { print("Clear Goals") }) { HStack { Text("Clear Goals").foregroundColor(Color(.lightRed)) }.padding(.vertical, 12) }
+                        Rectangle().frame(width: 320, height: 2).foregroundColor(.white.opacity(0.3)).glassEffect()
                         Button(action: {
-                            // For guests, confirm before clearing data
-                            if userVM.currentUser?.authMode == .guest {
-                                showGuestLogoutAlert = true
-                            } else {
-                                // Registered users: log out immediately
-                                userVM.clearLocalUser()
-                            }
-                        }) {
-                            HStack {
-                                Text("Log Out")
-                                    .foregroundColor(Color(.lightRed))
-                            }
-                            .padding(.vertical, 12)
-                        }
+                            if userVM.currentUser?.authMode == .guest { showGuestLogoutAlert = true }
+                            else { userVM.clearLocalUser() }
+                        }) { HStack { Text("Log Out").foregroundColor(Color(.lightRed)) }.padding(.vertical, 12) }
                     }
                     .colorScheme(.dark)
                 }
             }
             .padding(.top, -90)
         }
-        // Removed the toolbar logout button per your request
-        .toolbar{
-            ToolbarItem(placement: .topBarTrailing){
-                Button(action: {
-                    // Prepare and present username editor
-                    draftName = userVM.currentUser?.username ?? ""
-                    isEditingName = true
-                }) {
+        .toolbar {
+            ToolbarItem(placement: .topBarTrailing) {
+                Button(action: { draftName = userVM.currentUser?.username ?? ""; isEditingName = true }) {
                     Image(systemName: "pencil")
-                }
-                .foregroundStyle(.white)
+                }.foregroundStyle(.white)
             }
         }
-        // Guest-only confirmation alert
         .alert("Log Out?", isPresented: $showGuestLogoutAlert) {
-            Button("Cancel", role: .cancel) { }
-            Button("Log Out", role: .destructive) {
-                userVM.clearLocalUser()
-            }
-        } message: {
-            Text("You are continuing as a guest. Logging out will erase all local data.")
-        }
-//        .sheet(isPresented: $isEditingName) {
-//            EditUsernameSheet(
-//                initialName: userVM.currentUser?.username ?? "",
-//                onCancel: { isEditingName = false },
-//                onSave: { newName in
-//                    Task { await userVM.updateUsername(to: newName) }
-//                    isEditingName = false
-//                }
-//            )
-//            .presentationDetents([PresentationDetent.height(220)])
-//            .presentationDragIndicator(.visible)
-//        }
+            Button("Cancel", role: .cancel) {}
+            Button("Log Out", role: .destructive) { userVM.clearLocalUser() }
+        } message: { Text("You are continuing as a guest. Logging out will erase all local data.") }
         .colorScheme(.dark)
     }
 }
 
+// MARK: - DayView
 struct DayView: View {
     let date: Date
     let selectedDate: Date
     let today: Date
-    
     private let calendar = Calendar.current
-    
-    var isSelected: Bool {
-        calendar.isDate(date, inSameDayAs: selectedDate)
-    }
-    
-    var isToday: Bool {
-        calendar.isDate(date, inSameDayAs: today)
-    }
-    
+
+    var isSelected: Bool { calendar.isDate(date, inSameDayAs: selectedDate) }
+    var isToday:    Bool { calendar.isDate(date, inSameDayAs: today) }
+
     var body: some View {
         VStack(spacing: 4) {
-            Text(date, format: .dateTime.weekday(.abbreviated))
-                .font(.caption2)
-            
-            Text(date, format: .dateTime.day())
-                .font(.headline)
+            Text(date, format: .dateTime.weekday(.abbreviated)).font(.caption2)
+            Text(date, format: .dateTime.day()).font(.headline)
         }
         .frame(width: 44, height: 56)
         .background(
-            isSelected
-            ? Color.white.opacity(0.9)
-            : isToday
-            ? Color.accent.opacity(0.35)
-            : Color.darkBlu.opacity(0.8)
+            isSelected ? Color.white.opacity(0.9) :
+            isToday    ? Color.accent.opacity(0.35) :
+            Color.darkBlu.opacity(0.8)
         )
         .foregroundColor(isSelected ? Color(.darkBlu) : .white)
         .clipShape(RoundedRectangle(cornerRadius: 12))
@@ -513,81 +397,11 @@ struct DayView: View {
     }
 }
 
-// MARK: - Edit Username Sheet
-private struct EditUsernameSheet: View {
-    @State private var name: String
-    let onCancel: () -> Void
-    let onSave: (String) -> Void
-    
-    init(initialName: String, onCancel: @escaping () -> Void, onSave: @escaping (String) -> Void) {
-        self._name = State(initialValue: initialName)
-        self.onCancel = onCancel
-        self.onSave = onSave
-    }
-    
-    var body: some View {
-        VStack(spacing: 12) {
-            HStack {
-                Button(action: onCancel) {
-                    Image(systemName: "xmark")
-                        .font(.system(size: 24, weight: .semibold))
-                        .cornerRadius(50)
-                        .foregroundColor(.white.opacity(0.9))
-                }
-                .frame(width: 40, height: 40)
-                .cornerRadius(50)
-                .glassEffect(.clear.tint(.white.opacity(0.4)).interactive(), in: .rect(cornerRadius: 50))
-                
-                Spacer()
-                
-                // Title
-                Text("Edit Username")
-                    .font(.headline)
-                    .foregroundColor(.white)
-                    .padding(.top, 4)
-                
-                Spacer()
-                
-                Button(action: {
-                    let trimmed = name.trimmingCharacters(in: .whitespacesAndNewlines)
-                    guard !trimmed.isEmpty else { return }
-                    onSave(trimmed)
-                }) {
-                    Image(systemName: "checkmark")
-                        .font(.system(size: 24, weight: .semibold))
-                        .foregroundColor(.white)
-                        
-                }
-                .frame(width: 40, height: 40)
-                .cornerRadius(50)
-                .glassEffect(.clear.tint(.blue).interactive(), in: .rect(cornerRadius: 50))
-            }
-            .padding(.horizontal, 4)
-            // Text field
-            TextField("Username", text: $name)
-                .textInputAutocapitalization(.never)
-                .disableAutocorrection(true)
-                .padding()
-                .background(Color.black.opacity(0.25))
-                .cornerRadius(10)
-                .foregroundColor(.white)
-        }
-        .padding()
-        .preferredColorScheme(.dark)
-    }
-}
-
+// MARK: - Notification helpers
 func requestNotificationPermission() {
-    UNUserNotificationCenter.current()
-        .requestAuthorization(options: [.alert, .badge, .sound]) { granted, error in
-            DispatchQueue.main.async {
-                if granted {
-                    print("Notifications allowed")
-                } else {
-                    print("Notifications denied")
-                }
-            }
-        }
+    UNUserNotificationCenter.current().requestAuthorization(options: [.alert, .badge, .sound]) { granted, _ in
+        DispatchQueue.main.async { print(granted ? "Notifications allowed" : "Notifications denied") }
+    }
 }
 
 func notificationDenied(_ completion: @escaping (Bool) -> Void) {
@@ -597,6 +411,7 @@ func notificationDenied(_ completion: @escaping (Bool) -> Void) {
 }
 
 #Preview {
-    today()
-        .environmentObject(UserViewModel())
+    let store = OrbGoalStore()
+    if store.goals.isEmpty { store.add(.mock) }
+    return today().environmentObject(store).environmentObject(UserViewModel())
 }

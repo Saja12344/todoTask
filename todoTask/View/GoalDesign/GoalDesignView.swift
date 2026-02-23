@@ -168,8 +168,6 @@ struct GoalDesign: View {
         let goal = OrbGoal(
             id: UUID(),
             title: safeTitle,
-            totalTasks: max(1, totalTasks),
-            doneTasks: 0,
             design: design
         )
 
