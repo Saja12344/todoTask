@@ -177,10 +177,10 @@ struct GoalDesign: View {
         
 }
 
-// Preview
-struct GoalDesign_Previews: PreviewProvider {
-    static var previews: some View {
-        GoalDesign()
-            .environmentObject(OrbGoalStore())
-    }
-}
+//// Preview
+//struct GoalDesign_Previews: PreviewProvider {
+//    static var previews: some View {
+//        GoalDesign()
+//            .environmentObject(OrbGoalStore())
+//    }
+//}

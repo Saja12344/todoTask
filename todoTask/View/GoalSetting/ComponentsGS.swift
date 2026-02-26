@@ -151,26 +151,61 @@ struct NumberStepper: View {
     }
 }
 
+//struct WeekDaysSelector: View {
+//    @Binding var selectedDays: Set<Int>
+//    let days = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"]
+//    
+//    var body: some View {
+//        HStack(spacing: 2) {
+//            ForEach(0..<7, id: \.self) { index in
+//                Button(action: {
+//                    if selectedDays.contains(index) {
+//                        selectedDays.remove(index)
+//                    } else {
+//                        selectedDays.insert(index)
+//                    }
+//                }) {
+//                    Text(days[index])
+//                        .font(.system(size: 15, weight: .medium))
+//                        .foregroundColor(.white)
+//                        .frame(width: 48, height: 48)
+//                        .background(
+//                            selectedDays.contains(index)
+//                            ? Color.white.opacity(0.15)
+//                            : Color.clear
+//                        )
+//                        .clipShape(Circle())
+//                }
+//            }
+//        }
+//    }
+//}
 struct WeekDaysSelector: View {
     @Binding var selectedDays: Set<Int>
+
     let days = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"]
-    
+
     var body: some View {
         HStack(spacing: 2) {
-            ForEach(0..<7, id: \.self) { index in
-                Button(action: {
-                    if selectedDays.contains(index) {
-                        selectedDays.remove(index)
+
+            ForEach(1...7, id: \.self) { calendarIndex in
+
+                let displayIndex = calendarIndex - 1
+
+                Button {
+                    if selectedDays.contains(calendarIndex) {
+                        selectedDays.remove(calendarIndex)
                     } else {
-                        selectedDays.insert(index)
+                        selectedDays.insert(calendarIndex)
                     }
-                }) {
-                    Text(days[index])
+                } label: {
+
+                    Text(days[displayIndex])
                         .font(.system(size: 15, weight: .medium))
                         .foregroundColor(.white)
                         .frame(width: 48, height: 48)
                         .background(
-                            selectedDays.contains(index)
+                            selectedDays.contains(calendarIndex)
                             ? Color.white.opacity(0.15)
                             : Color.clear
                         )

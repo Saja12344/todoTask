@@ -2,8 +2,8 @@
 //  OrbGoalStore.swift
 //  todoTask
 //
-//  استبدل الملف الموجود بهذا كاملاً
-//
+// Observable Store: حفظ/قراءة من UserDefaults، إدارة CRUD، توليد المهام.
+
 
 import SwiftUI
 import Combine
@@ -13,7 +13,9 @@ final class OrbGoalStore: ObservableObject {
 
     private let persistence = OrbGoalPersistence()
 
-    init() { load() }
+    init() { load()
+        debugPrintGoalsAndTasks()
+    }
 
     // MARK: - Load / Save
     func load() { goals = persistence.load() }
@@ -37,9 +39,29 @@ final class OrbGoalStore: ObservableObject {
     }
 
     // MARK: - Task CRUD
-    func addTask(goalID: UUID, title: String, scheduledDate: Date? = nil) {
+//    func addTask(goalID: UUID, title: String, scheduledDate: Date? = nil) {
+//        guard let i = goals.firstIndex(where: { $0.id == goalID }) else { return }
+//        goals[i].tasks.append(GoalTask(title: title, scheduledDate: scheduledDate))
+//        save()
+//    }
+    func addTask(goalID: UUID, title: String, scheduledDate: Date) {
         guard let i = goals.firstIndex(where: { $0.id == goalID }) else { return }
-        goals[i].tasks.append(GoalTask(title: title, scheduledDate: scheduledDate))
+
+        let task = GoalTask(
+            goalID: goalID,
+            title: title,
+            scheduledDate: scheduledDate
+        )
+
+        goals[i].tasks.append(task)
+        save()
+    }
+    func insertGeneratedTasks(goalID: UUID, tasks: [GoalTask]) {
+        guard let index = goals.firstIndex(where: { $0.id == goalID }) else { return }
+
+        goals[index].tasks = tasks
+        goals[index].tasks.sort { $0.scheduledDate < $1.scheduledDate }
+
         save()
     }
 
@@ -63,19 +85,99 @@ final class OrbGoalStore: ObservableObject {
     }
 
     // MARK: - Generate Tasks from Settings + Energy
-    /// يُستدعى بعد إنشاء الـ Goal لتعبئة المهام
-    func generateTasks(goalID: UUID, energyFactor: Double = 0.7) {
-        guard let i = goals.firstIndex(where: { $0.id == goalID }),
-              let settings = goals[i].settings else { return }
-        let generated = TaskGenerator.generate(
-            from: settings,
-            goalTitle: goals[i].title,
-            energyFactor: energyFactor
-        )
-        goals[i].tasks = generated
-        save()
+//    struct TaskGenerator {
+//
+//        static func generate(from settings: GoalSettings, goalTitle: String, energyFactor: Double = 0.7) -> [GoalTask] {
+//            var tasks: [GoalTask] = []
+//
+//            let totalTasks = settings.targetNumber
+//            var tasksToAssign = (1...totalTasks).map { i in
+//                GoalTask(title: "\(goalTitle) — Task \(i)")
+//            }
+//
+//            let cal = Calendar.current
+//            var currentDate = Date()
+//
+//            while currentDate <= settings.deadline {
+//                let weekday = cal.component(.weekday, from: currentDate) - 1  // 0=Sun ... 6=Sat
+//
+//                if settings.selectedDays.contains(weekday), !tasksToAssign.isEmpty {
+//                    // المهمة اليومية: نسخة من المهمة الأصلية
+//                    var task = tasksToAssign.removeFirst()
+//                    let original = UUID()           // ID للمهمة الأصلية
+////                    task.originalID = original      // اربط النسخة بالنسخة الأصلية
+//                    task.id = UUID()                // نسخة جديدة لكل يوم
+//                    task.scheduledDate = currentDate
+//                    tasks.append(task)
+//                }
+//
+//                currentDate = cal.date(byAdding: .day, value: 1, to: currentDate)!
+//            }
+//
+//            return tasks
+//        }
+//        
+//    }
+    struct TaskGenerator {
+
+        static func generate(
+            from settings: GoalSettings,
+            goalID: UUID,
+            goalTitle: String,
+            scheduledDate: Date
+        ) -> [GoalTask] {
+
+            var tasks: [GoalTask] = []
+
+            let totalTasks = settings.targetNumber
+            var tasksToAssign = (1...totalTasks).map {
+                GoalTask(
+                    goalID: goalID,
+                    title: "\(goalTitle) — Task \($0)",
+                    scheduledDate: scheduledDate
+                )
+            }
+
+            let cal = Calendar.current
+            var currentDate = Date()
+
+            while currentDate <= settings.deadline {
+
+                let weekday = cal.component(.weekday, from: currentDate)
+//                - 1
+
+                if settings.selectedDays.contains(weekday),
+                   !tasksToAssign.isEmpty {
+
+                    var task = tasksToAssign.removeFirst()
+                    
+                    task.scheduledDate = currentDate
+
+                    tasks.append(task)
+                }
+
+                currentDate = cal.date(byAdding: .day, value: 1, to: currentDate)!
+            }
+            
+
+            return tasks
+        }
+    }
+    func debugPrintGoalsAndTasks() {
+        for goal in goals {
+            print("\n🎯 Goal ID: \(goal.id) - \(goal.title)")
+
+            for task in goal.tasks {
+                print("   ✅ Task ID: \(task.id)")
+                print("   🔗 Task GoalID: \(task.goalID)")
+                print("   📅 Date: \(String(describing: task.scheduledDate))")
+            }
+
+            print("----------------------")
+        }
     }
 
+    
     // MARK: - Today's Tasks (للهوم)
     /// جميع المهام المجدولة لليوم من كل الأهداف
     func todayTasks(for date: Date = Date()) -> [(goal: OrbGoal, task: GoalTask)] {
@@ -87,6 +189,7 @@ final class OrbGoalStore: ObservableObject {
         }
         return result
     }
+
 
     // MARK: - Toggle Today Task
     func toggleTodayTask(goalID: UUID, taskID: UUID) {

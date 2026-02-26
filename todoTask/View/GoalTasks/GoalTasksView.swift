@@ -74,7 +74,7 @@ struct GoalTasksView: View {
                         }
                         .frame(height: 6).padding(.bottom, 8)
 
-                        // Tasks List
+                        // Tasks List in the card
                         ScrollView {
                             VStack(spacing: 10) {
                                 if let tasks = goal?.tasks, !tasks.isEmpty {
@@ -121,7 +121,7 @@ struct GoalTasksView: View {
         .colorScheme(.dark)
         .sheet(isPresented: $showAddSheet) {
             AddTaskSheet(goalTitle: goal?.title ?? "") { title in
-                store.addTask(goalID: goalID, title: title)
+                store.addTask(goalID: goalID, title: title, scheduledDate: Date())
             }
         }
         .confirmationDialog("Delete this task?", isPresented: $showDeleteConfirm, titleVisibility: .visible) {
@@ -158,10 +158,11 @@ struct TaskCheckRow: View {
     }
 }
 
-#Preview {
-    let store = OrbGoalStore()
-    if store.goals.isEmpty { store.add(.mock) }
-    return NavigationStack {
-        GoalTasksView(goalID: store.goals.first!.id).environmentObject(store)
-    }
-}
+//#Preview {
+//    let store = OrbGoalStore()
+//    if store.goals.isEmpty { store.add(.mock) }
+//    return NavigationStack {
+//        GoalTasksView(goalID: store.goals.first!.id)
+//            .environmentObject(store)
+//    }
+//}

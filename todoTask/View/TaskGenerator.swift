@@ -17,161 +17,312 @@ import Foundation
 
 // MARK: - TaskGenerator
 struct TaskGenerator {
-
+    
     // energyFactor: 1.0 = Hardcore, 0.7 = Average, 0.5 = Take Break
     static func generate(
         from settings: GoalSettings,
+        goalID: UUID,
         goalTitle: String,
         energyFactor: Double = 1.0
     ) -> [GoalTask] {
-
+        
         let factor = max(0.3, min(1.0, energyFactor))
-
+        
         switch settings.goalType {
         case .finishTotal:
-            return generateFinishTotal(settings: settings, title: goalTitle, factor: factor)
-
+            return generateFinishTotal(settings: settings, goalID: goalID, title: goalTitle, factor: factor)
+            
         case .repeatSchedule:
-            return generateRepeatSchedule(settings: settings, title: goalTitle, factor: factor)
-
+            return generateRepeatSchedule(settings: settings, goalID: goalID, title: goalTitle, factor: factor)
+            
         case .buildStreak:
-            return generateBuildStreak(settings: settings, title: goalTitle, factor: factor)
-
+            return generateBuildStreak(settings: settings,  goalID: goalID,title: goalTitle, factor: factor)
+            
         case .levelUp:
-            return generateLevelUp(settings: settings, title: goalTitle, factor: factor)
-
+            return generateLevelUp(settings: settings,  goalID: goalID,title: goalTitle, factor: factor)
+            
         case .milestones:
-            return generateMilestones(settings: settings, title: goalTitle, factor: factor)
-
+            return generateMilestones(settings: settings, goalID: goalID, title: goalTitle, factor: factor)
+            
         case .reduce:
-            return generateReduce(settings: settings, title: goalTitle, factor: factor)
+            return generateReduce(settings: settings, goalID: goalID, title: goalTitle, factor: factor)
         }
     }
-
+    
     // MARK: - Finish Total
-    // يقسم الرقم الكلي على الأيام المتاحة حتى الديدلاين
-    private static func generateFinishTotal(settings: GoalSettings, title: String, factor: Double) -> [GoalTask] {
-        let target    = settings.targetNumber
-        let unit      = settings.unit.isEmpty ? "units" : settings.unit
-        let deadline  = settings.deadline
-        let today     = Calendar.current.startOfDay(for: Date())
-        let days      = max(1, Calendar.current.dateComponents([.day], from: today, to: deadline).day ?? 30)
-        let activeDaysPerWeek = max(1, settings.selectedDays.count)
+    private static func generateFinishTotal(
+        settings: GoalSettings,
+        goalID: UUID,
+        title: String,
+        factor: Double
+    ) -> [GoalTask] {
 
-        // الأسابيع المتبقية × أيام الأسبوع النشطة
-        let totalActiveDays = max(1, Int(Double(days) / 7.0 * Double(activeDaysPerWeek)))
+        let target = Double(settings.targetNumber)
+        let unit = settings.unit.isEmpty ? "units" : settings.unit
 
-        // الكمية اليومية المعدّلة بالطاقة
-        let rawPerDay  = Double(target) / Double(totalActiveDays)
-        let adjPerDay  = max(1, Int(rawPerDay * factor))
+        let calendar = Calendar.current
+        let today = calendar.startOfDay(for: Date())
+        let deadline = calendar.startOfDay(for: settings.deadline)
 
-        // عدد المهام = الأيام النشطة أو 10 كحد أقصى للعرض
-        let taskCount  = min(totalActiveDays, max(5, Int(10.0 * factor)))
+        let selectedDays = settings.selectedDays
+
+        var validExecutionDates: [Date] = []
+
+        var currentDate = today
+
+        // جمع كل الأيام الصالحة داخل المدة حسب اختيار المستخدم
+        while currentDate <= deadline {
+
+            let weekday = calendar.component(.weekday, from: currentDate) - 1
+
+            if selectedDays.contains(weekday) {
+                validExecutionDates.append(currentDate)
+            }
+
+            currentDate = calendar.date(byAdding: .day, value: 1, to: currentDate)!
+        }
+
+        let executionDaysCount = max(1, validExecutionDates.count)
+
+        let amountPerTask = max(1, Int((target / Double(executionDaysCount)) * factor))
 
         var tasks: [GoalTask] = []
-        for i in 0..<taskCount {
-            tasks.append(GoalTask(title: "\(title): \(adjPerDay) \(unit) — Day \(i+1)"))
+
+        for (index, date) in validExecutionDates.enumerated() {
+
+        let progress = min(
+                target,
+                target * Double(index + 1) / Double(executionDaysCount)
+            )
+            tasks.append(
+                GoalTask(
+                    goalID: goalID,
+                    title: "\(title) | \(Int(progress))/\(Int(target)) \(unit)",
+                    scheduledDate: date
+                )
+            )
         }
+
         return tasks
     }
 
     // MARK: - Repeat on Schedule
-    // مهمة واحدة لكل يوم نشط في الأسبوع القادم
-    private static func generateRepeatSchedule(settings: GoalSettings, title: String, factor: Double) -> [GoalTask] {
-        let unit      = settings.unit.isEmpty ? "session" : settings.unit
-        let cal       = Calendar.current
-        let today     = cal.startOfDay(for: Date())
-        let activeDays = settings.selectedDays
+    private static func generateRepeatSchedule(
+        settings: GoalSettings,
+        goalID: UUID,
+        title: String,
+        factor: Double
+    ) -> [GoalTask] {
+
+        let calendar = Calendar.current
+        let today = calendar.startOfDay(for: Date())
+        let deadline = settings.deadline
+        let selectedDays = settings.selectedDays
 
         var tasks: [GoalTask] = []
-        // توليد مهام للأسابيع الأربعة القادمة
-        for weekOffset in 0..<4 {
-            for dayIndex in 0..<7 {
-                let dayNum = (dayIndex) % 7 // 0=Sun
-                guard activeDays.contains(dayNum) else { continue }
-                guard let date = cal.date(byAdding: .day, value: weekOffset * 7 + dayIndex, to: today) else { continue }
-                // تعديل الطاقة: قلل المهام لو الطاقة منخفضة
-                if factor < 0.7 && weekOffset > 1 { continue }
+
+        var currentDate = today
+
+        while currentDate <= deadline {
+
+            let weekday = calendar.component(.weekday, from: currentDate) - 1
+
+            if selectedDays.contains(weekday) {
+
                 let fmt = DateFormatter()
                 fmt.dateFormat = "EEE d MMM"
-                tasks.append(GoalTask(title: "\(title) — \(unit) on \(fmt.string(from: date))", scheduledDate: date))
+
+                let unit = settings.unit.isEmpty ? "session" : settings.unit
+
+                tasks.append(
+                    GoalTask(
+                        goalID: goalID,
+                        title: "\(title) — \(unit) on \(fmt.string(from: currentDate))",
+                        scheduledDate: currentDate
+                    )
+                )
             }
+
+            currentDate = calendar.date(byAdding: .day, value: 1, to: currentDate)!
         }
+
         return tasks
     }
-
+    
     // MARK: - Build Streak
     // مهمة يومية بسيطة × عدد الأيام المستهدفة
-    private static func generateBuildStreak(settings: GoalSettings, title: String, factor: Double) -> [GoalTask] {
+    private static func generateBuildStreak(settings: GoalSettings,goalID: UUID, title: String, factor: Double) -> [GoalTask] {
         let target    = settings.targetNumber
         let unit      = settings.unit.isEmpty ? "day" : settings.unit
         let adjTarget = max(3, Int(Double(target) * factor))
         let cal       = Calendar.current
         let today     = cal.startOfDay(for: Date())
-
+        
         var tasks: [GoalTask] = []
         for i in 0..<adjTarget {
             guard let date = cal.date(byAdding: .day, value: i, to: today) else { continue }
-            tasks.append(GoalTask(title: "\(title) — \(unit) \(i+1)", scheduledDate: date))
+            tasks.append(GoalTask( goalID: goalID,title: "\(title) — \(unit) \(i+1)", scheduledDate: date))
         }
         return tasks
     }
-
+    
     // MARK: - Level Up
-    // مهام تدريجية تزيد كل فترة
-    private static func generateLevelUp(settings: GoalSettings, title: String, factor: Double) -> [GoalTask] {
-        let target   = settings.targetNumber
-        let pace     = max(1, settings.stepUpPaceWeeks)
-        let unit     = settings.unit.isEmpty ? "min" : settings.unit
-        let steps    = max(3, Int(Double(target / 10) * factor))
+    private static func generateLevelUp(
+        settings: GoalSettings,
+        goalID: UUID,
+        title: String,
+        factor: Double
+    ) -> [GoalTask] {
+
+        let target = settings.targetNumber
+        let paceWeeks = max(1, settings.stepUpPaceWeeks)
+        let unit = settings.unit.isEmpty ? "min" : settings.unit
+
+        let calendar = Calendar.current
+        let today = calendar.startOfDay(for: Date())
+        let deadline = settings.deadline
+
+        // عدد الخطوات
+        let steps =
+        max(
+            1,
+            calendar.dateComponents([.weekOfYear],
+            from: today,
+            to: deadline).weekOfYear ?? 1
+        )
+
+        let startAmount =
+        min(steps / paceWeeks, 10)
 
         var tasks: [GoalTask] = []
-        let startAmount = max(1, Int(Double(target / (steps * 2)) * factor))
 
         for i in 0..<steps {
-            let amount = startAmount + (startAmount * i / max(1, steps))
-            let week   = i * pace + 1
-            tasks.append(GoalTask(title: "\(title): \(amount) \(unit)/day — Week \(week)"))
+
+            let progressRatio = Double(i) / Double(max(1, steps - 1))
+            let amount = startAmount + Int(Double(target - startAmount) * progressRatio)
+
+            let weekOffset = i * paceWeeks
+
+            guard let date = calendar.date(
+                byAdding: .weekOfYear,
+                value: weekOffset,
+                to: today
+            ) else { continue }
+
+            tasks.append(
+                GoalTask(
+                    goalID: goalID,
+                    title: "\(title): \(unit)— Week \(weekOffset + 1)",
+                    scheduledDate: date
+                )
+            )
         }
+
         return tasks
     }
-
+    
     // MARK: - Milestones
-    // مراحل مقسّمة على المدة
-    private static func generateMilestones(settings: GoalSettings, title: String, factor: Double) -> [GoalTask] {
-        let deadline  = settings.deadline
-        let today     = Calendar.current.startOfDay(for: Date())
-        let days      = max(7, Calendar.current.dateComponents([.day], from: today, to: deadline).day ?? 30)
-        let rawCount  = max(3, Int(Double(days / 7) * factor))
-        let count     = min(rawCount, 10)
+    private static func generateMilestones(
+        settings: GoalSettings,
+        goalID: UUID,
+        title: String,
+        factor: Double
+    ) -> [GoalTask] {
+
+        let calendar = Calendar.current
+        let today = calendar.startOfDay(for: Date())
+        let deadline = settings.deadline
+
+        // كم يوم بين اليوم والديدلاين
+        let totalDays = max(
+            1,
+            calendar.dateComponents([.day], from: today, to: deadline).day ?? 30
+        )
+
+        let activeDays = settings.selectedDays
+        let activeDaysPerWeek = max(1, activeDays.count)
+
+        // كم يوم فعلي نستخدمه للحساب
+        let effectiveDays = max(1, Int(Double(totalDays) / 7.0 * Double(activeDaysPerWeek)))
+
+        // عدد المراحل
+        let rawCount = max(3, Int(Double(effectiveDays) * 0.3 * factor))
+        let count = min(rawCount, 10)
 
         var tasks: [GoalTask] = []
+
         for i in 0..<count {
-            tasks.append(GoalTask(title: "\(title) — Milestone \(i+1) of \(count)"))
+
+            // توزيع ذكي على الزمن
+            let progressRatio = Double(i) / Double(max(1, count - 1))
+            let dayOffset = Int(Double(totalDays) * progressRatio)
+
+            guard let date = calendar.date(
+                byAdding: .day,
+                value: dayOffset,
+                to: today
+            ) else { continue }
+
+            // تأكد أن اليوم ضمن الأيام المحددة
+            let weekday = calendar.component(.weekday, from: date) - 1
+
+            if !activeDays.contains(weekday) {
+                continue
+            }
+
+            tasks.append(
+                GoalTask(
+                    goalID: goalID,
+                    title: "\(title) — Milestone \(i+1)/\(count)",
+                    scheduledDate: date
+                )
+            )
         }
+
         return tasks
     }
-
     // MARK: - Reduce
-    // خطوات تخفيض تدريجية
-    private static func generateReduce(settings: GoalSettings, title: String, factor: Double) -> [GoalTask] {
-        let baseline  = settings.baselineNumber
-        let target    = settings.targetNumber
-        let diff      = max(1, baseline - target)
-        let rawSteps  = max(3, Int(Double(diff / max(1, diff/5)) * factor))
-        let steps     = min(rawSteps, 10)
-        let stepSize  = max(1, diff / steps)
-        let unit      = settings.unit.isEmpty ? "units" : settings.unit
-
+    private static func generateReduce(
+        settings: GoalSettings,
+        goalID: UUID,
+        title: String,
+        factor: Double
+    ) -> [GoalTask] {
+        
+        let baseline = settings.baselineNumber
+        let target = settings.targetNumber
+        let diff = max(1, baseline - target)
+        
+        let steps = min(max(3, diff), 10)
+        let stepSize = max(1, diff / steps)
+        
+        let unit = settings.unit.isEmpty ? "units" : settings.unit
+        let today = Calendar.current.startOfDay(for: Date())
+        
         var tasks: [GoalTask] = []
+        
         for i in 0..<steps {
+            
             let current = baseline - (stepSize * i)
-            tasks.append(GoalTask(title: "Reduce \(title) to \(max(target, current)) \(unit)"))
+            
+            let date = Calendar.current.date(
+                byAdding: .day,
+                value: i,
+                to: today
+            )!
+            
+            tasks.append(
+                GoalTask(
+                    goalID: goalID,
+                    title: "Reduce \(title) to \(max(target, current))",
+                    scheduledDate: date
+                )
+            )
         }
+        
         return tasks
     }
 }
-
 // MARK: - Energy helpers
 extension Energytoday {
     var taskFactor: Double {

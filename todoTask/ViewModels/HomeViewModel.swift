@@ -36,57 +36,85 @@ final class HomeViewModel: ObservableObject {
 final class MiniCalendarViewModel: ObservableObject {
     @Published var selectedDate: Date
     @Published var displayedMonth: Date   // controls picker + visible month
-
-
+    
+    
     let today: Date = Date()
     private let calendar = Calendar.current
-
+    
     init() {
         let now = Date()
         self.selectedDate = now
         self.displayedMonth = now
     }
-
+    
     // MARK: - Month
-
+    
     var monthTitle: String {
         let formatter = DateFormatter()
         formatter.dateFormat = "MMMM"
         return formatter.string(from: displayedMonth)
     }
-
+    
     var availableMonths: [Date] {
         let start = calendar.date(byAdding: .month, value: -6, to: today)!
         return (0..<12).compactMap {
             calendar.date(byAdding: .month, value: $0, to: start)
         }
     }
-
+    
     func changeMonth(to date: Date) {
         displayedMonth = date
-
+        
         // keep selection sane
         if !calendar.isDate(selectedDate, equalTo: date, toGranularity: .month) {
             selectedDate = calendar.startOfDay(for: date)
         }
     }
-
+    
     // MARK: - Week
-
-    var visibleWeek: [Date] {
-        guard let interval = calendar.dateInterval(of: .weekOfMonth, for: selectedDate)
-        else { return [] }
-
-        return (0..<7).compactMap {
-            calendar.date(byAdding: .day, value: $0, to: interval.start)
-        }
-    }
-
+  
     func moveWeek(by value: Int) {
-        selectedDate = calendar.date(byAdding: .weekOfYear, value: value, to: selectedDate)!
 
-        // sync month when crossing boundaries
-        displayedMonth = selectedDate
+        let weekday = calendar.component(.weekday, from: selectedDate)
+
+        let startOfWeek = calendar.date(
+            byAdding: .day,
+            value: -(weekday - 1),
+            to: calendar.startOfDay(for: selectedDate)
+        )!
+
+        let newDate = calendar.date(
+            byAdding: .day,
+            value: value * 7,
+            to: startOfWeek
+        )!
+
+        selectedDate = newDate
+        displayedMonth = newDate
+    }
+  
+    var visibleWeek: [Date] {
+        let calendar = Calendar.current
+        
+        let today = selectedDate
+        let weekday = calendar.component(.weekday, from: today)
+        
+        // الرجوع إلى بداية الأسبوع (Sunday = 1)
+        let startOfWeek = calendar.date(
+            byAdding: .day,
+            value: -(weekday - 1),
+            to: calendar.startOfDay(for: today)
+        )!
+        
+        var week: [Date] = []
+        
+        for i in 0..<7 {
+            if let day = calendar.date(byAdding: .day, value: i, to: startOfWeek) {
+                week.append(day)
+            }
+        }
+        
+        return week
     }
 }
 

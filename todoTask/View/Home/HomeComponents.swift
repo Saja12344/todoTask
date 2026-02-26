@@ -48,15 +48,19 @@ struct today: View {
     @StateObject private var energyVM  = DailyEnergyViewModel()
 
     @State private var selectedEnergyID: String? = nil
-
+    
+  
     // اليوم المحدد في الكالندر
     private var selectedDate: Date { calVM.selectedDate }
 
     // المهام المجدولة لليوم المحدد من كل الأهداف
-    private var todayItems: [(goal: OrbGoal, task: GoalTask)] {
-        store.todayTasks(for: selectedDate)
+    
+    var todayItems: [TodayItem] {
+        store.todayTasks(for: selectedDate).map {
+            TodayItem(goal: $0.goal, task: $0.task)
+        }
     }
-
+    
     private var dailyQuote: String {
         let cal   = Calendar.current
         let start = cal.startOfDay(for: Date())
@@ -158,12 +162,15 @@ struct today: View {
                     } else {
                         ScrollView {
                             VStack(alignment: .center, spacing: 8) {
-                                ForEach(todayItems, id: \.task.id) { item in
+                                ForEach(todayItems) { item in
                                     TodayTaskRow(
-                                        task:     item.task,
+                                        task: item.task,
                                         goalName: item.goal.title
                                     ) {
-                                        store.toggleTodayTask(goalID: item.goal.id, taskID: item.task.id)
+                                        store.toggleTodayTask(
+                                            goalID: item.goal.id,
+                                            taskID: item.task.id
+                                        )
                                     }
                                 }
                             }
@@ -410,8 +417,10 @@ func notificationDenied(_ completion: @escaping (Bool) -> Void) {
     }
 }
 
-#Preview {
-    let store = OrbGoalStore()
-    if store.goals.isEmpty { store.add(.mock) }
-    return today().environmentObject(store).environmentObject(UserViewModel())
-}
+//#Preview {
+//    let store = OrbGoalStore()
+//    if store.goals.isEmpty { store.add(.mock) }
+//    return today()
+//        .environmentObject(store)
+//        .environmentObject(UserViewModel())
+//}

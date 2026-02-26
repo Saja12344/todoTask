@@ -143,27 +143,27 @@ struct GoalsPage: View {
 
                 case .design:
                     GoalDesign { design in
-                        // 1. أنشئ الـ Goal
+
                         var newGoal = OrbGoal(
-                            id:       UUID(),
-                            title:    draftTitle.isEmpty ? "New Goal" : draftTitle,
-                            design:   design,
+                            id: UUID(),
+                            title: draftTitle.isEmpty ? "New Goal" : draftTitle,
+                            design: design,
                             settings: chosenSettings
                         )
 
-                        // 2. ولّد المهام بناءً على الإعدادات + طاقة اليوم
-                        let factor = energyFactor(from: energyVM.todayEntry)
-
+                        // ولّد المهام مرة واحدة فقط
                         if let settings = chosenSettings {
                             newGoal.tasks = TaskGenerator.generate(
                                 from: settings,
+                                goalID: newGoal.id,
                                 goalTitle: newGoal.title,
                                 energyFactor: energyFactor(from: energyVM.todayEntry)
                             )
                         }
 
-                        // 3. احفظ
+                        // بعد ما اكتمل الهدف مع مهامه — خزّنه
                         store.add(newGoal)
+
                         path.removeAll()
                     }
                     .environmentObject(store)
@@ -240,10 +240,12 @@ private struct GoalGridCard: View {
     }
 }
 
-#Preview {
-    let store = OrbGoalStore()
-    if store.goals.isEmpty { store.add(.mock) }
-    return GoalsPage().environmentObject(store).preferredColorScheme(.dark)
-}
-
+//#Preview {
+//    let store = OrbGoalStore()
+//    if store.goals.isEmpty { store.add(.mock) }
+//    return GoalsPage()
+//        .environmentObject(store)
+//        .preferredColorScheme(.dark)
+//}
+//
 

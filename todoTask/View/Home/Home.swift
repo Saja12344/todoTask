@@ -34,12 +34,12 @@ func NativeTabView() -> some View {
                     .navigationTitle("Achived Goals")
             }
         }
-//        Tab.init("Friends", systemImage: "person.2.fill"){
-//            NavigationStack{
-//                FriendsV()
-//                    .navigationTitle("Friends List")
-//            }
-//        }
+        Tab.init("Friends", systemImage: "person.2.fill"){
+            NavigationStack{
+                FriendsV()
+                    .navigationTitle("Friends List")
+            }
+        }
         Tab.init("Settings", systemImage: "gear"){
             NavigationStack{
                 Settings()

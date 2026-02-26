@@ -2,7 +2,7 @@
 //  OrbGoalModels.swift
 //  todoTask
 //
-//  استبدل الملف الموجود بهذا كاملاً
+//Data Model: Goal, Task, Settings, Design.
 //
 
 import SwiftUI
@@ -11,10 +11,11 @@ import Foundation
 // MARK: - GoalTask
 struct GoalTask: Identifiable, Codable, Hashable {
     var id:     UUID   = UUID()
+    var goalID: UUID
     var title:  String
     var isDone: Bool   = false
-    // اليوم المحدد لهذه المهمة (nil = يظهر كل يوم نشط)
-    var scheduledDate: Date? = nil
+    var scheduledDate: Date
+
 }
 
 // MARK: - GoalSettings (يُخزن داخل OrbGoal)
@@ -59,20 +60,27 @@ struct OrbGoal: Identifiable, Codable, Equatable {
     var totalTasks: Int { tasks.count }
 
     // المهام المجدولة لتاريخ معين
+
+
     func tasks(for date: Date) -> [GoalTask] {
         let cal = Calendar.current
         let weekday = cal.component(.weekday, from: date) - 1 // 0=Sun
         let activeDays = settings?.selectedDays ?? Set(0...6)
+        let deadline = settings?.deadline ?? Date.distantFuture
 
-        guard activeDays.contains(weekday) else { return [] }
+        // إذا اليوم خارج أيام العمل أو بعد الموعد النهائي، لا ترجع أي مهمة
+        guard activeDays.contains(weekday),
+              let deadline = settings?.deadline,
+              date <= deadline else { return [] }
 
+        
         return tasks.filter { task in
-            if let sd = task.scheduledDate {
-                return cal.isDate(sd, inSameDayAs: date)
-            }
-            return true // بدون تحديد → يظهر كل يوم نشط
+            cal.isDate(task.scheduledDate, inSameDayAs: date)
         }
+
     }
+    
+    
 }
 
 // MARK: - OrbDesign
@@ -81,6 +89,12 @@ struct OrbDesign: Codable, Equatable {
     var textureOpacity:    Double
     var textureAssetName:  String?
     var gradientStops:     [RGBAColor]
+}
+
+struct TodayItem: Identifiable {
+    let id = UUID()
+    let goal: OrbGoal
+    let task: GoalTask
 }
 
 // MARK: - RGBAColor
@@ -111,6 +125,7 @@ extension OrbGoal {
     static var mock: OrbGoal {
         var g = OrbGoal(
             id: UUID(),
+//            goalID: UUID(),
             title: "Learn Spanish",
             design: OrbDesign(
                 glow: 0.12,
@@ -130,10 +145,10 @@ extension OrbGoal {
             )
         )
         g.tasks = [
-            GoalTask(title: "Study 5 flashcards"),
-            GoalTask(title: "Listen 10 min podcast"),
-            GoalTask(title: "Write 3 sentences"),
-            GoalTask(title: "Review grammar notes")
+            GoalTask(goalID: g.id, title: "Study 5 flashcards", scheduledDate: Date()),
+            GoalTask(goalID: g.id, title: "Listen 10 min podcast", scheduledDate: Date()),
+            GoalTask(goalID: g.id, title: "Write 3 sentences", scheduledDate: Date()),
+            GoalTask(goalID: g.id, title: "Review grammar notes", scheduledDate: Date())
         ]
         return g
     }

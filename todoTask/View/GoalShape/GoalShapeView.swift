@@ -69,6 +69,7 @@ struct GoalShapeView: View {
                     }
                     Spacer()
                     Button(action: {
+                       
                         if !showSettings {
                             if selectedGoal != nil { withAnimation { showSettings = true } }
                         } else {
