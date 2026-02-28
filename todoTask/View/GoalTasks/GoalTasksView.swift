@@ -2,8 +2,6 @@
 //  GoalTasksView.swift
 //  todoTask
 //
-//  استبدل الملف الموجود بهذا كاملاً
-//
 
 import SwiftUI
 
@@ -27,7 +25,7 @@ struct GoalTasksView: View {
 
             VStack(spacing: 16) {
 
-                // ── Planet + Progress Circle ──────────────────────
+                // ── Planet + Progress Ring ─────────────────────────
                 ZStack {
                     if let goal {
                         PlanetOrbView(
@@ -39,11 +37,35 @@ struct GoalTasksView: View {
                         )
                         .frame(width: 235, height: 235)
                     }
-                    ProgressCircle(progress: goal?.progress ?? 0)
-                        .frame(width: 290, height: 290)
-                        .animation(.easeInOut(duration: 0.4), value: goal?.progress)
+
+                    // اذا تحدي: خطين، اذا عادي: خط واحد
+                    if let goal, goal.isChallenge, let info = goal.challengeInfo {
+                        DualProgressRing(
+                            myProgress: goal.progress,
+                            friendProgress: info.friendProgress,
+                            friendName: info.opponentName
+                        )
+                        .frame(width: 310, height: 310)
+                    } else {
+                        ProgressCircle(progress: goal?.progress ?? 0)
+                            .frame(width: 290, height: 290)
+                            .animation(.easeInOut(duration: 0.4), value: goal?.progress)
+                    }
                 }
                 .padding(.top, 10)
+
+                // ── Winner Banner ──────────────────────────────────
+                if let goal, goal.isChallenge, let winnerID = goal.challengeInfo?.winnerID {
+                    WinnerBanner(
+                        winnerID: winnerID,
+                        winnerName: winnerID == goal.challengeInfo?.opponentID
+                            ? (goal.challengeInfo?.opponentName ?? "Friend")
+                            : "You",
+                        isYou: winnerID != goal.challengeInfo?.opponentID
+                    )
+                    .padding(.horizontal)
+                    .transition(.move(edge: .top).combined(with: .opacity))
+                }
 
                 // ── Tasks Panel ───────────────────────────────────
                 ZStack(alignment: .bottomTrailing) {
@@ -51,9 +73,33 @@ struct GoalTasksView: View {
                         .fill(.ultraThinMaterial).frame(height: 390)
 
                     VStack(alignment: .leading, spacing: 10) {
-                        // Title
-                        Text(goal?.title ?? "")
-                            .font(.title2).bold().foregroundColor(.white)
+
+                        // Title + Challenge badge
+                        HStack {
+                            Text(goal?.title ?? "")
+                                .font(.title2).bold().foregroundColor(.white)
+                            if goal?.isChallenge == true {
+                                Text("⚡️ Challenge")
+                                    .font(.caption.bold())
+                                    .foregroundColor(.yellow)
+                                    .padding(.horizontal, 8).padding(.vertical, 4)
+                                    .background(Capsule().fill(Color.yellow.opacity(0.15)))
+                            }
+                        }
+
+                        // Opponent info
+                        if let info = goal?.challengeInfo {
+                            HStack(spacing: 6) {
+                                Image(systemName: "person.fill")
+                                    .font(.caption).foregroundColor(.gray)
+                                Text("vs \(info.opponentName)")
+                                    .font(.caption).foregroundColor(.gray)
+                                Spacer()
+                                // Friend progress
+                                Text("\(info.opponentName): \(Int(info.friendProgress * 100))%")
+                                    .font(.caption.bold()).foregroundColor(.orange)
+                            }
+                        }
 
                         // Progress bar + stats
                         HStack {
@@ -74,13 +120,14 @@ struct GoalTasksView: View {
                         }
                         .frame(height: 6).padding(.bottom, 8)
 
-                        // Tasks List in the card
+                        // Tasks List
                         ScrollView {
                             VStack(spacing: 10) {
                                 if let tasks = goal?.tasks, !tasks.isEmpty {
                                     ForEach(tasks) { task in
                                         TaskCheckRow(task: task) {
                                             store.toggleTask(goalID: goalID, taskID: task.id)
+                                            checkWinner()
                                         }
                                         .contextMenu {
                                             Button(role: .destructive) {
@@ -132,6 +179,97 @@ struct GoalTasksView: View {
             Button("Cancel", role: .cancel) { taskPendingDelete = nil }
         }
     }
+
+    // MARK: - Check Winner
+    private func checkWinner() {
+        guard var goal = store.goal(with: goalID),
+              goal.isChallenge,
+              goal.challengeInfo?.winnerID == nil else { return }
+
+        // اذا وصلت 100% أنت الفائز
+        if goal.progress >= 1.0 {
+            goal.challengeInfo?.winnerID = "me"
+            goal.challengeInfo?.isWinner = true
+            store.updateGoal(goal)
+        }
+    }
+}
+
+// MARK: - Dual Progress Ring
+struct DualProgressRing: View {
+    var myProgress:     Double
+    var friendProgress: Double
+    var friendName:     String
+
+    var body: some View {
+        ZStack {
+            // الخلفية
+            Circle().stroke(.white.opacity(0.08), style: StrokeStyle(lineWidth: 10, lineCap: .round))
+                .frame(width: 310, height: 310)
+            Circle().stroke(.white.opacity(0.08), style: StrokeStyle(lineWidth: 10, lineCap: .round))
+                .frame(width: 280, height: 280)
+
+            // Progress الصديق - الخط الخارجي (برتقالي)
+            Circle()
+                .trim(from: 0, to: max(0, min(friendProgress, 1)))
+                .stroke(Color.orange, style: StrokeStyle(lineWidth: 10, lineCap: .round))
+                .frame(width: 310, height: 310)
+                .rotationEffect(.degrees(-90))
+                .animation(.easeInOut(duration: 0.4), value: friendProgress)
+
+            // Progress أنا - الخط الداخلي (سيان)
+            Circle()
+                .trim(from: 0, to: max(0, min(myProgress, 1)))
+                .stroke(Color.cyan, style: StrokeStyle(lineWidth: 10, lineCap: .round))
+                .frame(width: 280, height: 280)
+                .rotationEffect(.degrees(-90))
+                .animation(.easeInOut(duration: 0.4), value: myProgress)
+        }
+        .overlay(alignment: .bottom) {
+            // Legend
+            HStack(spacing: 16) {
+                HStack(spacing: 4) {
+                    Circle().fill(Color.cyan).frame(width: 8, height: 8)
+                    Text("You").font(.caption2).foregroundColor(.white.opacity(0.8))
+                }
+                HStack(spacing: 4) {
+                    Circle().fill(Color.orange).frame(width: 8, height: 8)
+                    Text(friendName).font(.caption2).foregroundColor(.white.opacity(0.8))
+                }
+            }
+            .padding(6)
+            .background(Capsule().fill(.black.opacity(0.4)))
+            .offset(y: 20)
+        }
+    }
+}
+
+// MARK: - Winner Banner
+struct WinnerBanner: View {
+    let winnerID:   String
+    let winnerName: String
+    let isYou:      Bool
+
+    var body: some View {
+        HStack(spacing: 12) {
+            Text(isYou ? "🏆" : "😔").font(.title2)
+            VStack(alignment: .leading, spacing: 2) {
+                Text(isYou ? "You Won the Challenge!" : "\(winnerName) Won!")
+                    .font(.subheadline.bold())
+                    .foregroundColor(.white)
+                Text(isYou ? "The planet is now yours 🪐" : "Better luck next time!")
+                    .font(.caption)
+                    .foregroundColor(.white.opacity(0.7))
+            }
+            Spacer()
+        }
+        .padding(14)
+        .background(
+            RoundedRectangle(cornerRadius: 16)
+                .fill(isYou ? Color.yellow.opacity(0.2) : Color.gray.opacity(0.2))
+                .overlay(RoundedRectangle(cornerRadius: 16).stroke(isYou ? Color.yellow.opacity(0.4) : Color.gray.opacity(0.3), lineWidth: 1))
+        )
+    }
 }
 
 // MARK: - TaskCheckRow
@@ -157,12 +295,3 @@ struct TaskCheckRow: View {
         .padding(.vertical, 4)
     }
 }
-
-//#Preview {
-//    let store = OrbGoalStore()
-//    if store.goals.isEmpty { store.add(.mock) }
-//    return NavigationStack {
-//        GoalTasksView(goalID: store.goals.first!.id)
-//            .environmentObject(store)
-//    }
-//}

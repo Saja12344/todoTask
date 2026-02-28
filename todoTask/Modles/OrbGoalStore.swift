@@ -84,6 +84,20 @@ final class OrbGoalStore: ObservableObject {
         save()
     }
 
+    // أضيفي هذه الدالة داخل OrbGoalStore بعد دالة replaceTasks
+
+    func updateGoal(_ goal: OrbGoal) {
+        guard let i = goals.firstIndex(where: { $0.id == goal.id }) else { return }
+        goals[i] = goal
+        save()
+    }
+
+    // أضيفي هذه الدالة لتحديث progress الصديق (تُستدعى من CloudKit لاحقاً)
+    func updateFriendProgress(goalID: UUID, friendProgress: Double) {
+        guard let i = goals.firstIndex(where: { $0.id == goalID }) else { return }
+        goals[i].challengeInfo?.friendProgress = friendProgress
+        save()
+    }
     // MARK: - Generate Tasks from Settings + Energy
 //    struct TaskGenerator {
 //

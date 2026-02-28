@@ -137,6 +137,7 @@ final class DailyEnergyViewModel: ObservableObject {
         Calendar.current.isDateInToday(date)
     }
     
+    
     // MARK: - CloudKit (optional) — uncomment to enable
     /*
     private func upsertToCloud(entry: DailyEnergyEntry, userID: String) async throws {
