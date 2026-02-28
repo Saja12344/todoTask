@@ -2,11 +2,8 @@
 //  GoalShape.swift
 //  todoTask
 //
-//  Created by شهد عبدالله القحطاني on 20/08/1447 AH.
-//
 
 import Foundation
-
 
 // ═══════════════════════════════════════════════════════════
 // MARK: - Goal Shape
@@ -39,8 +36,8 @@ enum GoalCategory: String, Codable, CaseIterable {
 // ═══════════════════════════════════════════════════════════
 // MARK: - Goal Type
 // ═══════════════════════════════════════════════════════════
-//
-enum GoalType: String, Codable {
+
+enum GoalType: String, Codable, CaseIterable {
     case finishTotal
     case repeatSchedule
     case buildStreak
@@ -48,5 +45,3 @@ enum GoalType: String, Codable {
     case milestones
     case reduce
 }
-
-

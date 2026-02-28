@@ -2,18 +2,14 @@
 //  todoTaskApp.swift
 //  todoTask
 //
-//  Created by شهد عبدالله القحطاني on 19/08/1447 AH.
-//
 
 import SwiftUI
-
 
 @main
 struct todoTaskApp: App {
 
     @StateObject private var userVM = UserViewModel()
     @StateObject private var goalStore = OrbGoalStore()
-
 
     init() {
         NotificationPermissionManager.shared.requestPermissionIfNeeded()
@@ -24,37 +20,28 @@ struct todoTaskApp: App {
             RootRouterView()
                 .environmentObject(userVM)
                 .environmentObject(goalStore)
-                .onAppear {
-                    // Restore previously saved local (guest or registered) session if any
-                    userVM.loadLocalUser()
-                }
+            // ← حذفنا loadLocalUser() من هنا لأنها تُستدعى في init()
         }
-        
     }
-    
 }
 
-// Root router decides which view to show based on user state
+// MARK: - Root Router
 struct RootRouterView: View {
     @EnvironmentObject private var userVM: UserViewModel
 
     var body: some View {
-//        Group {
-//            if userVM.isCheckingAuth {
-//                ProgressView() 
-//            } else if userVM.currentUser == nil {
-//                Enter()
-//            } else {
-//                // Existing user session → go straight to Home
+        Group {
+            if userVM.isCheckingAuth {
+                ProgressView()
+            } else if userVM.currentUser == nil {
+                Enter()
+            } else {
                 Home()
-//            }
-//        }
+            }
+        }
         .onAppear {
-            userVM.loadLocalUser()
+            // فقط تتحقق من صلاحية Apple في الخلفية
             userVM.checkAppleCredentialState()
         }
     }
 }
-
-
-

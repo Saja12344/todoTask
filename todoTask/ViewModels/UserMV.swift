@@ -1,102 +1,95 @@
-////
-////  UserError.swift
-////  todoTask
-////
-////  Created by saja khalid on 20/08/1447 AH.
-////
 //
+//  UserMV.swift
+//  todoTask
 //
-////
-////  Untitled.swift
-////  toDotask
-////
-////  Created by saja khalid on 16/08/1447 AH.
-////
 
 import Foundation
 import CloudKit
 import Combine
 import AuthenticationServices
 
-
-
 class UserViewModel: ObservableObject {
     @Published var currentUser: User?
     @Published var isGuest: Bool = false
-    @Published var isCheckingAuth = true
+    @Published var isCheckingAuth = false
 
     private let userDefaultsKey = "currentUser"
     private let container = CKContainer.default()
     private lazy var publicDB = container.publicCloudDatabase
 
     var isLoggedIn: Bool { currentUser != nil }
-  
+
+    // MARK: - Init
     init() {
-        fetchCurrentUser()
+        loadLocalUser()
+        isCheckingAuth = false
     }
+
+    // MARK: - Fetch from CloudKit
     func fetchCurrentUser() {
-            let predicate = NSPredicate(value: true)
-            let query = CKQuery(recordType: "Users", predicate: predicate)
-            
-            CKContainer.default().publicCloudDatabase.perform(query, inZoneWith: nil) { results, error in
-                DispatchQueue.main.async {
-                    if let record = results?.first {
-                        // تحويل CKRecord إلى User struct
-                     
-                        
-                        self.currentUser = User(
-                                       
-                            id: record.recordID.recordName,
-                            username: "\(record["username"] as? String ?? "User")#\(record.recordID.recordName.suffix(4))",
-                             email: record["email"] as? String ?? "",
-                             authMode: .registered
-                                        )
-                        
-                    }
+        let predicate = NSPredicate(value: true)
+        let query = CKQuery(recordType: "Users", predicate: predicate)
+
+        CKContainer.default().publicCloudDatabase.perform(query, inZoneWith: nil) { results, error in
+            DispatchQueue.main.async {
+                if let record = results?.first {
+                    self.currentUser = User(
+                        id: record.recordID.recordName,
+                        username: "\(record["username"] as? String ?? "User")#\(record.recordID.recordName.suffix(4))",
+                        email: record["email"] as? String ?? "",
+                        authMode: .registered
+                    )
+                    self.saveLocally()
                 }
             }
         }
-    
+    }
+
     // MARK: - Login / Sign Up with Apple
     @MainActor
     func loginWithApple(id: String, name: PersonNameComponents?, email: String?) async throws {
 
         let recordID = CKRecord.ID(recordName: id)
-        
-        // توليد username فريد: الاسم + آخر 4 أحرف من Apple ID
         let generatedUsername = "\(name?.givenName ?? "User")#\(String(id.suffix(4)))"
 
         do {
+            // المستخدم موجود → login
             let record = try await publicDB.record(for: recordID)
 
-            // المستخدم موجود → login
-            let user = User(
+            currentUser = User(
                 id: record.recordID.recordName,
                 username: record["username"] as? String ?? generatedUsername,
                 email: record["email"] as? String ?? (email ?? "")
             )
 
-            currentUser = user
-
-        } catch {
-            // المستخدم غير موجود → sign up
-            let newRecord = CKRecord(recordType: "User", recordID: recordID)
-            newRecord["username"] = generatedUsername as CKRecordValue?
+        } catch let ckError as CKError where ckError.code == .unknownItem {
+            // المستخدم جديد → sign up
+            let newRecord = CKRecord(recordType: "Users", recordID: recordID)
+            newRecord["username"] = generatedUsername as CKRecordValue
             newRecord["email"] = (email ?? "") as CKRecordValue
 
             let saved = try await publicDB.save(newRecord)
 
             currentUser = User(
                 id: saved.recordID.recordName,
-                username: generatedUsername ,
+                username: generatedUsername,
+                email: email ?? ""
+            )
+
+        } catch {
+            // CloudKit فشل → خلي اليوزر يدخل محلياً
+            print("CloudKit error: \(error)")
+            currentUser = User(
+                id: id,
+                username: generatedUsername,
                 email: email ?? ""
             )
         }
 
         saveLocally()
     }
-    
-    
+
+    // MARK: - Check Apple Credential State
     func checkAppleCredentialState() {
         guard let userID = currentUser?.id else {
             isCheckingAuth = false
@@ -119,9 +112,6 @@ class UserViewModel: ObservableObject {
             }
         }
     }
-
-    
-
 
     // MARK: - Helpers
     private func saveLocally() {

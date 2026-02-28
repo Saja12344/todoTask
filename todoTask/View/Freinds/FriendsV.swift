@@ -279,6 +279,73 @@ struct FriendsV: View {
     }
     
 }
+// ضع هذا الكود في AcceptedFriendsSection بدل اللي عندك
+// في FriendsV.swift
+
+struct AcceptedFriendsSection: View {
+    @ObservedObject var friendRequestVM: FriendRequestViewModel
+    let removeAction: (String) async -> Void
+    
+    @State private var selectedFriend: User? = nil
+    @State private var showChallenge = false
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: 10) {
+            if !friendRequestVM.friends.isEmpty {
+                Text("Accepted Friends")
+                    .foregroundColor(.white)
+                    .font(.headline)
+                    .padding(.leading, 10)
+                
+                ForEach(friendRequestVM.friends) { friend in
+                    HStack {
+                        Text(friend.username)
+                            .foregroundColor(.white)
+                            .bold()
+                        Spacer()
+                        
+                        // Remove Button
+                        Button {
+                            Task {
+                                await removeAction(friend.id)
+                            }
+                        } label: {
+                            Image(systemName: "person.slash")
+                                .foregroundColor(.white)
+                                .font(.subheadline)
+                                .padding(8)
+                                .glassEffect(.regular.tint(.red.opacity(0.3)), in: .circle)
+                        }
+                        .buttonStyle(.plain)
+                        
+                        // Challenge Button ← الربط هنا
+                        Button {
+                            selectedFriend = friend
+                            showChallenge = true
+                        } label: {
+                            Text("Challenge")
+                                .foregroundColor(.white)
+                                .font(.subheadline)
+                                .bold()
+                                .padding(.vertical, 8)
+                                .padding(.horizontal, 16)
+                                .glassEffect(.regular.interactive(), in: .capsule)
+                        }
+                        .buttonStyle(.plain)
+                    }
+                    .padding()
+                    .glassEffect(.regular.tint(.white.opacity(0.1)), in: .rect(cornerRadius: 20))
+                }
+            }
+        }
+        // Sheet للتحدي
+        .sheet(isPresented: $showChallenge) {
+            if let friend = selectedFriend {
+                ChallengeFriendV(friend: friend, friendRequestVM: friendRequestVM)
+            }
+        }
+    }
+}
 
 #Preview {
     FriendsV()
