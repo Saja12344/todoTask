@@ -8,8 +8,9 @@ import SwiftUI
 @main
 struct todoTaskApp: App {
 
-    @StateObject private var userVM = UserViewModel()
+    @StateObject private var userVM    = UserViewModel()
     @StateObject private var goalStore = OrbGoalStore()
+    @StateObject private var deepLink  = DeepLinkManager.shared
 
     init() {
         NotificationPermissionManager.shared.requestPermissionIfNeeded()
@@ -20,7 +21,19 @@ struct todoTaskApp: App {
             RootRouterView()
                 .environmentObject(userVM)
                 .environmentObject(goalStore)
-            // ← حذفنا loadLocalUser() من هنا لأنها تُستدعى في init()
+                .environmentObject(deepLink)
+                .onOpenURL { url in
+                    DeepLinkManager.shared.handle(url: url)
+                }
+                .sheet(isPresented: $deepLink.shouldOpenChallenge) {
+                    if let challengeID = deepLink.pendingChallengeID {
+                        ChallengeInviteView(
+                            challengeID: challengeID,
+                            fromUsername: deepLink.pendingFromUser ?? "Friend"
+                        )
+                        .environmentObject(goalStore)
+                    }
+                }
         }
     }
 }
@@ -40,7 +53,6 @@ struct RootRouterView: View {
             }
         }
         .onAppear {
-            // فقط تتحقق من صلاحية Apple في الخلفية
             userVM.checkAppleCredentialState()
         }
     }

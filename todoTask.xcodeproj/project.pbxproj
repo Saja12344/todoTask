@@ -44,11 +44,21 @@
 			);
 			target = 8A619DE02F37A00200C49093 /* todoTaskTests */;
 		};
+		8A6B9D562F5395AA008CEBFD /* Exceptions for "todoTask" folder in "todoTask" target */ = {
+			isa = PBXFileSystemSynchronizedBuildFileExceptionSet;
+			membershipExceptions = (
+				Info.plist,
+			);
+			target = 8A619DD32F37A00000C49093 /* todoTask */;
+		};
 /* End PBXFileSystemSynchronizedBuildFileExceptionSet section */
 
 /* Begin PBXFileSystemSynchronizedRootGroup section */
 		8A619DD62F37A00000C49093 /* todoTask */ = {
 			isa = PBXFileSystemSynchronizedRootGroup;
+			exceptions = (
+				8A6B9D562F5395AA008CEBFD /* Exceptions for "todoTask" folder in "todoTask" target */,
+			);
 			path = todoTask;
 			sourceTree = "<group>";
 		};
@@ -422,6 +432,7 @@
 				DEVELOPMENT_TEAM = HSFRAWSGSL;
 				ENABLE_PREVIEWS = YES;
 				GENERATE_INFOPLIST_FILE = YES;
+				INFOPLIST_FILE = todoTask/Info.plist;
 				INFOPLIST_KEY_CFBundleDisplayName = ORB.IT;
 				INFOPLIST_KEY_LSApplicationCategoryType = "public.app-category.productivity";
 				INFOPLIST_KEY_UIApplicationSceneManifest_Generation = YES;
@@ -457,6 +468,7 @@
 				DEVELOPMENT_TEAM = HSFRAWSGSL;
 				ENABLE_PREVIEWS = YES;
 				GENERATE_INFOPLIST_FILE = YES;
+				INFOPLIST_FILE = todoTask/Info.plist;
 				INFOPLIST_KEY_CFBundleDisplayName = ORB.IT;
 				INFOPLIST_KEY_LSApplicationCategoryType = "public.app-category.productivity";
 				INFOPLIST_KEY_UIApplicationSceneManifest_Generation = YES;

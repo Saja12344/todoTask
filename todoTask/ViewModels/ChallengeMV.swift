@@ -25,39 +25,49 @@ class ChallengeViewModel: ObservableObject {
     private let container = CKContainer.default()
     private lazy var publicDB = container.publicCloudDatabase
     
-    // MARK: - Create Challenge
+    // في ChallengeViewModel.swift - استبدلي createChallenge بهذا:
+
     func createChallenge(
         challengerID: String,
         opponentID: String,
-        planetStake: Planet, // ⚠️ لازم يكون موجود ومكتمل
+        planetStake: Planet,
         goalTitle: String,
         goalCategory: GoalCategory,
         goalType: GoalType,
         goalShape: GoalShape?,
         subTasksConfig: [SubTaskConfig] = []
     ) async throws {
-        
-        // 1️⃣ تحقق أن الكوكب مكتمل وصالح
+
         guard planetStake.state == .completed else {
-            throw NSError(domain: "ChallengeError", code: 1, userInfo: [NSLocalizedDescriptionKey: "Cannot create challenge: Planet must be completed"])
+            throw NSError(domain: "ChallengeError", code: 1, userInfo: [NSLocalizedDescriptionKey: "Planet must be completed"])
         }
-        
+
         let now = Date()
         let deadline = Calendar.current.date(byAdding: .day, value: 3, to: now)!
-        
-        // 2️⃣ إنشاء Challenge في CloudKit
+
         let record = CKRecord(recordType: "Challenge")
         record["challengerID"] = challengerID as CKRecordValue
-        record["opponentID"] = opponentID as CKRecordValue
-        record["state"] = ChallengeState.pendingAcceptance.rawValue as CKRecordValue
-        record["planetStakeID"] = planetStake.recordID as CKRecordValue
+        record["opponentID"]   = opponentID as CKRecordValue
+        record["state"]        = ChallengeState.pendingAcceptance.rawValue as CKRecordValue
+        record["planetStakeID"]    = planetStake.recordID as CKRecordValue
         record["planetStakeState"] = planetStake.state.rawValue as CKRecordValue
-        record["createdAt"] = now as CKRecordValue
+        record["createdAt"]    = now as CKRecordValue
         record["editDeadline"] = deadline as CKRecordValue
-        
-        let saved = try await publicDB.save(record)
-        
-        // 3️⃣ إنشاء SubTasks للتحدي
+
+        // ── Save مع timeout 10 ثواني ──────────────────────
+        let saved = try await withThrowingTaskGroup(of: CKRecord.self) { group in
+            group.addTask {
+                try await self.publicDB.save(record)
+            }
+            group.addTask {
+                try await Task.sleep(nanoseconds: 10_000_000_000) // 10 ثواني
+                throw NSError(domain: "ChallengeError", code: 408, userInfo: [NSLocalizedDescriptionKey: "CloudKit timeout"])
+            }
+            let result = try await group.next()!
+            group.cancelAll()
+            return result
+        }
+
         let subTasks: [SubTask] = subTasksConfig.enumerated().map { index, config in
             SubTask(
                 id: UUID().uuidString,
@@ -70,8 +80,7 @@ class ChallengeViewModel: ObservableObject {
                 completedAt: nil
             )
         }
-        
-        // 4️⃣ إنشاء ChallengeContext مرتبط بالGoal
+
         let challengeContext = ChallengeContext(
             challengeID: saved.recordID.recordName,
             challengerID: challengerID,
@@ -79,9 +88,8 @@ class ChallengeViewModel: ObservableObject {
             planetStakeID: planetStake.recordID,
             state: .pendingAcceptance
         )
-        
-        // 5️⃣ إنشاء Goal مرتبط بالكوكب والتحدي
-        let goal = Goal(
+
+        _ = Goal(
             id: UUID().uuidString,
             userID: challengerID,
             title: goalTitle,
@@ -99,8 +107,7 @@ class ChallengeViewModel: ObservableObject {
             updatedAt: nil,
             completedAt: nil
         )
-        
-        // 6️⃣ تحديث الـ ViewModel المحلي
+
         await MainActor.run {
             myChallenges.append(
                 Challenge(
@@ -115,7 +122,6 @@ class ChallengeViewModel: ObservableObject {
             )
         }
     }
-        
      
     
     // MARK: - Fetch My Challenges

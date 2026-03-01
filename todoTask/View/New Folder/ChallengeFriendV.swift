@@ -2,13 +2,6 @@
 //  ChallengeFriendV.swift
 //  todoTask
 //
-//  Created by شهد عبدالله القحطاني on 11/09/1447 AH.
-//
-
-//
-//  ChallengeFriendV.swift
-//  todoTask
-//
 
 import SwiftUI
 
@@ -16,8 +9,7 @@ import SwiftUI
 private enum ChallengeCreationStep: Hashable {
     case write
     case suggested(shape: GoalShape, text: String)
-    case manual(typePrefill: GoalType?)
-    case form(type: GoalType)
+    case shape(typePrefill: GoalType?)
     case design
 }
 
@@ -27,7 +19,6 @@ struct ChallengeFriendView: View {
     @EnvironmentObject private var store: OrbGoalStore
     @ObservedObject var friendRequestVM: FriendRequestViewModel
     @StateObject private var challengeVM = ChallengeViewModel()
-    @StateObject private var energyVM = DailyEnergyViewModel()
 
     @Environment(\.dismiss) private var dismiss
 
@@ -38,6 +29,7 @@ struct ChallengeFriendView: View {
     @State private var showSuccess = false
     @State private var isLoading = false
     @State private var errorMsg: String? = nil
+    @State private var createdChallengeID: String = ""
 
     var body: some View {
         NavigationStack(path: $path) {
@@ -56,9 +48,7 @@ struct ChallengeFriendView: View {
                             .multilineTextAlignment(.center)
                             .padding(.horizontal, 30)
 
-                        Button {
-                            startFlow()
-                        } label: {
+                        Button { startFlow() } label: {
                             HStack {
                                 Image(systemName: "bolt.fill")
                                 Text("Start Challenge").bold()
@@ -97,7 +87,6 @@ struct ChallengeFriendView: View {
                 }
             }
 
-            // ── Navigation Destinations ──
             .navigationDestination(for: ChallengeCreationStep.self) { step in
                 switch step {
 
@@ -108,7 +97,7 @@ struct ChallengeFriendView: View {
                             if let shape = suggestion {
                                 path.append(.suggested(shape: shape, text: title))
                             } else {
-                                path.append(.manual(typePrefill: nil))
+                                path.append(.shape(typePrefill: nil))
                             }
                         },
                         onCancel: { _ = path.popLast() }
@@ -121,30 +110,18 @@ struct ChallengeFriendView: View {
                         suggestedShape: shape,
                         onFinish: { type in
                             chosenType = type
-                            path.append(.form(type: type))
+                            path.append(.shape(typePrefill: type))
                         },
-                        onChangeShape: { path.append(.manual(typePrefill: nil)) },
+                        onChangeShape: { path.append(.shape(typePrefill: nil)) },
                         onBack: { _ = path.popLast() }
                     )
                     .navigationBarBackButtonHidden(true)
 
-                case let .manual(typePrefill):
+                case let .shape(typePrefill):
+                    // صفحة واحدة: اختار النوع ← Next ← settings ← Next ← design
                     GoalShapeView(
                         selectedGoal: typePrefill,
                         showSettings: false,
-                        onFinished: { type, settings in
-                            chosenType = type
-                            chosenSettings = settings
-                            path.append(.form(type: type))
-                        },
-                        onBack: { _ = path.popLast() }
-                    )
-                    .navigationBarBackButtonHidden(true)
-
-                case let .form(type):
-                    GoalShapeView(
-                        selectedGoal: type,
-                        showSettings: true,
                         onFinished: { type, settings in
                             chosenType = type
                             chosenSettings = settings
@@ -201,16 +178,24 @@ struct ChallengeFriendView: View {
                         .frame(width: 90, height: 90)
                     Image(systemName: "bolt.fill").font(.largeTitle).foregroundColor(.white)
                 }
-                Text("Challenge Sent! 🎉").font(.title2.bold()).foregroundColor(.white)
-                Text("Waiting for \(friend.username) to accept your challenge.")
+
+                Text("Challenge Created! 🎉")
+                    .font(.title2.bold()).foregroundColor(.white)
+
+                Text("Share the link with \(friend.username) to start!")
                     .font(.subheadline).foregroundColor(.gray)
                     .multilineTextAlignment(.center).padding(.horizontal, 20)
-                Button {
-                    dismiss()
-                } label: {
-                    Text("Done").bold().foregroundColor(.white)
-                        .padding(.vertical, 14).padding(.horizontal, 50)
-                        .glassEffect(.regular.tint(.purple.opacity(0.4)), in: .capsule)
+
+                if let currentUsername = friendRequestVM.currentUser?.username {
+                    ChallengeShareButton(
+                        challengeID: createdChallengeID,
+                        fromUsername: currentUsername
+                    )
+                    .padding(.horizontal, 20)
+                }
+
+                Button { dismiss() } label: {
+                    Text("Done").bold().foregroundColor(.gray).font(.subheadline)
                 }
                 .buttonStyle(.plain)
             }
@@ -229,9 +214,7 @@ struct ChallengeFriendView: View {
     }
 
     private func finishChallenge(design: OrbDesign) async {
-        await MainActor.run { isLoading = true }
-
-        // 1️⃣ إنشاء الـ Goal وتخزينه
+        // 1️⃣ إنشاء الـ Goal
         var newGoal = OrbGoal(
             id: UUID(),
             title: draftTitle.isEmpty ? "Challenge Goal" : draftTitle,
@@ -248,50 +231,44 @@ struct ChallengeFriendView: View {
             )
         }
 
+        let challengeID = UUID().uuidString
+        newGoal.challengeInfo = ChallengeInfo(
+            challengeID: challengeID,
+            opponentID: friend.id,
+            opponentName: friend.username,
+            friendProgress: 0,
+            isWinner: false,
+            winnerID: nil
+        )
+
         store.add(newGoal)
 
-        // 2️⃣ إرسال التحدي
-        guard let currentUserID = friendRequestVM.currentUser?.id else {
-            await MainActor.run {
-                isLoading = false
-                errorMsg = "User not found"
-            }
-            return
-        }
+        // 2️⃣ عرض النجاح فوراً
+        createdChallengeID = challengeID
+        path.removeAll()
+        showSuccess = true
 
-        do {
-            let planet = Planet(
-                recordID: newGoal.id.uuidString,
-                ownerID: currentUserID,
-                state: .completed,
-                goalID: newGoal.id.uuidString,
-                progressPercentage: 0,
-                design: nil
-            )
-
-            try await challengeVM.createChallenge(
-                challengerID: currentUserID,
-                opponentID: friend.id,
-                planetStake: planet,
-                goalTitle: newGoal.title,
-                goalCategory: .habit,
-                goalType: chosenType ?? .finishTotal,
-                goalShape: nil,
-                subTasksConfig: newGoal.tasks.map {
-                    SubTaskConfig(title: $0.title, description: nil, dependsOn: nil)
-                }
-            )
-
-            await MainActor.run {
-                isLoading = false
-                path.removeAll()
-                showSuccess = true
+        // 3️⃣ CloudKit في الخلفية
+        guard let currentUserID = friendRequestVM.currentUser?.id else { return }
+        let planet = Planet(
+            recordID: newGoal.id.uuidString,
+            ownerID: currentUserID,
+            state: .completed,
+            goalID: newGoal.id.uuidString,
+            progressPercentage: 0,
+            design: nil
+        )
+        try? await challengeVM.createChallenge(
+            challengerID: currentUserID,
+            opponentID: friend.id,
+            planetStake: planet,
+            goalTitle: newGoal.title,
+            goalCategory: .habit,
+            goalType: chosenType ?? .finishTotal,
+            goalShape: nil,
+            subTasksConfig: newGoal.tasks.map {
+                SubTaskConfig(title: $0.title, description: nil, dependsOn: nil)
             }
-        } catch {
-            await MainActor.run {
-                isLoading = false
-                errorMsg = error.localizedDescription
-            }
-        }
+        )
     }
 }

@@ -2,8 +2,6 @@
 //  GoalDesignView.swift
 //  OrbitDemo
 //
-//  Created by Ruba Alghamdi on 07/02/2026.
-//
 
 import SwiftUI
 
@@ -12,13 +10,10 @@ struct GoalDesign: View {
     @Environment(\.dismiss) private var dismiss
     @State private var goalTitle: String = ""
     @State private var totalTasks: Int = 10
-
     @State private var vm = GoalDesignViewModel()
 
-    // Optional callback for flow-managed save
     let onSaveDesign: ((OrbDesign) -> Void)?
 
-    // Backward-compatible init: default nil keeps old usages working
     init(onSaveDesign: ((OrbDesign) -> Void)? = nil) {
         self.onSaveDesign = onSaveDesign
     }
@@ -34,10 +29,7 @@ struct GoalDesign: View {
                     onNext: { saveGoal() }
                 )
 
-
                 ZStack(alignment: .top) {
-
-                    // ===== ORB behind =====
                     VStack(spacing: 0) {
                         PlanetOrbView(
                             size: 180,
@@ -53,9 +45,7 @@ struct GoalDesign: View {
                         Spacer().frame(height: 180)
                     }
 
-                    // ===== SCROLL content =====
                     ScrollView(showsIndicators: false) {
-
                         GeometryReader { proxy in
                             Color.clear
                                 .preference(
@@ -68,10 +58,7 @@ struct GoalDesign: View {
                         Spacer().frame(height: 270)
 
                         GlassCard {
-
                             VStack(alignment: .leading, spacing: 18) {
-
-                                // MARK: - Planet Colors
                                 SectionHeader(title: "Planet Colors")
                                     .padding(.top, -20)
 
@@ -82,7 +69,6 @@ struct GoalDesign: View {
                                                 vm.deleteStop(at: i)
                                             }
                                         }
-
                                         Button {
                                             vm.addStop()
                                         } label: {
@@ -97,21 +83,14 @@ struct GoalDesign: View {
                                     }
                                 }
 
-                                // MARK: - Glow
                                 SectionHeader(title: "Glow")
                                 HStack {
-                                    Image(systemName: "sun.min")
-                                        .foregroundStyle(.white.opacity(0.7))
-
+                                    Image(systemName: "sun.min").foregroundStyle(.white.opacity(0.7))
                                     Slider(value: $vm.glow, in: 0...0.15)
-
-                                    Image(systemName: "sun.max.fill")
-                                        .foregroundStyle(.white.opacity(0.85))
+                                    Image(systemName: "sun.max.fill").foregroundStyle(.white.opacity(0.85))
                                 }
 
-                                // MARK: - Effect
                                 SectionHeader(title: "Effect")
-
                                 ScrollView(.horizontal, showsIndicators: false) {
                                     HStack(spacing: 10) {
                                         ForEach(Array(vm.effects.enumerated()), id: \.offset) { i, asset in
@@ -126,7 +105,6 @@ struct GoalDesign: View {
                                     Text("Intensity")
                                         .foregroundStyle(.white.opacity(0.75))
                                         .font(.system(size: 14, weight: .medium))
-
                                     Slider(value: $vm.textureOpacity, in: 0...1)
                                 }
                                 .padding(.top, 6)
@@ -145,9 +123,13 @@ struct GoalDesign: View {
                     }
                 }
             }
-        }.toolbar(.hidden, for: .tabBar)
+        }
+        .toolbar(.hidden, for: .tabBar)
     }
+
     private func saveGoal() {
+        print("✅ saveGoal called")
+
         let design = OrbDesign(
             glow: vm.glow,
             textureOpacity: vm.textureOpacity,
@@ -156,12 +138,12 @@ struct GoalDesign: View {
         )
 
         if let onSaveDesign {
-            // Flow-managed save: pass design up
+            print("✅ onSaveDesign exists - calling callback")
             onSaveDesign(design)
             return
         }
 
-        // Backward compatibility: if used standalone, still save goal here
+        print("⚠️ onSaveDesign is nil - saving standalone")
         let title = goalTitle.trimmingCharacters(in: .whitespacesAndNewlines)
         let safeTitle = title.isEmpty ? "New Goal" : title
 
@@ -174,13 +156,4 @@ struct GoalDesign: View {
         store.add(goal)
         dismiss()
     }
-        
 }
-
-//// Preview
-//struct GoalDesign_Previews: PreviewProvider {
-//    static var previews: some View {
-//        GoalDesign()
-//            .environmentObject(OrbGoalStore())
-//    }
-//}
