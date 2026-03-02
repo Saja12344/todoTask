@@ -42,7 +42,9 @@ struct WriteGoalView: View {
                     .disabled(goalText.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty)
                     .opacity(goalText.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty ? 0.5 : 1)
                 }
-                .padding()
+                .padding(.top,60)
+                .padding(.horizontal,20)
+
 
                 Spacer()
 

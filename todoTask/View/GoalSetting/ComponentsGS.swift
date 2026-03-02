@@ -13,12 +13,12 @@ struct AppBackground: View {
                 )
                 .ignoresSafeArea()
             
-            Image("Gliter")
+            Image("Background 2")
                 .resizable()
-                .scaledToFit()
-                .scaleEffect(1.2)
-                .contrast(1.9)
+                .scaledToFill()   // ⭐ مهم جدًا
+                .frame(maxWidth: .infinity, maxHeight: .infinity)
                 .ignoresSafeArea()
+                .opacity(0.5)
         }
     }
 }

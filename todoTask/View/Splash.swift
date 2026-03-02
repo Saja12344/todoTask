@@ -6,111 +6,78 @@
 ////
 //
 import SwiftUI
+import AuthenticationServices
 //
-//
-//struct Splash: View {
-//    @EnvironmentObject private var userVM: UserViewModel
+//struct SplashView: View {
+//    @EnvironmentObject var userVM: UserViewModel
+//    @State private var showLoginPopup = true
 //    
 //    var body: some View {
-//        NavigationStack {
-//            ZStack{
-//                Rectangle()
-//                    .fill(LinearGradient(colors: [.color, .dark], startPoint: .bottom, endPoint: .top))
-//                    .ignoresSafeArea()
-//                Image("Background 3")
-//                    .resizable()
-//                    .ignoresSafeArea()
-//                    .opacity(0.5)
-//                Image("Gliter")
-//                    .resizable()
-//                    .ignoresSafeArea()
-//                Content()
-//                    .onAppear {
-//                        requestNotificationPermission()
-//                    }
-//            }
-//        }
-//    }
-//    
-//    struct Content: View {
-//        @EnvironmentObject private var userVM: UserViewModel
-//        @State private var navigateHome = false
-//        
-//        var body: some View{
-//            VStack{
-//                Text("WELCOME TO ORB.IT")
-//                    .bold()
-//                    .font(Font.largeTitle)
-//                    .foregroundColor(.white)
-//                Text("Where one goal, Unfolds the world")
-//                    .foregroundColor(.white)
-//                    .padding(.bottom, 250)
-//                
-//                withAnimation(.easeIn.speed(1.5)) {
-//                    NavigationLink("Start",destination: Enter())
-//                        .frame(width: 210, height: 48)
-//                        .background(Color(.accent).opacity(0.1))
-//                        .cornerRadius(30)
-//                        .bold()
-//                        .foregroundColor(.white)
-//                        .glassEffect(.clear.interactive())
-//                        .padding(0.5)
+//        ZStack{
+//            Rectangle()
+//                .fill(LinearGradient(colors: [.darkBlu, .black], startPoint: .bottom, endPoint: .top))
+//                .ignoresSafeArea()
+//            Image("Background 3")
+//                .resizable()
+//                .ignoresSafeArea()
+//                .opacity(0.5)
+////            Image("Gliter")
+////                .resizable()
+////                .ignoresSafeArea()
+//                .onAppear {
+//                    requestNotificationPermission()
 //                }
-//                
-////                withAnimation(.easeIn.speed(1.5)) {
-////                    // Continue as Guest: create guest locally, then go Home
-////                    NavigationLink(
-////                        destination: Home(),
-////                        isActive: $navigateHome
-////                    ) {
-////                        Button("Continue as Guest") {
-////                            userVM.startAsGuest()
-////                            navigateHome = true
-////                        }
-////                        .frame(width: 210, height: 48)
-////                        .cornerRadius(30)
-////                        .bold()
-////                        .foregroundColor(.white)
-////                    }
-////                }
-//            }
-//            .padding(.top, 250)
-//            .padding(.bottom)
 //        }
 //        
-//    }
-//}
-//
-//#Preview {
-//    Splash()
-//        .environmentObject(UserViewModel())
-//}
-//
-import SwiftUI
-import AuthenticationServices
-
+//    }}
 struct SplashView: View {
-    @EnvironmentObject var userVM: UserViewModel
-    @State private var showLoginPopup = true
+    
+    @State private var animate = false
+    @State private var goToLogin = false
+
     
     var body: some View {
         ZStack{
+            
             Rectangle()
-                .fill(LinearGradient(colors: [.darkBlu, .black], startPoint: .bottom, endPoint: .top))
+                .fill(
+                    LinearGradient(
+                        colors: [.darkBlu, .black],
+                        startPoint: .bottom,
+                        endPoint: .top
+                    )
+                )
                 .ignoresSafeArea()
+            
             Image("Background 3")
                 .resizable()
+                .scaledToFill()   // ⭐ مهم جدًا
+                .frame(maxWidth: .infinity, maxHeight: .infinity)
                 .ignoresSafeArea()
                 .opacity(0.5)
-            Image("Gliter")
-                .resizable()
-                .ignoresSafeArea()
+            
+                // ✨ تكبير أكبر شوي من الشاشة لمنع التكسر
+                .scaleEffect(animate ? 1.08 : 1.02)
+            
+                // ✨ حركة فضائية ناعمة داخل حدود الشاشة
+                .offset(y: animate ? -6 : 6)
+            
+                .animation(
+                    .easeInOut(duration: 9)
+                    .repeatForever(autoreverses: true),
+                    value: animate
+                )
                 .onAppear {
-                    requestNotificationPermission()
+                    animate = true
+                    
+                    // وقت الانتقال
+                    DispatchQueue.main.asyncAfter(deadline: .now() + 3) {
+                        goToLogin = true
+                    }
                 }
         }
-        
-    }}
+    }
+}
 #Preview {
     SplashView()
 }

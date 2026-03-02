@@ -75,29 +75,32 @@ struct today: View {
             Rectangle()
                 .fill(LinearGradient(colors: [.darkBlu, .dark], startPoint: .bottom, endPoint: .top))
                 .ignoresSafeArea()
-            Image("Background 4").resizable().ignoresSafeArea().opacity(0.4)
-            Image("Gliter").resizable().ignoresSafeArea()
+            Image("Background")
+                .resizable()
+                .ignoresSafeArea()
+                .opacity(0.4)
+//            
+//            Image("Gliter")
+//                .resizable()
+//                .ignoresSafeArea()
 
-            VStack(alignment: .leading, spacing: 0) {
+            VStack(alignment: .leading, spacing: 8) {
 
-                // ── Date + Quote ─────────────────────────────────
-                Text(viewModel.formattedDate)
-                    .foregroundColor(.primary)
-                    .font(.system(size: 28, weight: .bold))
-                    .padding(.leading, 20)
 
                 Text(dailyQuote)
-                    .padding(.leading, 20)
-                    .padding(.bottom, 8)
+                    .padding(.horizontal,20)
+                    .padding(.top,16)
+                    .font(.footnote.weight(.light))
+
 
                 // ── Mini Calendar ─────────────────────────────────
                 ZStack(alignment: .center) {
                     Rectangle()
-                        .frame(width: 385, height: 134)
+                        .frame(width: 355, height: 124)
                         .foregroundColor(.clear)
                         .glassEffect(.regular, in: .rect(cornerRadius: 20))
 
-                    VStack(alignment: .leading, spacing: 20) {
+                    VStack(alignment: .leading, spacing: 8) {
                         Menu {
                             ForEach(calVM.availableMonths, id: \.self) { month in
                                 Button { calVM.changeMonth(to: month) } label: {
@@ -111,27 +114,42 @@ struct today: View {
                             }
                         }
 
-                        HStack(spacing: 5) {
+                        HStack(spacing: 4) {
+//                            Button { calVM.moveWeek(by: -1) } label: {
+//                                Image(systemName: "chevron.left").foregroundColor(.white)
+//                            }
                             Button { calVM.moveWeek(by: -1) } label: {
-                                Image(systemName: "chevron.left").foregroundColor(.white)
+                                Image(systemName: "chevron.left")
+                                    .font(.system(size: 14, weight: .medium))
+                                    .foregroundColor(.white.opacity(0.5))
+//                                    .padding(6)
                             }
                             ForEach(calVM.visibleWeek, id: \.self) { date in
                                 DayView(date: date, selectedDate: calVM.selectedDate, today: calVM.today)
                                     .onTapGesture { calVM.selectedDate = date }
                             }
+//                            Button { calVM.moveWeek(by: 1) } label: {
+//                                Image(systemName: "chevron.right")
+//                                    .foregroundColor(.white)
+//                                
+//                            }
                             Button { calVM.moveWeek(by: 1) } label: {
-                                Image(systemName: "chevron.right").foregroundColor(.white)
+                                Image(systemName: "chevron.right")
+                                    .font(.system(size: 14, weight: .medium))
+                                    .foregroundColor(.white.opacity(0.5))
+//                                    .padding(6)
                             }
                         }
+                        .font(.system(size: 20, weight: .bold))
                     }
                 }
-                .padding(.leading, 7)
+                .padding(.leading, 12)
                 .padding(.bottom, 12)
 
                 // ── Today's Tasks Header ─────────────────────────
                 HStack {
                     Text("Today's Tasks")
-                        .foregroundColor(.primary).font(.largeTitle).bold().padding(.leading, 20)
+                    .foregroundColor(.primary).font(.title).bold().padding(.leading, 20)
                     Spacer()
                     // إجمالي المهام المكتملة اليوم
                     let done  = todayItems.filter { $0.task.isDone }.count
@@ -140,14 +158,14 @@ struct today: View {
                         Text("\(done)/\(total)")
                             .font(.subheadline.weight(.semibold))
                             .foregroundColor(.white.opacity(0.7))
-                            .padding(.trailing, 20)
+                            .padding(.trailing, 30)
                     }
                 }
 
                 // ── Tasks List ────────────────────────────────────
                 ZStack {
                     RoundedRectangle(cornerRadius: 20)
-                        .frame(width: 350, height: 300)
+//                        .frame(width: 355, height: 300)
                         .foregroundColor(.clear)
 
                     if todayItems.isEmpty {
@@ -174,10 +192,10 @@ struct today: View {
                                     }
                                 }
                             }
-                            .padding(.leading, 23)
+                            .padding(.leading, 13)
                             .padding(.vertical, 8)
                         }
-                        .frame(height: 300)
+                        .frame(height: 400)
                     }
                 }
 
@@ -212,12 +230,12 @@ struct TodayTaskRow: View {
     var body: some View {
         ZStack {
             RoundedRectangle(cornerRadius: 20)
-                .frame(width: 330, height: 68)
+                .frame(width: 350, height: 68)
                 .foregroundColor(.clear)
                 .glassEffect(.clear, in: .rect(cornerRadius: 20))
 
             HStack {
-                VStack(alignment: .leading, spacing: 2) {
+                VStack(alignment: .leading, spacing: 4) {
                     Text(task.title)
                         .foregroundColor(.white)
                         .font(.system(size: 14, weight: .medium))
@@ -235,7 +253,7 @@ struct TodayTaskRow: View {
                     .onTapGesture { onToggle() }
                     .animation(.easeInOut(duration: 0.2), value: task.isDone)
             }
-            .padding(.horizontal, 20)
+            .padding(.horizontal, 30)
         }
         .padding(.trailing, 20)
     }

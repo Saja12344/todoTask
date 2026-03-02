@@ -50,8 +50,3 @@ func NativeTabView() -> some View {
     .accentColor(.accent)
     
 }
-#Preview {
-    Home()
-    .environmentObject(UserViewModel())
-
-}

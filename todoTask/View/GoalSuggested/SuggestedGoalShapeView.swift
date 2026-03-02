@@ -16,6 +16,9 @@ struct SuggestedGoalShapeView: View {
         ZStack {
             AppBackground()
 
+            
+            
+            
             Image("Background 2")
                 .scaledToFill()
                 .ignoresSafeArea()
@@ -44,7 +47,8 @@ struct SuggestedGoalShapeView: View {
                             .glassEffect(.clear.tint(Color.black.opacity(0.4)), in: Circle())
                     }
                 }
-                .padding()
+                .padding(.top,60)
+                .padding(.horizontal,20)
 
                 Spacer()
 

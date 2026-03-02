@@ -7,6 +7,7 @@ import SwiftUI
 
 private enum CreationStep: Hashable {
     case write
+    case loading(shape: GoalShape, text: String)
     case suggested(shape: GoalShape, text: String)
     case manual(typePrefill: GoalType?)
     case form(type: GoalType)
@@ -24,50 +25,86 @@ struct GoalsPage: View {
     @State private var chosenSettings:    GoalSettings?  = nil
 
     @StateObject private var energyVM = DailyEnergyViewModel()
-
+    @State private var selectedTab = 0
+    
     private let columns: [GridItem] = [GridItem(.adaptive(minimum: 170), spacing: 16)]
 
     var body: some View {
         NavigationStack(path: $path) {
             ZStack {
                 Rectangle()
-                    .fill(LinearGradient(colors: [Color("color"), Color("dark")], startPoint: .bottom, endPoint: .top))
+                    .fill(
+                        LinearGradient(
+                            colors: [.darkBlu, .black],
+                            startPoint: .bottom,
+                            endPoint: .top
+                        )
+                    )
                     .ignoresSafeArea()
                 Image("Background 4").resizable().ignoresSafeArea().opacity(0.35)
                 Image("Gliter").resizable().ignoresSafeArea()
-
-                ScrollView(showsIndicators: false) {
-                    VStack(alignment: .leading, spacing: 14) {
-                        Text("Your Orbs")
-                            .font(.system(size: 22, weight: .semibold))
-                            .foregroundStyle(.white)
-                            .padding(.horizontal, 16).padding(.top, 8)
-
-                        LazyVGrid(columns: columns, spacing: 16) {
-                            ForEach(store.goals) { goal in
-                                NavigationLink {
-                                    GoalTasksView(goalID: goal.id)
-                                } label: {
-                                    GoalGridCard(goal: goal)
+                
+                VStack(spacing: 16) {
+                    
+                    Picker("", selection: $selectedTab) {
+                        Text("Your Orbs").tag(0)
+                        Text("Shared Orbs").tag(1)
+                    }
+                    .pickerStyle(.segmented)
+                    .padding(.horizontal, 16)
+                    .padding(.top, 8)
+                    
+                    if selectedTab == 0 {
+                        ScrollView(showsIndicators: false) {
+                            VStack(alignment: .leading, spacing: 14) {
+                                Text("Your Orbs")
+                                    .font(.system(size: 22, weight: .semibold))
+                                    .foregroundStyle(.white)
+                                    .padding(.horizontal, 16).padding(.top, 8)
+                                
+                                LazyVGrid(columns: columns, spacing: 16) {
+                                    ForEach(store.goals) { goal in
+                                        NavigationLink {
+                                            GoalTasksView(goalID: goal.id)
+                                        } label: {
+                                            GoalGridCard(goal: goal)
+                                        }
+                                        .buttonStyle(.plain)
+                                        .contextMenu {
+                                            Button(role: .destructive) {
+                                                goalPendingDelete = goal
+                                                showDeleteConfirm = true
+                                            } label: { Label("Delete Orb", systemImage: "trash") }
+                                        }
+                                        .onLongPressGesture(minimumDuration: 0.6) {
+                                            goalPendingDelete = goal
+                                            showDeleteConfirm = true
+                                        }
+                                    }
                                 }
-                                .buttonStyle(.plain)
-                                .contextMenu {
-                                    Button(role: .destructive) {
-                                        goalPendingDelete = goal
-                                        showDeleteConfirm = true
-                                    } label: { Label("Delete Orb", systemImage: "trash") }
-                                }
-                                .onLongPressGesture(minimumDuration: 0.6) {
-                                    goalPendingDelete = goal
-                                    showDeleteConfirm = true
-                                }
+                                .padding(.horizontal, 16)
+                                Spacer().frame(height: 30)
                             }
                         }
-                        .padding(.horizontal, 16)
-                        Spacer().frame(height: 30)
+                        
+                    } else {
+                        
+                        ScrollView {
+                            Text("Shared Orbs")
+                                .font(.title2)
+                                .foregroundColor(.white)
+                                .padding()
+                            
+                            // هنا لاحقاً تضيفي الشيرد أورب
+                            Text("Coming soon...")
+                                .foregroundColor(.white.opacity(0.6))
+                                .padding()
+                        }
+                        
                     }
                 }
             }
+                    
             .toolbar {
                 ToolbarItem(placement: .navigationBarTrailing) {
                     Button { startCreation() } label: { Image(systemName: "plus") }
@@ -90,7 +127,7 @@ struct GoalsPage: View {
                     WriteGoalView(onDone: { title, suggestion in
                         draftTitle = title
                         if let shape = suggestion {
-                            path.append(.suggested(shape: shape, text: title))
+                            path.append(.loading(shape: shape, text: title))
                         } else {
                             path.append(.manual(typePrefill: nil))
                         }
@@ -105,7 +142,15 @@ struct GoalsPage: View {
                         onBack: { _ = path.popLast() }
                     )
                     .navigationBarBackButtonHidden(true)
-
+                    
+                case let .loading(shape, text):
+                    LoadingGoalShapesView(
+                        goalText: text,
+                        suggestedShape: shape
+                    ) {
+                        path.append(.suggested(shape: shape, text: text))
+                    }
+                    .navigationBarBackButtonHidden(true)
                 case let .manual(typePrefill):
                     GoalShapeView(
                         selectedGoal: typePrefill, showSettings: false,
@@ -140,7 +185,7 @@ struct GoalsPage: View {
                         path.removeAll()
                     }
                     .environmentObject(store)
-                    .preferredColorScheme(.dark)
+//                    .preferredColorScheme(.dark)
                     .navigationBarBackButtonHidden(true)
                 }
             }
