@@ -22,6 +22,10 @@ struct LoadingGoalShapesView: View {
         .finishByMilestones,
         .reduceSomething
     ]
+    let columns = [
+        GridItem(.flexible()),
+        GridItem(.flexible())
+    ]
     
     
     var body: some View {
@@ -34,14 +38,15 @@ struct LoadingGoalShapesView: View {
                     .foregroundColor(.white)
                     .font(.title3.bold())
                 
-                VStack(spacing: 22) {
-                    
+//                HStack(spacing: 22) {
+                LazyVGrid(columns: columns, spacing: 16) {
                     ForEach(selectedShapes.indices, id: \.self) { index in
                         GoalShapeLoadingCard(
                             shape: selectedShapes[index],
                             isActive: index == currentIndex
                         )
                     }
+                 
                 }
                 .padding(.horizontal, 28)
             }
@@ -56,14 +61,14 @@ struct LoadingGoalShapesView: View {
     
     private func generateRandomShapes() {
         selectedShapes = Array(
-            allShapes.shuffled().prefix(3)
+            allShapes.shuffled()
         )
     }
     
     // MARK: - Animation Cycle
     
     private func startAnimationCycle() {
-        Timer.scheduledTimer(withTimeInterval: 0.8, repeats: true) { timer in
+        Timer.scheduledTimer(withTimeInterval: 0.3, repeats: true) { timer in
             
             currentIndex += 1
             
@@ -72,7 +77,7 @@ struct LoadingGoalShapesView: View {
             }
         }
         
-        DispatchQueue.main.asyncAfter(deadline: .now() + 5) {
+        DispatchQueue.main.asyncAfter(deadline: .now() + 2) {
             onFinish()
         }
     }
@@ -94,7 +99,7 @@ struct GoalShapeLoadingCard: View {
                 .foregroundColor(.white)
                 .font(.subheadline)
         }
-        .frame(maxWidth: .infinity)
+        .frame(maxWidth: 200)
         .frame(height: 120)
         .background(
             RoundedRectangle(cornerRadius: 22)

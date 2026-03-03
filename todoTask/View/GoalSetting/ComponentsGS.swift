@@ -84,8 +84,9 @@ struct SectionHeader: View {
     
     var body: some View {
         Text(title)
-            .font(.system(size: 20, weight: .medium))
+            .font(.system(size: 20, weight: .bold))
             .foregroundColor(.white.opacity(0.9))
+            .padding(6)
     }
 }
 
@@ -180,12 +181,48 @@ struct NumberStepper: View {
 //        }
 //    }
 //}
+//struct WeekDaysSelector: View {
+//    @Binding var selectedDays: Set<Int>
+//
+//    let days = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"]
+//
+//    var body: some View {
+//        HStack(spacing: 2) {
+//
+//            ForEach(1...7, id: \.self) { calendarIndex in
+//
+//                let displayIndex = calendarIndex - 1
+//
+//                Button {
+//                    if selectedDays.contains(calendarIndex) {
+//                        selectedDays.remove(calendarIndex)
+//                    } else {
+//                        selectedDays.insert(calendarIndex)
+//                    }
+//                } label: {
+//
+//                    Text(days[displayIndex])
+//                        .font(.system(size: 15, weight: .medium))
+//                        .foregroundColor(.white)
+//                        .frame(width: 48, height: 48)
+//                        .background(
+//                            selectedDays.contains(calendarIndex)
+//                            ? Color.white.opacity(0.15)
+//                            : Color.clear
+//                        )
+//                        .clipShape(Circle())
+//                }
+//            }
+//        }
+//    }
+//}
 struct WeekDaysSelector: View {
     @Binding var selectedDays: Set<Int>
 
     let days = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"]
 
     var body: some View {
+
         HStack(spacing: 2) {
 
             ForEach(1...7, id: \.self) { calendarIndex in
@@ -193,73 +230,186 @@ struct WeekDaysSelector: View {
                 let displayIndex = calendarIndex - 1
 
                 Button {
+
                     if selectedDays.contains(calendarIndex) {
                         selectedDays.remove(calendarIndex)
                     } else {
                         selectedDays.insert(calendarIndex)
                     }
+
                 } label: {
 
                     Text(days[displayIndex])
                         .font(.system(size: 15, weight: .medium))
                         .foregroundColor(.white)
-                        .frame(width: 48, height: 48)
+                        .frame(width: 45, height: 40)
                         .background(
-                            selectedDays.contains(calendarIndex)
-                            ? Color.white.opacity(0.15)
-                            : Color.clear
+                            RoundedRectangle(cornerRadius: 14)
+                                .fill(
+                                    selectedDays.contains(calendarIndex)
+                                    ? Color.white.opacity(0.18)
+                                    : Color.black.opacity(0.35)
+                                )
                         )
-                        .clipShape(Circle())
+                        .overlay(
+                            RoundedRectangle(cornerRadius: 14)
+                                .stroke(Color.white.opacity(0.08), lineWidth: 1)
+                        )
                 }
             }
         }
     }
 }
-
+//struct TimePickerRow: View {
+//    @Binding var startTime: Date
+//    @Binding var endTime: Date
+//    
+//    var body: some View {
+//        HStack(spacing: 12) {
+//            DatePicker("", selection: $startTime, displayedComponents: .hourAndMinute)
+//                .labelsHidden()
+//                .colorScheme(.dark)
+//            
+//            Text("to")
+//                .font(.system(size: 15, weight: .medium))
+//                .foregroundColor(.white.opacity(0.6))
+//            
+//            DatePicker("", selection: $endTime, displayedComponents: .hourAndMinute)
+//                .labelsHidden()
+//                .colorScheme(.dark)
+//            
+//            Button(action: {}) {
+//                Image(systemName: "plus.circle.fill")
+//                    .foregroundColor(.white.opacity(0.6))
+//                    .font(.system(size: 20))
+//            }
+//        }
+//    }
+//}
 struct TimePickerRow: View {
+
     @Binding var startTime: Date
     @Binding var endTime: Date
-    
+
     var body: some View {
-        HStack(spacing: 12) {
+
+        HStack(spacing: 24) {
+
             DatePicker("", selection: $startTime, displayedComponents: .hourAndMinute)
                 .labelsHidden()
                 .colorScheme(.dark)
-            
-            Text("to")
-                .font(.system(size: 15, weight: .medium))
+                .padding()
+                .background(
+                    RoundedRectangle(cornerRadius: 14)
+                        .fill(Color.black.opacity(0.85))
+                )
+
+            Text("To")
                 .foregroundColor(.white.opacity(0.6))
-            
+
             DatePicker("", selection: $endTime, displayedComponents: .hourAndMinute)
                 .labelsHidden()
                 .colorScheme(.dark)
-            
-            Button(action: {}) {
-                Image(systemName: "plus.circle.fill")
-                    .foregroundColor(.white.opacity(0.6))
-                    .font(.system(size: 20))
-            }
+                .padding()
+                .background(
+                    RoundedRectangle(cornerRadius: 14)
+                        .fill(Color.black.opacity(0.35))
+                )
         }
+        .padding(.horizontal, 20)
+        .padding(.vertical, 14)
+        .frame(maxWidth: .infinity)
+        .background(
+            RoundedRectangle(cornerRadius: 18)
+                .fill(Color.black.opacity(0.35))
+                .overlay(
+                    RoundedRectangle(cornerRadius: 18)
+                        .stroke(Color.white.opacity(0.08))
+                )
+        )
     }
 }
+//struct GlassDatePicker: View {
+//    let title: String
+//    @Binding var date: Date
+//    
+//    var body: some View {
+//        HStack {
+//            Text(title)
+//                .font(.system(size: 20, weight: .medium))
+//                .foregroundColor(.white)
+//            
+//            Spacer()
+//            
+//            DatePicker("", selection: $date, displayedComponents: .date)
+////                .labelsHidden()
+////                .colorScheme(.dark)
+////                .padding(.vertical, 16)
+////                .frame(maxWidth: 280)
+//                .labelsHidden()
+//                .datePickerStyle(.compact)
+//                .colorScheme(.dark)
+//                .frame(height: 160)
+//        }
+//    }
+//}
 
 struct GlassDatePicker: View {
     let title: String
     @Binding var date: Date
+    @State private var showPicker = false
     
     var body: some View {
-        HStack {
+        
+        VStack(alignment: .leading, spacing: 10) {
+            
             Text(title)
-                .font(.system(size: 20, weight: .medium))
-                .foregroundColor(.white)
+                .font(.system(size: 20, weight: .bold))
+                .foregroundColor(.white.opacity(0.9))
+                .padding(6)
             
-            Spacer()
+            Button {
+                withAnimation(.spring()) {
+                    showPicker.toggle()
+                }
+            } label: {
+                HStack {
+                    Text(date.formatted(date: .abbreviated, time: .omitted))
+                        .foregroundColor(.white.opacity(0.9))
+
+                    Spacer()
+
+                    Image(systemName: showPicker ? "chevron.up" : "calendar")
+                        .foregroundColor(.white.opacity(0.7))
+                }
+                .padding(.horizontal, 18)
+                .padding(.vertical, 14)
+
+                .background(
+                    RoundedRectangle(cornerRadius: 18)
+                        .fill(Color.black.opacity(0.35))
+                )
+            }
+            .padding(.horizontal,14)
+
             
-            DatePicker("", selection: $date, displayedComponents: .date)
-                .labelsHidden()
+            if showPicker {
+
+                DatePicker(
+                    "",
+                    selection: $date,
+                    displayedComponents: .date
+                )
+                .datePickerStyle(.wheel)
                 .colorScheme(.dark)
-                .padding(.horizontal, 45)
-                .padding(.vertical, 16)
+                .frame(width: 280)
+                .background(
+                    RoundedRectangle(cornerRadius: 18)
+                        .fill(Color.black.opacity(0.3))
+                )
+                .padding(.leading,34)
+
+            }
         }
     }
 }
@@ -275,7 +425,7 @@ struct GlassToggle: View {
                 Text(option1)
                     .font(.system(size: 15, weight: .medium))
                     .foregroundColor(.white)
-                    .padding(.horizontal, 24)
+                    .padding(.horizontal, 34)
                     .padding(.vertical, 10)
                     .background(
                         RoundedRectangle(cornerRadius: 16)
@@ -287,7 +437,7 @@ struct GlassToggle: View {
                 Text(option2)
                     .font(.system(size: 15, weight: .medium))
                     .foregroundColor(.white)
-                    .padding(.horizontal, 24)
+                    .padding(.horizontal, 35)
                     .padding(.vertical, 10)
                     .background(
                         RoundedRectangle(cornerRadius: 16)
@@ -298,14 +448,17 @@ struct GlassToggle: View {
     }
 }
 
+
 struct CustomTextField: View {
     let placeholder: String
     @Binding var text: String
     
     var body: some View {
         TextField(placeholder, text: $text)
-            .foregroundColor(.white)
-            .padding(12)
+            .colorScheme(.dark)
+            .padding(14)
+
+            .frame(maxWidth: .infinity)
             .background(
                 RoundedRectangle(cornerRadius: 15)
                     .fill(Color.black.opacity(0.4))

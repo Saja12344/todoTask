@@ -18,7 +18,9 @@ struct GoalTask: Identifiable, Codable, Hashable {
 // MARK: - GoalSettings
 struct GoalSettings: Codable, Equatable {
     var goalType:         GoalType  = .finishTotal
-    var selectedDays:     Set<Int>  = [1,2,3,4,5]
+    var selectedDays:     Set<Int>  = [
+        1,2,3,4,5,6,7
+    ]
     var startTime:        Date      = Calendar.current.date(bySettingHour: 8,  minute: 0, second: 0, of: Date())!
     var endTime:          Date      = Calendar.current.date(bySettingHour: 9,  minute: 0, second: 0, of: Date())!
     var targetNumber:     Int       = 10
@@ -67,8 +69,8 @@ struct OrbGoal: Identifiable, Codable, Equatable {
 
     func tasks(for date: Date) -> [GoalTask] {
         let cal     = Calendar.current
-        let weekday = cal.component(.weekday, from: date) - 1
-        let activeDays = settings?.selectedDays ?? Set(0...6)
+        let weekday = cal.component(.weekday, from: date) 
+        let activeDays = settings?.selectedDays ?? []
 
         guard activeDays.contains(weekday),
               let deadline = settings?.deadline,
@@ -131,7 +133,7 @@ extension OrbGoal {
                     RGBAColor(r: 0.93, g: 0.30, b: 0.96, a: 1)
                 ]
             ),
-            settings: GoalSettings(goalType: .finishTotal, selectedDays: [1,2,3,4,5], targetNumber: 10, unit: "lessons")
+            settings: GoalSettings(goalType: .finishTotal, selectedDays: [], targetNumber: 10, unit: "lessons")
         )
         g.tasks = [
             GoalTask(goalID: g.id, title: "Study 5 flashcards",    scheduledDate: Date()),
@@ -155,7 +157,7 @@ extension OrbGoal {
                     RGBAColor(r: 0.4, g: 0.1, b: 0.8, a: 1)
                 ]
             ),
-            settings: GoalSettings(goalType: .finishTotal, selectedDays: [1,2,3,4,5], targetNumber: 6, unit: "km")
+            settings: GoalSettings(goalType: .finishTotal, selectedDays: [], targetNumber: 6, unit: "km")
         )
         g.tasks = [
             GoalTask(goalID: g.id, title: "Run 1 km", scheduledDate: Date()),

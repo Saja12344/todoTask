@@ -20,7 +20,7 @@ struct GoalShapeView: View {
     @State private var selectedGoal: GoalType?
     @State private var showSettings = false
 
-    @State private var capturedDays:       Set<Int> = [1,2,3,4,5]
+    @State private var capturedDays:       Set<Int> = []
     @State private var capturedStartTime:  Date     = Calendar.current.date(bySettingHour: 8,  minute: 0, second: 0, of: Date())!
     @State private var capturedEndTime:    Date     = Calendar.current.date(bySettingHour: 9,  minute: 0, second: 0, of: Date())!
     @State private var capturedTarget:     Int      = 10
@@ -172,28 +172,41 @@ struct FinishTotalContent: View {
 
     var body: some View {
         GlassCard {
-            VStack(spacing: 20) {
-                VStack(alignment: .leading, spacing: 8) {
-                    SectionHeader(title: "Target Number:")
+            VStack(spacing: 8) {
+                VStack(alignment: .leading,spacing: 8) {
+                    SectionHeader(title: "Target number ")
                     NumberStepper(title: "", value: $targetNumber, range: 1...1000, suffix: "")
                 }
-                VStack(alignment: .leading, spacing: 6) {
-                    SectionHeader(title: "Unit:")
-                    CustomTextField(placeholder: "eg. Pages, Km, Bottles", text: $unit).padding(.horizontal, 25)
-                }
-                GlassDatePicker(title: "Deadline Date:", date: $deadlineDate)
                 VStack(alignment: .leading, spacing: 8) {
-                    SectionHeader(title: "Days a Week:")
+                    SectionHeader(title: "Unit ")
+                    CustomTextField(placeholder: "eg. Pages, Km, Bottles", text: $unit)
+                        .padding(.horizontal, 14)
+
+                }
+                GlassDatePicker(title: "Deadline Date", date: $deadlineDate)
+                
+                    .padding(.top,14)
+
+                VStack(alignment: .leading) {
+                    SectionHeader(title: "Days of the Week ")
+                        .padding(.horizontal,-10)
+
                     WeekDaysSelector(selectedDays: $selectedDays)
                 }
-                VStack(alignment: .leading, spacing: 8) {
-                    SectionHeader(title: "Preferred Time:")
+                VStack (alignment: .leading,spacing: 8){
+                    SectionHeader(title: "Preferred Time ")
+                        .padding(.horizontal,-1)
                     HStack {
-                        DatePicker("", selection: $startTime, displayedComponents: .hourAndMinute).labelsHidden().colorScheme(.dark)
+                        
+                        DatePicker("", selection: $startTime, displayedComponents: .hourAndMinute)
+                        .labelsHidden()
+                        .colorScheme(.dark)
                         Text("to").foregroundColor(.white.opacity(0.6))
                         DatePicker("", selection: $endTime, displayedComponents: .hourAndMinute).labelsHidden().colorScheme(.dark)
                     }
+                    .padding(.leading,80)
                 }
+                .frame(maxWidth: .infinity, alignment: .leading)
             }
         }
     }
@@ -209,21 +222,31 @@ struct RepeatScheduleContent: View {
         GlassCard {
             VStack(spacing: 20) {
                 VStack(alignment: .leading, spacing: 8) {
-                    SectionHeader(title: "Unit:")
+                    SectionHeader(title: "Unit")
                     CustomTextField(placeholder: "eg. Inches, Bottles", text: $unit)
+                        .padding(.horizontal, 14)
+
                 }
                 VStack(alignment: .leading, spacing: 8) {
-                    SectionHeader(title: "Days a Week:")
+                    SectionHeader(title: "Days of the Week ")
+                        .padding(.horizontal,-10)
+
                     WeekDaysSelector(selectedDays: $selectedDays)
                 }
                 VStack(alignment: .leading, spacing: 8) {
-                    SectionHeader(title: "Time Window:")
+                    SectionHeader(title: "Preferred Time")
+                        .padding(.horizontal,-1)
+
                     HStack {
                         DatePicker("", selection: $startTime, displayedComponents: .hourAndMinute).labelsHidden().colorScheme(.dark)
-                        Text("to").foregroundColor(.white.opacity(0.5))
+                        Text("To").foregroundColor(.white.opacity(0.5))
                         DatePicker("", selection: $endTime, displayedComponents: .hourAndMinute).labelsHidden().colorScheme(.dark)
                     }
+                    .padding(.leading,80)
+
                 }
+                .frame(maxWidth: .infinity, alignment: .leading)
+
             }
         }
     }
@@ -238,15 +261,16 @@ struct BuildStreakContent: View {
         GlassCard {
             VStack(spacing: 20) {
                 VStack(alignment: .leading, spacing: 8) {
-                    SectionHeader(title: "Target Days:")
+                    SectionHeader(title: "Target Days")
                     NumberStepper(title: "", value: $targetNumber, range: 1...365, suffix: "days")
                 }
                 VStack(alignment: .leading, spacing: 6) {
-                    SectionHeader(title: "Activity:")
+                    SectionHeader(title: "Activity")
                     CustomTextField(placeholder: "eg. journaling, workout", text: $unit)
+                        .padding(.horizontal, 14)
                 }
                 VStack(alignment: .leading, spacing: 8) {
-                    SectionHeader(title: "Break Days Allowed:")
+                    SectionHeader(title: "Break Days Allowed")
                     NumberStepper(title: "", value: $breakDays, range: 0...7, suffix: "")
                 }
             }
@@ -264,15 +288,18 @@ struct LevelUpContent: View {
         GlassCard {
             VStack(spacing: 20) {
                 VStack(alignment: .leading, spacing: 8) {
-                    SectionHeader(title: "Activity:")
+                    SectionHeader(title: "Activity")
                     CustomTextField(placeholder: "eg. running, reading", text: $activity)
+                        .padding(.horizontal, 14)
                 }
                 VStack(alignment: .leading, spacing: 8) {
-                    SectionHeader(title: "Target Level:")
+                    SectionHeader(title: "Target Level")
                     NumberStepper(title: "", value: $targetLevel, range: 1...100, suffix: "")
                 }
                 VStack(alignment: .leading, spacing: 8) {
-                    SectionHeader(title: "Days a Week:")
+                    SectionHeader(title: "Days of the Week ")
+                        .padding(.horizontal, -10)
+
                     WeekDaysSelector(selectedDays: $selectedDays)
                 }
                 VStack(alignment: .leading, spacing: 8) {
@@ -293,14 +320,17 @@ struct MilestonesContent: View {
     var body: some View {
         GlassCard {
             VStack(spacing: 20) {
-                GlassDatePicker(title: "Deadline Date:", date: $deadlineDate)
+                GlassDatePicker(title: "Deadline Date", date: $deadlineDate)
                 VStack(alignment: .leading, spacing: 8) {
-                    SectionHeader(title: "Days a Week:")
+                    SectionHeader(title: "Days of the Week ")
+                        .padding(.horizontal, -10)
+
                     WeekDaysSelector(selectedDays: $selectedDays)
                 }
                 VStack(alignment: .leading, spacing: 8) {
                     SectionHeader(title: "Scope Size")
                     GlassSlider(value: $scopeSize, range: 0...100)
+                        .padding(.horizontal, 14)
                 }
                 VStack(alignment: .leading, spacing: 8) {
                     SectionHeader(title: "Daily Time Preference")
@@ -321,19 +351,22 @@ struct ReduceContent: View {
         GlassCard {
             VStack(spacing: 20) {
                 VStack(alignment: .leading, spacing: 8) {
-                    SectionHeader(title: "Metric type:")
+                    SectionHeader(title: "Metric type")
                     CustomTextField(placeholder: "eg. screen time, sugar", text: $metricType)
+                        .padding(.horizontal, 14)
                 }
                 VStack(alignment: .leading, spacing: 8) {
-                    SectionHeader(title: "Tracking mode:")
+                    SectionHeader(title: "Tracking mode")
+                        .padding(.horizontal, -24)
+
                     GlassToggle(option1: "Reduce by", option2: "Stay Under", isOption1: $isReduceBy)
                 }
                 VStack(alignment: .leading, spacing: 8) {
-                    SectionHeader(title: "Baseline Number:")
+                    SectionHeader(title: "Starting Number")
                     NumberStepper(title: "", value: $baselineNumber, range: 0...1000, suffix: "")
                 }
                 VStack(alignment: .leading, spacing: 8) {
-                    SectionHeader(title: "Target Number:")
+                    SectionHeader(title: "Target Number")
                     NumberStepper(title: "", value: $targetNumber, range: 0...1000, suffix: "")
                 }
             }

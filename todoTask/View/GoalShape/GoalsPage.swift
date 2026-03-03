@@ -139,7 +139,10 @@ struct GoalsPage: View {
                         goalText: text, suggestedShape: shape,
                         onFinish: { type in chosenType = type; path.append(.form(type: type)) },
                         onChangeShape: { path.append(.manual(typePrefill: nil)) },
-                        onBack: { _ = path.popLast() }
+                        onBack: { _ =
+//                            path.popLast()
+                            path.removeLast(2)
+                        }
                     )
                     .navigationBarBackButtonHidden(true)
                     
@@ -150,7 +153,7 @@ struct GoalsPage: View {
                     ) {
                         path.append(.suggested(shape: shape, text: text))
                     }
-                    .navigationBarBackButtonHidden(true)
+//                    .navigationBarBackButtonHidden(true)
                 case let .manual(typePrefill):
                     GoalShapeView(
                         selectedGoal: typePrefill, showSettings: false,
