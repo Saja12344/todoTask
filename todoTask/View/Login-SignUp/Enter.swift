@@ -56,10 +56,12 @@ struct Enter: View {
                                             email: credential.email
                                         )
                                     }
+                                } else {
+                                    print("❌ Unexpected credential type: \(type(of: authResults.credential))")
                                 }
 
-                            case .failure(let error):
-                                print("❌ Apple sign in failed: \(error.localizedDescription)")
+                            case .failure(let signInError):
+                                print("❌ Apple sign in failed: \(signInError.localizedDescription)")
                             }
                         }
 
