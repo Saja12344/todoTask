@@ -28,18 +28,18 @@ func NativeTabView() -> some View {
                     .navigationTitle("Goals Of The Day")
             }
         }
-        Tab.init("Goals", systemImage: "target"){
+        Tab.init("Orbs", systemImage: "globe.americas.fill"){
             NavigationStack{
                 GoalsPage()
-                    .navigationTitle("Achived Goals")
+                    .navigationTitle("Orbit Dashboard")
             }
         }
-//        Tab.init("Friends", systemImage: "person.2.fill"){
-//            NavigationStack{
-//                FriendsV()
-//                    .navigationTitle("Friends List")
-//            }
-//        }
+        Tab.init("Friends", systemImage: "person.2.fill"){
+            NavigationStack{
+                FriendsV()
+                    .navigationTitle("Friends List")
+            }
+        }
         Tab.init("Settings", systemImage: "gear"){
             NavigationStack{
                 Settings()
@@ -50,8 +50,23 @@ func NativeTabView() -> some View {
     .accentColor(.accent)
     
 }
-#Preview {
+#Preview{
     Home()
-    .environmentObject(UserViewModel())
-
+        .environmentObject(OrbGoalStore())
 }
+
+#Preview{
+    today()
+        .environmentObject(OrbGoalStore())
+}
+
+#Preview{
+    Settings()
+        .environmentObject(UserViewModel())
+}
+
+#Preview{
+    FriendsV()
+        .environmentObject(UserViewModel())
+}
+

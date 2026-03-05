@@ -2,59 +2,69 @@
 //  todoTaskApp.swift
 //  todoTask
 //
-//  Created by شهد عبدالله القحطاني on 19/08/1447 AH.
-//
 
 import SwiftUI
-
 
 @main
 struct todoTaskApp: App {
 
-    @StateObject private var userVM = UserViewModel()
+    @StateObject private var userVM    = UserViewModel()
     @StateObject private var goalStore = OrbGoalStore()
-
+    @StateObject private var deepLink  = DeepLinkManager.shared
+    @State private var showSplash = true
 
     init() {
         NotificationPermissionManager.shared.requestPermissionIfNeeded()
     }
 
     var body: some Scene {
-        WindowGroup {
-            RootRouterView()
-                .environmentObject(userVM)
-                .environmentObject(goalStore)
-                .onAppear {
-                    // Restore previously saved local (guest or registered) session if any
-                    userVM.loadLocalUser()
+            WindowGroup {
+                
+                if showSplash {
+                    SplashScreenView()
+                        .onAppear {
+                            DispatchQueue.main.asyncAfter(deadline: .now() + 3) {
+                                showSplash = false
+                            }
+                        }
+                } else {
+                    RootRouterView()
+                        .environmentObject(userVM)
+                        .environmentObject(goalStore)
+                        .environmentObject(deepLink)
+                        .onOpenURL { url in
+                            DeepLinkManager.shared.handle(url: url)
+                        }
+                        .sheet(isPresented: $deepLink.shouldOpenChallenge) {
+                            if let challengeID = deepLink.pendingChallengeID {
+                                ChallengeInviteView(
+                                    challengeID: challengeID,
+                                    fromUsername: deepLink.pendingFromUser ?? "Friend"
+                                )
+                                .environmentObject(goalStore)
+                            }
+                        }
                 }
+            }
         }
-        
     }
-    
-}
 
-// Root router decides which view to show based on user state
+// MARK: - Root Router
 struct RootRouterView: View {
     @EnvironmentObject private var userVM: UserViewModel
 
     var body: some View {
-//        Group {
-//            if userVM.isCheckingAuth {
-//                ProgressView() 
-//            } else if userVM.currentUser == nil {
-//                Enter()
-//            } else {
-//                // Existing user session → go straight to Home
+        Group {
+            if userVM.isCheckingAuth {
+               ProgressView()
+           } else if userVM.currentUser == nil {
+               Enter()
+            } else {
                 Home()
-//            }
-//        }
+           }
+       }
         .onAppear {
-            userVM.loadLocalUser()
             userVM.checkAppleCredentialState()
         }
     }
 }
-
-
-

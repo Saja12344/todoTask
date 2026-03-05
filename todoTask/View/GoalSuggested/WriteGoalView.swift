@@ -17,7 +17,17 @@ struct WriteGoalView: View {
 
     var body: some View {
         ZStack {
-            AppBackground()
+            Rectangle()
+                .fill(LinearGradient(colors: [.darkBlu, .dark], startPoint: .bottom, endPoint: .top))
+                .ignoresSafeArea()
+            Image("Background 2")
+                .resizable()
+                .ignoresSafeArea()
+                .opacity(0.7)
+            
+            Image("Gliter")
+                .resizable()
+                .ignoresSafeArea()
 
             VStack(spacing: 0) {
                 // Top bar
@@ -42,7 +52,10 @@ struct WriteGoalView: View {
                     .disabled(goalText.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty)
                     .opacity(goalText.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty ? 0.5 : 1)
                 }
-                .padding()
+                .padding(.top,-10)
+                .padding(.bottom,-100)
+                .padding(.horizontal,20)
+
 
                 Spacer()
 
