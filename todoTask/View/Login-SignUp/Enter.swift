@@ -25,7 +25,7 @@ struct Enter: View {
                     .bold()
                     .font(.largeTitle)
                     .foregroundColor(.white)
-                    .padding(.top, 120)
+                    .padding(.top, 50)
 
                 Text("Where one goal, Unfolds the world")
                     .foregroundColor(.white)
@@ -43,12 +43,12 @@ struct Enter: View {
                             switch result {
                             case .success(let authResults):
                                 if let credential = authResults.credential as? ASAuthorizationAppleIDCredential {
-                                    
+
                                     print(" Apple User ID: \(credential.user)")
                                     print(" Given Name: \(credential.fullName?.givenName ?? "nil")")
                                     print(" Family Name: \(credential.fullName?.familyName ?? "nil")")
                                     print(" Email: \(credential.email ?? "nil")")
-                                    
+
                                     Task {
                                         try await userVM.loginWithApple(
                                             id: credential.user,
@@ -56,13 +56,10 @@ struct Enter: View {
                                             email: credential.email
                                         )
                                     }
-
-                                case .failure(let error):
-                                    print("❌ Apple sign in failed: \(error.localizedDescription)")
                                 }
 
                             case .failure(let error):
-                                print(error.localizedDescription)
+                                print("❌ Apple sign in failed: \(error.localizedDescription)")
                             }
                         }
 

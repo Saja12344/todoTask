@@ -315,8 +315,11 @@ struct today: View {
                                 goalTitle: newGoal.title, scheduledDate: Date()
                             )
                         }
-                        store.add(newGoal)
-                        path.removeAll()
+                        // Ensure publishing and navigation both occur on main actor
+                        Task { @MainActor in
+                            store.add(newGoal)
+                            path.removeAll()
+                        }
                     }
                     .environmentObject(store)
                     .navigationBarBackButtonHidden(true)

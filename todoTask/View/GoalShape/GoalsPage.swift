@@ -146,7 +146,6 @@ struct GoalsPage: View {
                     ) {
                         path.append(.suggested(shape: shape, text: text))
                     }
-//                    .navigationBarBackButtonHidden(true)
                 case let .manual(typePrefill):
                     GoalShapeView(
                         selectedGoal: typePrefill, showSettings: false,
@@ -177,11 +176,12 @@ struct GoalsPage: View {
                                 goalTitle: newGoal.title, scheduledDate: Date()
                             )
                         }
-                        store.add(newGoal)
-                        path.removeAll()
+                        Task { @MainActor in
+                            store.add(newGoal)
+                            path.removeAll()
+                        }
                     }
                     .environmentObject(store)
-//                    .preferredColorScheme(.dark)
                     .navigationBarBackButtonHidden(true)
                 }
             }

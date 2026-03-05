@@ -58,7 +58,7 @@ struct RootRouterView: View {
             if userVM.isCheckingAuth {
                 ProgressView()
             } else if userVM.currentUser == nil {
-                Enter()
+                Home()
             } else {
                 Home()
             }

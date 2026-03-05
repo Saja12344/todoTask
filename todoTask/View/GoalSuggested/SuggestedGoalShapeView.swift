@@ -14,15 +14,18 @@ struct SuggestedGoalShapeView: View {
 
     var body: some View {
         ZStack {
-            AppBackground()
-
-            
-            
-            
-            Image("Background 2")
-                .scaledToFill()
+            Rectangle()
+                .fill(LinearGradient(colors: [.darkBlu, .dark], startPoint: .bottom, endPoint: .top))
                 .ignoresSafeArea()
-
+            Image("Background 2")
+                .resizable()
+                .ignoresSafeArea()
+                .opacity(0.7)
+            
+            Image("Gliter")
+                .resizable()
+                .ignoresSafeArea()
+            
             VStack(spacing: 0) {
                 // Top Bar
                 HStack {
@@ -47,11 +50,10 @@ struct SuggestedGoalShapeView: View {
                             .glassEffect(.clear.tint(Color.black.opacity(0.4)), in: Circle())
                     }
                 }
-                .padding(.top,60)
-                .padding(.horizontal,20)
+                .padding(.top, 20)            // reduced from 60 to avoid pushing content down
+                .padding(.horizontal, 20)
 
-                Spacer()
-
+                // Content
                 VStack(spacing: 20) {
                     Text(goalText)
                         .font(.system(size: 20, weight: .medium))
@@ -71,11 +73,13 @@ struct SuggestedGoalShapeView: View {
                         Text(GoalSuggestionData.getDescription(suggestedShape))
                             .font(.system(size: 14))
                             .foregroundColor(.white.opacity(0.7))
+                            .multilineTextAlignment(.center)
+                            .padding(.horizontal, 24)
                     }
                 }
-                .padding(.bottom, 40)
+                .padding(.top, 250)
 
-                Spacer()
+                Spacer(minLength: 16)         // keep some flex, but don’t push too hard
 
                 // Change → go to selection screen
                 Button(action: {
@@ -87,7 +91,7 @@ struct SuggestedGoalShapeView: View {
                         .frame(width: 200, height: 50)
                         .glassEffect(.clear.tint(Color.black.opacity(0.4)), in: .rect(cornerRadius: 25))
                 }
-                .padding(.bottom, 50)
+                .padding(.bottom, 16)         // reduced from 50 so it stays visible
             }
         }
         .toolbar(.hidden, for: .tabBar)
@@ -103,4 +107,14 @@ func convertToGoalType(_ shape: GoalShape) -> GoalType {
     case .finishByMilestones: return .milestones
     case .reduceSomething: return .reduce
     }
+}
+
+#Preview {
+    SuggestedGoalShapeView(
+        goalText: "Read 20 pages daily",
+        suggestedShape: .repeatOnSchedule,
+        onFinish: { _ in },
+        onChangeShape: { },
+        onBack: { }
+    )
 }

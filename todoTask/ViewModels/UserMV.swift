@@ -14,14 +14,9 @@ class UserViewModel: ObservableObject {
     @Published var isCheckingAuth = false
 
     private let userDefaultsKey = "currentUser"
-<<<<<<< HEAD
 //    private let container = CKContainer.default()
-    private lazy var publicDB = container.publicCloudDatabase
-=======
-    private let container = CKContainer.default()
     private lazy var privateDB = container.privateCloudDatabase
     private lazy var publicDB  = container.publicCloudDatabase
->>>>>>> Shahd
 
     var isLoggedIn: Bool { currentUser != nil }
 
@@ -62,7 +57,7 @@ class UserViewModel: ObservableObject {
             let savedUsername = record["username"] as? String ?? username
 
             await MainActor.run {
-                if var user = self.currentUser {
+                if var _ = self.currentUser {
                     self.currentUser = User(id: id, username: savedUsername, email: email)
                     self.saveLocally()
                 }
