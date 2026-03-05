@@ -21,14 +21,12 @@ struct GoalDesign: View {
     var body: some View {
         ZStack {
             AppBackground()
-
             VStack(spacing: 0) {
                 AppNavigationBar(
                     title: "Design Your Orb",
                     onBack: { dismiss() },
                     onNext: { saveGoal() }
                 )
-
                 ZStack(alignment: .top) {
                     VStack(spacing: 0) {
                         PlanetOrbView(
@@ -125,6 +123,7 @@ struct GoalDesign: View {
             }
         }
         .toolbar(.hidden, for: .tabBar)
+        .padding(.top, 50)
     }
 
     private func saveGoal() {
@@ -156,4 +155,9 @@ struct GoalDesign: View {
         store.add(goal)
         dismiss()
     }
+}
+
+
+#Preview {
+    GoalDesign()
 }

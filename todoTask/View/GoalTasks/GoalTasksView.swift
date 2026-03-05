@@ -18,10 +18,17 @@ struct GoalTasksView: View {
     var body: some View {
         ZStack {
             Rectangle()
-                .fill(LinearGradient(colors: [Color("color"), Color("dark")], startPoint: .bottom, endPoint: .top))
+                .fill(LinearGradient(colors: [.darkBlu, .dark], startPoint: .bottom, endPoint: .top))
                 .ignoresSafeArea()
-            Image("Background 1").resizable().ignoresSafeArea()
-            Image("Gliter").resizable().ignoresSafeArea()
+            Image("Background 4")
+                .resizable()
+                .ignoresSafeArea()
+                .opacity(0.7)
+            
+            Image("Gliter")
+                .resizable()
+                .ignoresSafeArea()
+
 
             VStack(spacing: 16) {
 
@@ -29,13 +36,13 @@ struct GoalTasksView: View {
                 ZStack {
                     if let goal {
                         PlanetOrbView(
-                            size: 235,
+                            size: 150,
                             gradientColors: goal.design.gradientStops.map { $0.swiftUIColor },
                             glow: min(goal.design.glow, 0.15),
                             textureAssetName: goal.design.textureAssetName,
                             textureOpacity: goal.design.textureOpacity
                         )
-                        .frame(width: 235, height: 235)
+                        .frame(width: 200, height: 200)
                     }
 
                     // اذا تحدي: خطين، اذا عادي: خط واحد
@@ -48,7 +55,7 @@ struct GoalTasksView: View {
                         .frame(width: 310, height: 310)
                     } else {
                         ProgressCircle(progress: goal?.progress ?? 0)
-                            .frame(width: 290, height: 290)
+                            .frame(width: 200, height: 200)
                             .animation(.easeInOut(duration: 0.4), value: goal?.progress)
                     }
                 }
@@ -69,8 +76,10 @@ struct GoalTasksView: View {
 
                 // ── Tasks Panel ───────────────────────────────────
                 ZStack(alignment: .bottomTrailing) {
-                    RoundedRectangle(cornerRadius: 28, style: .continuous)
-                        .fill(.ultraThinMaterial).frame(height: 390)
+                    RoundedRectangle(cornerRadius: 20, style: .continuous)
+                        .fill(.clear)
+                        .glassEffect(.clear, in: .rect(cornerRadius: 20))
+                        .frame(height: 370)
 
                     VStack(alignment: .leading, spacing: 10) {
 
@@ -86,6 +95,7 @@ struct GoalTasksView: View {
                                     .background(Capsule().fill(Color.yellow.opacity(0.15)))
                             }
                         }
+                        .padding(.top, 55)
 
                         // Opponent info
                         if let info = goal?.challengeInfo {
@@ -156,7 +166,7 @@ struct GoalTasksView: View {
                         Image(systemName: "plus")
                             .font(.title2.weight(.semibold)).foregroundColor(.white)
                             .frame(width: 56, height: 56)
-                            .background(Circle().fill(.ultraThinMaterial))
+                            .glassEffect(.clear.tint(.accent.opacity(0.6)))
                     }
                     .padding(18)
                 }
@@ -286,11 +296,11 @@ struct TaskCheckRow: View {
                 .strikethrough(task.isDone, color: .white.opacity(0.4))
                 .animation(.easeInOut(duration: 0.2), value: task.isDone)
             Spacer()
-            Image(systemName: task.isDone ? "checkmark.circle.fill" : "circle")
-                .foregroundColor(task.isDone ? .blue : .gray)
-                .font(.system(size: 26))
-                .onTapGesture { onToggle() }
-                .animation(.easeInOut(duration: 0.2), value: task.isDone)
+//            Image(systemName: task.isDone ? "checkmark.circle.fill" : "circle")
+//                .foregroundColor(task.isDone ? .blue : .gray)
+//                .font(.system(size: 26))
+//                .onTapGesture { onToggle() }
+//                .animation(.easeInOut(duration: 0.2), value: task.isDone)
         }
         .padding(.vertical, 4)
     }

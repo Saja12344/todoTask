@@ -51,14 +51,19 @@ final class MiniCalendarViewModel: ObservableObject {
     
     var monthTitle: String {
         let formatter = DateFormatter()
-        formatter.dateFormat = "MMMM"
+        formatter.dateFormat = "MMMM yyyy"
         return formatter.string(from: displayedMonth)
     }
     
+    // Always show Jan...Dec of the year of displayedMonth
     var availableMonths: [Date] {
-        let start = calendar.date(byAdding: .month, value: -6, to: today)!
-        return (0..<12).compactMap {
-            calendar.date(byAdding: .month, value: $0, to: start)
+        let comps = calendar.dateComponents([.year], from: displayedMonth)
+        guard let year = comps.year,
+              let startOfYear = calendar.date(from: DateComponents(year: year, month: 1, day: 1))
+        else { return [] }
+        
+        return (0..<12).compactMap { offset in
+            calendar.date(byAdding: .month, value: offset, to: startOfYear)
         }
     }
     
@@ -69,6 +74,13 @@ final class MiniCalendarViewModel: ObservableObject {
         if !calendar.isDate(selectedDate, equalTo: date, toGranularity: .month) {
             selectedDate = calendar.startOfDay(for: date)
         }
+    }
+    
+    // Jump back to today
+    func goToToday() {
+        let now = Date()
+        selectedDate = now
+        displayedMonth = now
     }
     
     // MARK: - Week

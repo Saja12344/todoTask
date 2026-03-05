@@ -53,7 +53,13 @@ struct GoalShapeView: View {
             Rectangle()
                 .fill(LinearGradient(colors: [.darkBlu, .dark], startPoint: .bottom, endPoint: .top))
                 .ignoresSafeArea()
-            Image("Gliter").resizable().scaledToFit().scaleEffect(1.9).contrast(1.8).saturation(1.8).ignoresSafeArea()
+            Image("Background 2")
+                .resizable()
+                .ignoresSafeArea()
+            
+            Image("Gliter")
+                .resizable()
+                .ignoresSafeArea()
 
             VStack {
                 // NavBar

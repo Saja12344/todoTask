@@ -51,7 +51,7 @@ class FriendRequestViewModel: ObservableObject {
         ]
     }
 
-    private let container = CKContainer.default()
+//    private let container = CKContainer.default()
     private lazy var publicDB = container.publicCloudDatabase
 
     var filteredFriends: [User] {

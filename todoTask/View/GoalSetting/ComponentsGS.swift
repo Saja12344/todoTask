@@ -4,21 +4,16 @@ struct AppBackground: View {
     var body: some View {
         ZStack {
             Rectangle()
-                .fill(
-                    LinearGradient(
-                        colors: [.darkBlu, .dark],
-                        startPoint: .bottom,
-                        endPoint: .top
-                    )
-                )
+                .fill(LinearGradient(colors: [.darkBlu, .dark], startPoint: .bottom, endPoint: .top))
                 .ignoresSafeArea()
-            
             Image("Background 2")
                 .resizable()
-                .scaledToFill()   // ⭐ مهم جدًا
-                .frame(maxWidth: .infinity, maxHeight: .infinity)
                 .ignoresSafeArea()
-                .opacity(0.5)
+//                .opacity(0.7)
+                
+            Image("Gliter")
+                .resizable()
+                .ignoresSafeArea()
         }
     }
 }
@@ -99,7 +94,7 @@ struct GlassTextField: View {
             .foregroundColor(.white)
             .padding()
             .background(Color.clear)
-            .glassEffect(.clear.tint(Color.black.opacity(0.4)), in: .rect(cornerRadius: 24))
+            .glassEffect(.clear.tint(Color.black.opacity(0.4)), in: .rect(cornerRadius: 20))
     }
 }
 

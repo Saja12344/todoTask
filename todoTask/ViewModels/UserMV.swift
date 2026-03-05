@@ -14,7 +14,7 @@ class UserViewModel: ObservableObject {
     @Published var isCheckingAuth = false
 
     private let userDefaultsKey = "currentUser"
-    private let container = CKContainer.default()
+//    private let container = CKContainer.default()
     private lazy var publicDB = container.publicCloudDatabase
 
     var isLoggedIn: Bool { currentUser != nil }

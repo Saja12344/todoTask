@@ -30,7 +30,17 @@ struct LoadingGoalShapesView: View {
     
     var body: some View {
         ZStack {
-            AppBackground()
+            Rectangle()
+                .fill(LinearGradient(colors: [.darkBlu, .dark], startPoint: .bottom, endPoint: .top))
+                .ignoresSafeArea()
+            Image("Background 4")
+                .resizable()
+                .ignoresSafeArea()
+                .opacity(0.7)
+            
+            Image("Gliter")
+                .resizable()
+                .ignoresSafeArea()
             
             VStack(spacing: 30) {
                 

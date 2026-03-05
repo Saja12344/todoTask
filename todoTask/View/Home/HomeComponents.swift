@@ -40,12 +40,27 @@ struct CheckBoxView: View {
     }
 }
 
+private enum CreationStep: Hashable {
+    case write
+    case loading(shape: GoalShape, text: String)
+    case suggested(shape: GoalShape, text: String)
+    case manual(typePrefill: GoalType?)
+    case form(type: GoalType)
+    case design
+}
+
 // MARK: - today (Main Home View)
 struct today: View {
+    
     @EnvironmentObject private var store: OrbGoalStore
     @StateObject private var viewModel = HomeViewModel()
     @StateObject private var calVM     = MiniCalendarViewModel()
     @StateObject private var energyVM  = DailyEnergyViewModel()
+    @State private var draftTitle:        String         = ""
+    @State private var chosenType:        GoalType?      = nil
+    @State private var chosenSettings:    GoalSettings?  = nil
+    @State private var path:              [CreationStep] = []
+
 
     @State private var selectedEnergyID: String? = nil
     
@@ -71,153 +86,248 @@ struct today: View {
     }
 
     var body: some View {
-        ZStack {
-            Rectangle()
-                .fill(LinearGradient(colors: [.darkBlu, .dark], startPoint: .bottom, endPoint: .top))
-                .ignoresSafeArea()
-            Image("Background")
-                .resizable()
-                .ignoresSafeArea()
-                .opacity(0.4)
-//            
-//            Image("Gliter")
-//                .resizable()
-//                .ignoresSafeArea()
+        NavigationStack(path: $path) {
+            ZStack {
+                Rectangle()
+                    .fill(LinearGradient(colors: [.darkBlu, .dark], startPoint: .bottom, endPoint: .top))
+                    .ignoresSafeArea()
+                Image("Background 4")
+                    .resizable()
+                    .ignoresSafeArea()
+                    .opacity(0.7)
+                
+                Image("Gliter")
+                    .resizable()
+                    .ignoresSafeArea()
 
-            VStack(alignment: .leading, spacing: 8) {
+                VStack(alignment: .leading, spacing: 8) {
 
+                    Text(dailyQuote)
+                        .padding(.horizontal,20)
+                        .padding(.top,16)
+                        .padding(.bottom,7)
+                        .font(.footnote.weight(.light))
 
-                Text(dailyQuote)
-                    .padding(.horizontal,20)
-                    .padding(.top,16)
-                    .font(.footnote.weight(.light))
+                    // ── Mini Calendar ─────────────────────────────────
+                    ZStack(alignment: .center) {
+                        Rectangle()
+                            .frame(width: 355, height: 124)
+                            .foregroundColor(.clear)
+                            .glassEffect(.clear, in: .rect(cornerRadius: 20))
 
-
-                // ── Mini Calendar ─────────────────────────────────
-                ZStack(alignment: .center) {
-                    Rectangle()
-                        .frame(width: 355, height: 124)
-                        .foregroundColor(.clear)
-                        .glassEffect(.regular, in: .rect(cornerRadius: 20))
-
-                    VStack(alignment: .leading, spacing: 8) {
-                        Menu {
-                            ForEach(calVM.availableMonths, id: \.self) { month in
-                                Button { calVM.changeMonth(to: month) } label: {
-                                    Text(month, format: .dateTime.month(.wide))
-                                }
-                            }
-                        } label: {
-                            HStack(spacing: 6) {
-                                Text(calVM.monthTitle).font(.headline).foregroundColor(.white).padding(.leading)
-                                Image(systemName: "chevron.up.chevron.down").font(.caption).foregroundColor(.white)
-                            }
-                        }
-
-                        HStack(spacing: 4) {
-//                            Button { calVM.moveWeek(by: -1) } label: {
-//                                Image(systemName: "chevron.left").foregroundColor(.white)
-//                            }
-                            Button { calVM.moveWeek(by: -1) } label: {
-                                Image(systemName: "chevron.left")
-                                    .font(.system(size: 14, weight: .medium))
-                                    .foregroundColor(.white.opacity(0.5))
-//                                    .padding(6)
-                            }
-                            ForEach(calVM.visibleWeek, id: \.self) { date in
-                                DayView(date: date, selectedDate: calVM.selectedDate, today: calVM.today)
-                                    .onTapGesture { calVM.selectedDate = date }
-                            }
-//                            Button { calVM.moveWeek(by: 1) } label: {
-//                                Image(systemName: "chevron.right")
-//                                    .foregroundColor(.white)
-//                                
-//                            }
-                            Button { calVM.moveWeek(by: 1) } label: {
-                                Image(systemName: "chevron.right")
-                                    .font(.system(size: 14, weight: .medium))
-                                    .foregroundColor(.white.opacity(0.5))
-//                                    .padding(6)
-                            }
-                        }
-                        .font(.system(size: 20, weight: .bold))
-                    }
-                }
-                .padding(.leading, 12)
-                .padding(.bottom, 12)
-
-                // ── Today's Tasks Header ─────────────────────────
-                HStack {
-                    Text("Today's Tasks")
-                    .foregroundColor(.primary).font(.title).bold().padding(.leading, 20)
-                    Spacer()
-                    // إجمالي المهام المكتملة اليوم
-                    let done  = todayItems.filter { $0.task.isDone }.count
-                    let total = todayItems.count
-                    if total > 0 {
-                        Text("\(done)/\(total)")
-                            .font(.subheadline.weight(.semibold))
-                            .foregroundColor(.white.opacity(0.7))
-                            .padding(.trailing, 30)
-                    }
-                }
-
-                // ── Tasks List ────────────────────────────────────
-                ZStack {
-                    RoundedRectangle(cornerRadius: 20)
-//                        .frame(width: 355, height: 300)
-                        .foregroundColor(.clear)
-
-                    if todayItems.isEmpty {
-                        VStack(spacing: 10) {
-                            Image(systemName: "moon.stars").font(.system(size: 36)).foregroundColor(.white.opacity(0.3))
-                            Text("No tasks scheduled for this day")
-                                .foregroundColor(.white.opacity(0.5)).font(.subheadline)
-                            Text("Add a goal or pick another day")
-                                .foregroundColor(.white.opacity(0.3)).font(.caption)
-                        }
-                        .frame(height: 300)
-                    } else {
-                        ScrollView {
-                            VStack(alignment: .center, spacing: 8) {
-                                ForEach(todayItems) { item in
-                                    TodayTaskRow(
-                                        task: item.task,
-                                        goalName: item.goal.title
-                                    ) {
-                                        store.toggleTodayTask(
-                                            goalID: item.goal.id,
-                                            taskID: item.task.id
-                                        )
+                        VStack(alignment: .leading, spacing: 8) {
+                            HStack {
+                                Menu {
+                                    ForEach(calVM.availableMonths, id: \.self) { month in
+                                        Button { calVM.changeMonth(to: month) } label: {
+                                            Text(month, format: .dateTime.month(.wide))
+                                        }
+                                    }
+                                } label: {
+                                    HStack(spacing: 6) {
+                                        Text(calVM.monthTitle).font(.headline).foregroundColor(.white).padding(.leading)
+                                        Image(systemName: "chevron.up.chevron.down").font(.caption).foregroundColor(.white)
                                     }
                                 }
+                                Spacer()
+                                
+                                // Today button (compact, does not alter your layout)
+                                Button {
+                                    withAnimation(.easeInOut(duration: 0.25)) {
+                                        calVM.goToToday()
+                                    }
+                                } label: {
+                                    Image(systemName: "calendar")
+                                        .font(.system(size: 14, weight: .medium))
+                                        .foregroundColor(.white.opacity(0.9))
+                                        .padding(.leading, 6)
+                                    Text("Today")
+                                        .font(.system(size: 17, weight: .medium))
+                                        
+                                }
+                                .frame(width: 100, height: 30)
+                                .buttonStyle(.plain)
+                                .glassEffect(.clear.interactive())
                             }
-                            .padding(.leading, 13)
-                            .padding(.vertical, 8)
+                            .padding(.horizontal, 20)
+                            .padding(.leading, -5)
+                            .padding(.trailing, 15)
+                            .padding(.bottom, 5)
+
+                            HStack(spacing: 4) {
+                                Button { calVM.moveWeek(by: -1) } label: {
+                                    Image(systemName: "chevron.left")
+                                        .font(.system(size: 14, weight: .medium))
+                                        .foregroundColor(.white.opacity(0.9))
+                                }
+                                ForEach(calVM.visibleWeek, id: \.self) { date in
+                                    DayView(date: date, selectedDate: calVM.selectedDate, today: calVM.today)
+                                        .onTapGesture { calVM.selectedDate = date }
+                                }
+                                Button { calVM.moveWeek(by: 1) } label: {
+                                    Image(systemName: "chevron.right")
+                                        .font(.system(size: 14, weight: .medium))
+                                        .foregroundColor(.white.opacity(0.9))
+                                }
+                            }
+                            .padding(.horizontal)
                         }
-                        .frame(height: 400)
                     }
+                    .padding(.horizontal)
+                    .padding(.bottom, 12)
+
+                    // ── Today's Tasks Header ─────────────────────────
+                    HStack {
+                        Text("Today's Tasks")
+                        .foregroundColor(.primary).font(.title).bold().padding(.leading, 20)
+                        Spacer()
+                        // إجمالي المهام المكتملة اليوم
+                        let done  = todayItems.filter { $0.task.isDone }.count
+                        let total = todayItems.count
+                        if total > 0 {
+                            Text("\(done)/\(total)")
+                                .font(.subheadline.weight(.semibold))
+                                .foregroundColor(.white.opacity(0.7))
+                                .padding(.trailing, 30)
+                        }
+                    }
+
+                    // ── Tasks List ────────────────────────────────────
+                    ZStack {
+                        RoundedRectangle(cornerRadius: 20)
+                            .foregroundColor(.clear)
+
+                        if todayItems.isEmpty {
+                            VStack(spacing: 10) {
+                                Image(systemName: "moon.stars").font(.system(size: 36)).foregroundColor(.white.opacity(0.3))
+                                Text("No tasks scheduled for this day")
+                                    .foregroundColor(.white.opacity(0.5)).font(.subheadline)
+                                Text("Add a goal or pick another day")
+                                    .foregroundColor(.white.opacity(0.3)).font(.caption)
+                            }
+                            .frame(height: 300)
+                        } else {
+                            ScrollView {
+                                VStack(alignment: .center, spacing: 8) {
+                                    ForEach(todayItems) { item in
+                                        TodayTaskRow(
+                                            task: item.task,
+                                            goalName: item.goal.title
+                                        ) {
+                                            store.toggleTodayTask(
+                                                goalID: item.goal.id,
+                                                taskID: item.task.id
+                                            )
+                                        }
+                                    }
+                                }
+                                .padding(.leading, 13)
+                                .padding(.vertical, 8)
+                            }
+                            .frame(height: 400)
+                        }
+                    }
+
+                    Spacer()
                 }
 
-                Spacer()
+                // ── Energy Prompt (مرة في اليوم) ─────────────────────
+                if energyVM.showPromptForToday {
+                    EnergyPromptOverlay(
+                        energyVM:        energyVM,
+                        selectedEnergyID: $selectedEnergyID
+                    )
+                }
+            }
+            .toolbar {
+                ToolbarItem(placement: .navigationBarTrailing) {
+                    Button { startCreation() } label: { Image(systemName: "plus") }
+                        .foregroundStyle(.white)
+                }
+            }
+            .colorScheme(.dark)
+            .onAppear {
+                LoginTracker.recordTodayOpened()
+                energyVM.refreshToday()
+                if let entry = energyVM.todayEntry {
+                    selectedEnergyID = Energytoday.defaults.first(where: { $0.title == entry.title })?.id.uuidString
+                }
             }
 
-            // ── Energy Prompt (مرة في اليوم) ─────────────────────
-            if energyVM.showPromptForToday {
-                EnergyPromptOverlay(
-                    energyVM:        energyVM,
-                    selectedEnergyID: $selectedEnergyID
-                )
+            // Navigation destinations (same flow as GoalsPage)
+            .navigationDestination(for: CreationStep.self) { step in
+                switch step {
+                case .write:
+                    WriteGoalView(onDone: { title, suggestion in
+                        draftTitle = title
+                        if let shape = suggestion {
+                            path.append(.loading(shape: shape, text: title))
+                        } else {
+                            path.append(.manual(typePrefill: nil))
+                        }
+                    }, onCancel: { _ = path.popLast() })
+                    .navigationBarBackButtonHidden(true)
+
+                case let .loading(shape, text):
+                    LoadingGoalShapesView(
+                        goalText: text,
+                        suggestedShape: shape
+                    ) {
+                        path.append(.suggested(shape: shape, text: text))
+                    }
+
+                case let .suggested(shape, text):
+                    SuggestedGoalShapeView(
+                        goalText: text, suggestedShape: shape,
+                        onFinish: { type in chosenType = type; path.append(.form(type: type)) },
+                        onChangeShape: { path.append(.manual(typePrefill: nil)) },
+                        onBack: { _ = path.removeLast(2) }
+                    )
+                    .navigationBarBackButtonHidden(true)
+
+                case let .manual(typePrefill):
+                    GoalShapeView(
+                        selectedGoal: typePrefill, showSettings: false,
+                        onFinished: { type, settings in chosenType = type; chosenSettings = settings; path.append(.form(type: type)) },
+                        onBack: { _ = path.popLast() }
+                    )
+                    .navigationBarBackButtonHidden(true)
+
+                case let .form(type):
+                    GoalShapeView(
+                        selectedGoal: type, showSettings: true,
+                        onFinished: { type, settings in chosenType = type; chosenSettings = settings; path.append(.design) },
+                        onBack: { _ = path.popLast() }
+                    )
+                    .navigationBarBackButtonHidden(true)
+
+                case .design:
+                    GoalDesign { design in
+                        var newGoal = OrbGoal(
+                            id: UUID(),
+                            title: draftTitle.isEmpty ? "New Goal" : draftTitle,
+                            design: design,
+                            settings: chosenSettings
+                        )
+                        if let settings = chosenSettings {
+                            newGoal.tasks = OrbGoalStore.TaskGenerator.generate(
+                                from: settings, goalID: newGoal.id,
+                                goalTitle: newGoal.title, scheduledDate: Date()
+                            )
+                        }
+                        store.add(newGoal)
+                        path.removeAll()
+                    }
+                    .environmentObject(store)
+                    .navigationBarBackButtonHidden(true)
+                }
             }
         }
-        .colorScheme(.dark)
-        .onAppear {
-            LoginTracker.recordTodayOpened()
-            energyVM.refreshToday()
-            if let entry = energyVM.todayEntry {
-                selectedEnergyID = Energytoday.defaults.first(where: { $0.title == entry.title })?.id.uuidString
-            }
-        }
+    }
+    
+    private func startCreation() {
+        draftTitle = ""; chosenType = nil; chosenSettings = nil
+        path = [.write]
     }
 }
 
@@ -228,7 +338,7 @@ struct TodayTaskRow: View {
     let onToggle: () -> Void
 
     var body: some View {
-        ZStack {
+        ZStack { 
             RoundedRectangle(cornerRadius: 20)
                 .frame(width: 350, height: 68)
                 .foregroundColor(.clear)
@@ -269,7 +379,7 @@ struct EnergyPromptOverlay: View {
             Color.black.opacity(0.6).ignoresSafeArea()
             RoundedRectangle(cornerRadius: 20)
                 .frame(width: 350, height: 260)
-                .glassEffect(.regular, in: .rect(cornerRadius: 20))
+                .glassEffect(.clear.tint(.darkBlu.opacity(0.5)), in: .rect(cornerRadius: 20))
             VStack(spacing: 10) {
                 Text("What's your energy level today?").bold()
                 HStack {
@@ -307,18 +417,6 @@ struct EnergyPromptOverlay: View {
     }
 }
 
-// MARK: - Goals (placeholder tab)
-struct Goals: View {
-    var body: some View {
-        ZStack {
-            Rectangle()
-                .fill(LinearGradient(colors: [.darkBlu, .dark], startPoint: .bottom, endPoint: .top))
-                .ignoresSafeArea()
-            Image("Gliter").resizable().ignoresSafeArea()
-        }
-        .colorScheme(.dark)
-    }
-}
 
 // MARK: - Settings
 struct Settings: View {
@@ -342,9 +440,15 @@ struct Settings: View {
             Rectangle()
                 .fill(LinearGradient(colors: [.darkBlu, .dark], startPoint: .bottom, endPoint: .top))
                 .ignoresSafeArea()
-            Image("Background").resizable().ignoresSafeArea()
-            Image("Gliter").resizable().ignoresSafeArea()
-
+            Image("Background")
+                .resizable()
+                .ignoresSafeArea()
+                .opacity(0.7)
+                
+            Image("Gliter")
+                .resizable()
+                .ignoresSafeArea()
+            
             VStack(alignment: .leading, spacing: 4) {
                 Text(displayName).font(.system(size: 28, weight: .bold)).foregroundColor(.primary).padding(.horizontal, 20)
                 Text("ID: \(displayID)").font(.caption).foregroundColor(.white.opacity(0.7)).padding(.horizontal, 20).padding(.bottom, 8)
@@ -380,13 +484,6 @@ struct Settings: View {
             }
             .padding(.top, -90)
         }
-        .toolbar {
-            ToolbarItem(placement: .topBarTrailing) {
-                Button(action: { draftName = userVM.currentUser?.username ?? ""; isEditingName = true }) {
-                    Image(systemName: "pencil")
-                }.foregroundStyle(.white)
-            }
-        }
         .alert("Log Out?", isPresented: $showGuestLogoutAlert) {
             Button("Cancel", role: .cancel) {}
             Button("Log Out", role: .destructive) { userVM.clearLocalUser() }
@@ -407,10 +504,10 @@ struct DayView: View {
 
     var body: some View {
         VStack(spacing: 4) {
-            Text(date, format: .dateTime.weekday(.abbreviated)).font(.caption2)
+            Text(date, format: .dateTime.weekday(.abbreviated)).font(.caption)
             Text(date, format: .dateTime.day()).font(.headline)
         }
-        .frame(width: 44, height: 56)
+        .frame(width: 42, height: 56)
         .background(
             isSelected ? Color.white.opacity(0.9) :
             isToday    ? Color.accent.opacity(0.35) :
@@ -434,11 +531,19 @@ func notificationDenied(_ completion: @escaping (Bool) -> Void) {
         completion(settings.authorizationStatus == .denied)
     }
 }
-
-//#Preview {
-//    let store = OrbGoalStore()
-//    if store.goals.isEmpty { store.add(.mock) }
-//    return today()
-//        .environmentObject(store)
-//        .environmentObject(UserViewModel())
-//}
+#Preview{
+    Home()
+        .environmentObject(OrbGoalStore())
+}
+#Preview{
+    Settings()
+        .environmentObject(UserViewModel())
+}
+#Preview{
+    FriendsV()
+        .environmentObject(UserViewModel())
+}
+#Preview{
+    GoalsPage()
+        .environmentObject(UserViewModel())
+}

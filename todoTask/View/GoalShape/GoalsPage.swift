@@ -33,16 +33,16 @@ struct GoalsPage: View {
         NavigationStack(path: $path) {
             ZStack {
                 Rectangle()
-                    .fill(
-                        LinearGradient(
-                            colors: [.darkBlu, .black],
-                            startPoint: .bottom,
-                            endPoint: .top
-                        )
-                    )
+                    .fill(LinearGradient(colors: [.darkBlu, .dark], startPoint: .bottom, endPoint: .top))
                     .ignoresSafeArea()
-                Image("Background 4").resizable().ignoresSafeArea().opacity(0.35)
-                Image("Gliter").resizable().ignoresSafeArea()
+                Image("Background 4")
+                    .resizable()
+                    .ignoresSafeArea()
+                    .opacity(0.7)
+                
+                Image("Gliter")
+                    .resizable()
+                    .ignoresSafeArea()
                 
                 VStack(spacing: 16) {
                     
@@ -102,13 +102,6 @@ struct GoalsPage: View {
                         }
                         
                     }
-                }
-            }
-                    
-            .toolbar {
-                ToolbarItem(placement: .navigationBarTrailing) {
-                    Button { startCreation() } label: { Image(systemName: "plus") }
-                        .foregroundStyle(.white)
                 }
             }
             .confirmationDialog("Delete this orb?", isPresented: $showDeleteConfirm, titleVisibility: .visible) {
@@ -193,11 +186,6 @@ struct GoalsPage: View {
                 }
             }
         }
-    }
-
-    private func startCreation() {
-        draftTitle = ""; chosenType = nil; chosenSettings = nil
-        path = [.write]
     }
 }
 

@@ -17,8 +17,13 @@ struct FriendsV: View {
     var body: some View {
         NavigationStack {
             ZStack {
-                LinearGradient(colors: [.darkBlu, .dark], startPoint: .bottom, endPoint: .top)
+                Rectangle()
+                    .fill(LinearGradient(colors: [.darkBlu, .dark], startPoint: .bottom, endPoint: .top))
                     .ignoresSafeArea()
+                Image("Background")
+                    .resizable()
+                    .ignoresSafeArea()
+                
                 Image("Gliter")
                     .resizable()
                     .ignoresSafeArea()
@@ -37,7 +42,7 @@ struct FriendsV: View {
                         .padding(.horizontal, 30)
                         .background(
                             RoundedRectangle(cornerRadius: 35)
-                                .glassEffect(.regular.tint(.black.opacity(0.3)).interactive())
+                                .glassEffect(.clear.tint(.black.opacity(0.7)).interactive())
                         )
                         .overlay(
                             HStack {
@@ -123,7 +128,7 @@ struct FriendsV: View {
                                     .foregroundColor(.white)
                                     .font(.subheadline)
                                     .padding(8)
-                                    .glassEffect(.regular.tint(.red.opacity(0.3)), in: .circle)
+                                    .glassEffect(.clear.tint(.red.opacity(0.3)), in: .circle)
                             }
                             .buttonStyle(.plain)
 
@@ -138,12 +143,12 @@ struct FriendsV: View {
                                     .bold()
                                     .padding(.vertical, 8)
                                     .padding(.horizontal, 16)
-                                    .glassEffect(.regular.interactive(), in: .capsule)
+                                    .glassEffect(.clear.interactive(), in: .capsule)
                             }
                             .buttonStyle(.plain)
                         }
                         .padding()
-                        .glassEffect(.regular.tint(.white.opacity(0.1)), in: .rect(cornerRadius: 20))
+                        .glassEffect(.clear.tint(.white.opacity(0.1)), in: .rect(cornerRadius: 20))
                     }
                 }
             }
@@ -187,9 +192,9 @@ struct FriendsV: View {
                                 Image(systemName: "xmark")
                                     .foregroundColor(.white)
                                     .padding(8)
-                                    .glassEffect(.regular, in: .circle)
                             }
                             .buttonStyle(.plain)
+                            .glassEffect(.clear, in: .circle)
 
                             Button {
                                 Task { try? await acceptAction(request) }
@@ -197,12 +202,13 @@ struct FriendsV: View {
                                 Image(systemName: "checkmark")
                                     .foregroundColor(.white)
                                     .padding(8)
-                                    .glassEffect(.regular, in: .circle)
                             }
                             .buttonStyle(.plain)
+                            .glassEffect(.clear.tint(.accent.opacity(0.5)), in: .circle)
+
                         }
                         .padding()
-                        .glassEffect(.regular.tint(.white.opacity(0.1)), in: .rect(cornerRadius: 20))
+                        .glassEffect(.clear.tint(.darkBlu.opacity(0.1)), in: .rect(cornerRadius: 20))
                     }
                 }
             }
@@ -239,12 +245,13 @@ struct FriendsV: View {
                                 Image(systemName: "person.badge.clock")
                                     .foregroundColor(.white)
                                     .padding(8)
-                                    .glassEffect(.regular, in: .circle)
                             }
                             .buttonStyle(.plain)
+                            .glassEffect(.clear.tint(.accent.opacity(0.5)), in: .circle)
+
                         }
                         .padding()
-                        .glassEffect(.regular.tint(.white.opacity(0.1)), in: .rect(cornerRadius: 20))
+                        .glassEffect(.clear.tint(.darkBlu.opacity(0.1)), in: .rect(cornerRadius: 20))
                     }
                 }
             }
