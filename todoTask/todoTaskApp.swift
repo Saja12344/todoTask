@@ -56,13 +56,13 @@ struct RootRouterView: View {
     var body: some View {
         Group {
             if userVM.isCheckingAuth {
-               ProgressView()
-           } else if userVM.currentUser == nil {
-               Enter()
+                ProgressView()
+            } else if userVM.currentUser == nil {
+                Enter()
             } else {
                 Home()
-           }
-       }
+            }
+        }
         .onAppear {
             userVM.checkAppleCredentialState()
         }
