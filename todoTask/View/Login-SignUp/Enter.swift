@@ -3,7 +3,8 @@
 //  OrbitDemo
 //
 //  Created by Jana Abdulaziz Malibari on 06/02/2026.
-// Edited By saja 
+//  Edited By saja
+//
 
 import SwiftUI
 import AuthenticationServices
@@ -11,13 +12,11 @@ import AuthenticationServices
 struct Enter: View {
     @EnvironmentObject var userVM: UserViewModel
     @State private var showLoginPopup = true
-    
+
     var body: some View {
-        
-        ZStack{
+        ZStack {
             SplashView()
 
-            // Content
             VStack(spacing: 20) {
 
                 Spacer().frame(height: 300)
@@ -26,6 +25,7 @@ struct Enter: View {
                     .bold()
                     .font(.largeTitle)
                     .foregroundColor(.white)
+                    .padding(.top, 120)
 
                 Text("Where one goal, Unfolds the world")
                     .foregroundColor(.white)
@@ -56,6 +56,9 @@ struct Enter: View {
                                             email: credential.email
                                         )
                                     }
+
+                                case .failure(let error):
+                                    print("❌ Apple sign in failed: \(error.localizedDescription)")
                                 }
 
                             case .failure(let error):
@@ -71,12 +74,11 @@ struct Enter: View {
                     .padding(.bottom, 120)
                 }
             }
-            
         }
     }
 }
 
 #Preview {
     Enter()
-    .environmentObject(UserViewModel())
+        .environmentObject(UserViewModel())
 }
