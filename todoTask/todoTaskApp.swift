@@ -51,20 +51,8 @@ struct todoTaskApp: App {
 
 // MARK: - Root Router
 struct RootRouterView: View {
-    @EnvironmentObject private var userVM: UserViewModel
-
     var body: some View {
-        Group {
-            if userVM.isCheckingAuth {
-                ProgressView()
-            } else if userVM.currentUser == nil {
-                Enter()
-            } else {
-                Home()
-            }
-        }
-        .onAppear {
-            userVM.checkAppleCredentialState()
-        }
+        Home()
     }
 }
+

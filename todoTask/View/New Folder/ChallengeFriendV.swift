@@ -86,7 +86,6 @@ struct ChallengeFriendView: View {
                     Button("Cancel") { dismiss() }.foregroundColor(.gray)
                 }
             }
-
             .navigationDestination(for: ChallengeCreationStep.self) { step in
                 switch step {
 
@@ -118,7 +117,6 @@ struct ChallengeFriendView: View {
                     .navigationBarBackButtonHidden(true)
 
                 case let .shape(typePrefill):
-                    // صفحة واحدة: اختار النوع ← Next ← settings ← Next ← design
                     GoalShapeView(
                         selectedGoal: typePrefill,
                         showSettings: false,
@@ -178,14 +176,11 @@ struct ChallengeFriendView: View {
                         .frame(width: 90, height: 90)
                     Image(systemName: "bolt.fill").font(.largeTitle).foregroundColor(.white)
                 }
-
                 Text("Challenge Created! 🎉")
                     .font(.title2.bold()).foregroundColor(.white)
-
                 Text("Share the link with \(friend.username) to start!")
                     .font(.subheadline).foregroundColor(.gray)
                     .multilineTextAlignment(.center).padding(.horizontal, 20)
-
                 if let currentUsername = friendRequestVM.currentUser?.username {
                     ChallengeShareButton(
                         challengeID: createdChallengeID,
@@ -193,7 +188,6 @@ struct ChallengeFriendView: View {
                     )
                     .padding(.horizontal, 20)
                 }
-
                 Button { dismiss() } label: {
                     Text("Done").bold().foregroundColor(.gray).font(.subheadline)
                 }
@@ -214,7 +208,6 @@ struct ChallengeFriendView: View {
     }
 
     private func finishChallenge(design: OrbDesign) async {
-        // 1️⃣ إنشاء الـ Goal
         var newGoal = OrbGoal(
             id: UUID(),
             title: draftTitle.isEmpty ? "Challenge Goal" : draftTitle,
@@ -227,7 +220,7 @@ struct ChallengeFriendView: View {
                 from: settings,
                 goalID: newGoal.id,
                 goalTitle: newGoal.title,
-                scheduledDate: Date()
+                scheduledDate: Date() // ✅
             )
         }
 
@@ -242,13 +235,10 @@ struct ChallengeFriendView: View {
         )
 
         store.add(newGoal)
-
-        // 2️⃣ عرض النجاح فوراً
         createdChallengeID = challengeID
         path.removeAll()
         showSuccess = true
 
-        // 3️⃣ CloudKit في الخلفية
         guard let currentUserID = friendRequestVM.currentUser?.id else { return }
         let planet = Planet(
             recordID: newGoal.id.uuidString,
@@ -264,7 +254,7 @@ struct ChallengeFriendView: View {
             planetStake: planet,
             goalTitle: newGoal.title,
             goalCategory: .habit,
-            goalType: chosenType ?? .finishTotal,
+            goalType: chosenType ?? .reachTarget, // ✅
             goalShape: nil,
             subTasksConfig: newGoal.tasks.map {
                 SubTaskConfig(title: $0.title, description: nil, dependsOn: nil)

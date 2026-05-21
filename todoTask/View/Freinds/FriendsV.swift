@@ -23,20 +23,17 @@ struct FriendsV: View {
                 Image("Background")
                     .resizable()
                     .ignoresSafeArea()
-                
                 Image("Gliter")
                     .resizable()
                     .ignoresSafeArea()
 
                 VStack(spacing: 15) {
-                    // User ID
                     if let user = userVM.currentUser {
                         Text("Your ID: \"\(user.username)\"")
                             .font(.caption)
                             .foregroundColor(.gray)
                     }
 
-                    // Search Bar
                     TextField("Friend ID", text: $friendRequestVM.searchText)
                         .padding(10)
                         .padding(.horizontal, 30)
@@ -56,32 +53,18 @@ struct FriendsV: View {
 
                     ScrollView {
                         VStack(spacing: 15) {
-
-                            // MARK: - Accepted Friends
-                            AcceptedFriendsSection(
-                                friendRequestVM: friendRequestVM
-                            ) { id in
+                            AcceptedFriendsSection(friendRequestVM: friendRequestVM) { id in
                                 try? await friendRequestVM.removeFriend(
                                     myUserID: id,
                                     friendID: friendRequestVM.currentUser?.id ?? ""
                                 )
                             }
-
-                            // MARK: - Received Requests
                             ReceivedRequestsSection(
                                 friendRequestVM: friendRequestVM,
-                                acceptAction: { request in
-                                    try? await friendRequestVM.acceptRequest(request)
-                                },
-                                declineAction: { request in
-                                    try? await friendRequestVM.rejectRequest(request)
-                                }
+                                acceptAction: { request in try? await friendRequestVM.acceptRequest(request) },
+                                declineAction: { request in try? await friendRequestVM.rejectRequest(request) }
                             )
-
-                            // MARK: - Pending Requests
-                            PendingRequestsSection(
-                                friendRequestVM: friendRequestVM
-                            ) { request in
+                            PendingRequestsSection(friendRequestVM: friendRequestVM) { request in
                                 try? await friendRequestVM.cancelSentRequest(request)
                             }
                         }
@@ -96,14 +79,12 @@ struct FriendsV: View {
         }
     }
 
-    // MARK: - Accepted Friends Section
+    // MARK: - Accepted Friends Section ✅ Challenge معلق
     struct AcceptedFriendsSection: View {
         @ObservedObject var friendRequestVM: FriendRequestViewModel
         let removeAction: (String) async -> Void
 
         @EnvironmentObject private var store: OrbGoalStore
-        @State private var selectedFriend: User? = nil
-        @State private var showChallenge = false
 
         var body: some View {
             VStack(alignment: .leading, spacing: 10) {
@@ -120,7 +101,6 @@ struct FriendsV: View {
                                 .bold()
                             Spacer()
 
-                            // Remove
                             Button {
                                 Task { await removeAction(friend.id) }
                             } label: {
@@ -132,32 +112,33 @@ struct FriendsV: View {
                             }
                             .buttonStyle(.plain)
 
-                            // Challenge
-                            Button {
-                                selectedFriend = friend
-                                showChallenge = true
-                            } label: {
-                                Text("Challenge")
-                                    .foregroundColor(.white)
-                                    .font(.subheadline)
-                                    .bold()
-                                    .padding(.vertical, 8)
-                                    .padding(.horizontal, 16)
-                                    .glassEffect(.clear.interactive(), in: .capsule)
-                            }
-                            .buttonStyle(.plain)
+                            // ✅ Challenge معلق مؤقتاً - Coming Soon
+//                            Button {
+//                                selectedFriend = friend
+//                                showChallenge = true
+//                            } label: {
+//                                Text("Challenge")
+//                                    .foregroundColor(.white)
+//                                    .font(.subheadline)
+//                                    .bold()
+//                                    .padding(.vertical, 8)
+//                                    .padding(.horizontal, 16)
+//                                    .glassEffect(.clear.interactive(), in: .capsule)
+//                            }
+//                            .buttonStyle(.plain)
                         }
                         .padding()
                         .glassEffect(.clear.tint(.white.opacity(0.1)), in: .rect(cornerRadius: 20))
                     }
                 }
             }
-            .sheet(isPresented: $showChallenge) {
-                if let friend = selectedFriend {
-                    ChallengeFriendV(friend: friend, friendRequestVM: friendRequestVM)
-                        .environmentObject(store)
-                }
-            }
+            // ✅ Sheet معلق مؤقتاً
+//            .sheet(isPresented: $showChallenge) {
+//                if let friend = selectedFriend {
+//                    ChallengeFriendV(friend: friend, friendRequestVM: friendRequestVM)
+//                        .environmentObject(store)
+//                }
+//            }
         }
     }
 
@@ -205,7 +186,6 @@ struct FriendsV: View {
                             }
                             .buttonStyle(.plain)
                             .glassEffect(.clear.tint(.accent.opacity(0.5)), in: .circle)
-
                         }
                         .padding()
                         .glassEffect(.clear.tint(.darkBlu.opacity(0.1)), in: .rect(cornerRadius: 20))
@@ -248,7 +228,6 @@ struct FriendsV: View {
                             }
                             .buttonStyle(.plain)
                             .glassEffect(.clear.tint(.accent.opacity(0.5)), in: .circle)
-
                         }
                         .padding()
                         .glassEffect(.clear.tint(.darkBlu.opacity(0.1)), in: .rect(cornerRadius: 20))

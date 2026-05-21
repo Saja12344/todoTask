@@ -6,6 +6,31 @@
 import SwiftUI
 import Foundation
 
+// MARK: - GoalType ✅ 4 cases
+enum GoalType: String, CaseIterable, Codable {
+    case reachTarget = "Reach a Target"
+    case buildHabit  = "Build a Habit"
+    case levelUp     = "Level Up"
+    case reduce      = "Reduce Something"
+
+    init(from decoder: Decoder) throws {
+        let container = try decoder.singleValueContainer()
+        let raw = try container.decode(String.self)
+        switch raw {
+        case "reachTarget", "Reach a Target", "finishTotal", "milestones":
+            self = .reachTarget
+        case "buildHabit", "Build a Habit", "repeatSchedule", "buildStreak":
+            self = .buildHabit
+        case "levelUp", "Level Up":
+            self = .levelUp
+        case "reduce", "Reduce Something":
+            self = .reduce
+        default:
+            self = .reachTarget
+        }
+    }
+}
+
 // MARK: - GoalTask
 struct GoalTask: Identifiable, Codable, Hashable {
     var id:            UUID   = UUID()
@@ -15,33 +40,33 @@ struct GoalTask: Identifiable, Codable, Hashable {
     var scheduledDate: Date
 }
 
-// MARK: - GoalSettings
+// MARK: - GoalSettings ✅ + isStreakMode + isMilestoneMode
 struct GoalSettings: Codable, Equatable {
-    var goalType:         GoalType  = .finishTotal
-    var selectedDays:     Set<Int>  = [
-        1,2,3,4,5,6,7
-    ]
-    var startTime:        Date      = Calendar.current.date(bySettingHour: 8,  minute: 0, second: 0, of: Date())!
-    var endTime:          Date      = Calendar.current.date(bySettingHour: 9,  minute: 0, second: 0, of: Date())!
-    var targetNumber:     Int       = 10
-    var unit:             String    = ""
-    var deadline:         Date      = Calendar.current.date(byAdding: .month, value: 1, to: Date())!
-    var breakDaysAllowed: Int       = 0
-    var stepUpPaceWeeks:  Int       = 1
-    var scopeSize:        Double    = 50
-    var dailyMinutes:     Int       = 30
-    var baselineNumber:   Int       = 0
-    var isReduceBy:       Bool      = true
+    var goalType:         GoalType = .reachTarget
+    var selectedDays:     Set<Int> = [1,2,3,4,5,6,7]
+    var startTime:        Date     = Calendar.current.date(bySettingHour: 8,  minute: 0, second: 0, of: Date())!
+    var endTime:          Date     = Calendar.current.date(bySettingHour: 9,  minute: 0, second: 0, of: Date())!
+    var targetNumber:     Int      = 10
+    var unit:             String   = ""
+    var deadline:         Date     = Calendar.current.date(byAdding: .month, value: 1, to: Date())!
+    var breakDaysAllowed: Int      = 0
+    var stepUpPaceWeeks:  Int      = 1
+    var scopeSize:        Double   = 50
+    var dailyMinutes:     Int      = 30
+    var baselineNumber:   Int      = 0
+    var isReduceBy:       Bool     = true
+    var isStreakMode:     Bool     = false
+    var isMilestoneMode:  Bool     = false
 }
 
-// MARK: - ChallengeInfo (معلومات التحدي المرتبطة بالـ Goal)
+// MARK: - ChallengeInfo
 struct ChallengeInfo: Codable, Equatable {
-    var challengeID:    String       // ID التحدي في CloudKit
-    var opponentID:     String       // ID الصديق
-    var opponentName:   String       // اسم الصديق للعرض
-    var friendProgress: Double       // progress الصديق 0...1
-    var isWinner:       Bool         // هل أنت الفائز
-    var winnerID:       String?      // ID الفائز (nil = لسه ما انتهى)
+    var challengeID:    String
+    var opponentID:     String
+    var opponentName:   String
+    var friendProgress: Double
+    var isWinner:       Bool
+    var winnerID:       String?
 }
 
 // MARK: - OrbGoal
@@ -54,11 +79,9 @@ struct OrbGoal: Identifiable, Codable, Equatable {
     var settings:  GoalSettings?
     var createdAt: Date          = Date()
 
-    // ── Challenge ──────────────────────────────────────
     var challengeInfo: ChallengeInfo? = nil
     var isChallenge: Bool { challengeInfo != nil }
 
-    // ── Computed ──────────────────────────────────────
     var progress: Double {
         guard !tasks.isEmpty else { return 0 }
         return Double(tasks.filter(\.isDone).count) / Double(tasks.count)
@@ -69,7 +92,7 @@ struct OrbGoal: Identifiable, Codable, Equatable {
 
     func tasks(for date: Date) -> [GoalTask] {
         let cal     = Calendar.current
-        let weekday = cal.component(.weekday, from: date) 
+        let weekday = cal.component(.weekday, from: date)
         let activeDays = settings?.selectedDays ?? []
 
         guard activeDays.contains(weekday),
@@ -133,7 +156,7 @@ extension OrbGoal {
                     RGBAColor(r: 0.93, g: 0.30, b: 0.96, a: 1)
                 ]
             ),
-            settings: GoalSettings(goalType: .finishTotal, selectedDays: [], targetNumber: 10, unit: "lessons")
+            settings: GoalSettings(goalType: .reachTarget, selectedDays: [], targetNumber: 10, unit: "lessons")
         )
         g.tasks = [
             GoalTask(goalID: g.id, title: "Study 5 flashcards",    scheduledDate: Date()),
@@ -157,7 +180,7 @@ extension OrbGoal {
                     RGBAColor(r: 0.4, g: 0.1, b: 0.8, a: 1)
                 ]
             ),
-            settings: GoalSettings(goalType: .finishTotal, selectedDays: [], targetNumber: 6, unit: "km")
+            settings: GoalSettings(goalType: .reachTarget, selectedDays: [], targetNumber: 6, unit: "km")
         )
         g.tasks = [
             GoalTask(goalID: g.id, title: "Run 1 km", scheduledDate: Date()),

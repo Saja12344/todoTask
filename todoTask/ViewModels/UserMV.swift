@@ -14,14 +14,9 @@ class UserViewModel: ObservableObject {
     @Published var isCheckingAuth = false
 
     private let userDefaultsKey = "currentUser"
-<<<<<<< HEAD
-//    private let container = CKContainer.default()
+
     private lazy var publicDB = container.publicCloudDatabase
-=======
-    private let container = CKContainer.default()
     private lazy var privateDB = container.privateCloudDatabase
-    private lazy var publicDB  = container.publicCloudDatabase
->>>>>>> Shahd
 
     var isLoggedIn: Bool { currentUser != nil }
 
@@ -33,7 +28,6 @@ class UserViewModel: ObservableObject {
     // MARK: - Login / Sign Up with Apple
     @MainActor
     func loginWithApple(id: String, name: PersonNameComponents?, email: String?) async throws {
-
         let username: String
         if let givenName = name?.givenName, !givenName.isEmpty {
             username = "\(givenName)#\(String(id.suffix(4)))"
@@ -41,14 +35,35 @@ class UserViewModel: ObservableObject {
             username = "User#\(String(id.suffix(4)))"
         }
 
-        // احفظ محلياً أول - عشان التطبيق يشتغل حتى لو CloudKit فشل
         currentUser = User(id: id, username: username, email: email ?? "")
         saveLocally()
         print("✅ user saved locally: \(username)")
 
-        // حاول تحفظ في CloudKit في الخلفية
         Task {
             await saveToCloudKit(id: id, username: username, email: email ?? "")
+        }
+    }
+
+    // MARK: - Delete Account ✅
+    func deleteAccount() async {
+        do {
+            if let userID = currentUser?.id {
+                // احذف Private record
+                let privateRecordID = CKRecord.ID(recordName: "profile_\(userID)")
+                try? await privateDB.deleteRecord(withID: privateRecordID)
+
+                // احذف Public record
+                let publicRecordID = CKRecord.ID(recordName: userID)
+                try? await publicDB.deleteRecord(withID: publicRecordID)
+            }
+
+            // امسح المحلي
+            await MainActor.run {
+                self.clearLocalUser()
+            }
+
+            print("✅ Account deleted successfully")
+
         }
     }
 
@@ -57,20 +72,16 @@ class UserViewModel: ObservableObject {
         let privateRecordID = CKRecord.ID(recordName: "profile_\(id)")
 
         do {
-            // حاول تجيب البيانات الموجودة
             let record = try await privateDB.record(for: privateRecordID)
             let savedUsername = record["username"] as? String ?? username
 
             await MainActor.run {
-                if var user = self.currentUser {
-                    self.currentUser = User(id: id, username: savedUsername, email: email)
-                    self.saveLocally()
-                }
+                self.currentUser = User(id: id, username: savedUsername, email: email)
+                self.saveLocally()
             }
             print("✅ CloudKit: existing user loaded: \(savedUsername)")
 
         } catch let error as CKError where error.code == .unknownItem {
-            // مستخدم جديد
             do {
                 let newRecord = CKRecord(recordType: "UserProfile", recordID: privateRecordID)
                 newRecord["username"] = username as CKRecordValue
@@ -79,7 +90,6 @@ class UserViewModel: ObservableObject {
                 _ = try await privateDB.save(newRecord)
                 print("✅ CloudKit: new user saved: \(username)")
 
-                // احفظ في Public عشان الأصدقاء
                 await saveUsernamePublic(appleID: id, username: username)
             } catch {
                 print("⚠️ CloudKit save failed (offline mode): \(error.localizedDescription)")

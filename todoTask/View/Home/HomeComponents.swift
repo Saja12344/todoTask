@@ -2,8 +2,6 @@
 //  HomeComponents.swift
 //  todoTask
 //
-//  استبدل الملف الموجود بهذا كاملاً
-//
 
 import SwiftUI
 import UserNotifications
@@ -51,7 +49,7 @@ private enum CreationStep: Hashable {
 
 // MARK: - today (Main Home View)
 struct today: View {
-    
+
     @EnvironmentObject private var store: OrbGoalStore
     @StateObject private var viewModel = HomeViewModel()
     @StateObject private var calVM     = MiniCalendarViewModel()
@@ -60,22 +58,16 @@ struct today: View {
     @State private var chosenType:        GoalType?      = nil
     @State private var chosenSettings:    GoalSettings?  = nil
     @State private var path:              [CreationStep] = []
-
-
     @State private var selectedEnergyID: String? = nil
-    
-  
-    // اليوم المحدد في الكالندر
+
     private var selectedDate: Date { calVM.selectedDate }
 
-    // المهام المجدولة لليوم المحدد من كل الأهداف
-    
     var todayItems: [TodayItem] {
         store.todayTasks(for: selectedDate).map {
             TodayItem(goal: $0.goal, task: $0.task)
         }
     }
-    
+
     private var dailyQuote: String {
         let cal   = Calendar.current
         let start = cal.startOfDay(for: Date())
@@ -95,7 +87,6 @@ struct today: View {
                     .resizable()
                     .ignoresSafeArea()
                     .opacity(0.7)
-                
                 Image("Gliter")
                     .resizable()
                     .ignoresSafeArea()
@@ -103,12 +94,12 @@ struct today: View {
                 VStack(alignment: .leading, spacing: 8) {
 
                     Text(dailyQuote)
-                        .padding(.horizontal,20)
-                        .padding(.top,16)
-                        .padding(.bottom,7)
+                        .padding(.horizontal, 20)
+                        .padding(.top, 16)
+                        .padding(.bottom, 7)
                         .font(.footnote.weight(.light))
 
-                    // ── Mini Calendar ─────────────────────────────────
+                    // ── Mini Calendar
                     ZStack(alignment: .center) {
                         Rectangle()
                             .frame(width: 355, height: 124)
@@ -130,20 +121,17 @@ struct today: View {
                                     }
                                 }
                                 Spacer()
-                                
-                                // Today button (compact, does not alter your layout)
                                 Button {
-                                    withAnimation(.easeInOut(duration: 0.25)) {
-                                        calVM.goToToday()
-                                    }
+                                    withAnimation(.easeInOut(duration: 0.25)) { calVM.goToToday() }
                                 } label: {
-                                    Image(systemName: "calendar")
-                                        .font(.system(size: 14, weight: .medium))
-                                        .foregroundColor(.white.opacity(0.9))
-                                        .padding(.leading, 6)
-                                    Text("Today")
-                                        .font(.system(size: 17, weight: .medium))
-                                        
+                                    HStack {
+                                        Image(systemName: "calendar")
+                                            .font(.system(size: 14, weight: .medium))
+                                            .foregroundColor(.white.opacity(0.9))
+                                            .padding(.leading, 6)
+                                        Text("Today")
+                                            .font(.system(size: 17, weight: .medium))
+                                    }
                                 }
                                 .frame(width: 100, height: 30)
                                 .buttonStyle(.plain)
@@ -176,12 +164,11 @@ struct today: View {
                     .padding(.horizontal)
                     .padding(.bottom, 12)
 
-                    // ── Today's Tasks Header ─────────────────────────
+                    // ── Today's Tasks Header
                     HStack {
                         Text("Today's Tasks")
-                        .foregroundColor(.primary).font(.title).bold().padding(.leading, 20)
+                            .foregroundColor(.primary).font(.title).bold().padding(.leading, 20)
                         Spacer()
-                        // إجمالي المهام المكتملة اليوم
                         let done  = todayItems.filter { $0.task.isDone }.count
                         let total = todayItems.count
                         if total > 0 {
@@ -192,10 +179,9 @@ struct today: View {
                         }
                     }
 
-                    // ── Tasks List ────────────────────────────────────
+                    // ── Tasks List
                     ZStack {
-                        RoundedRectangle(cornerRadius: 20)
-                            .foregroundColor(.clear)
+                        RoundedRectangle(cornerRadius: 20).foregroundColor(.clear)
 
                         if todayItems.isEmpty {
                             VStack(spacing: 10) {
@@ -214,10 +200,7 @@ struct today: View {
                                             task: item.task,
                                             goalName: item.goal.title
                                         ) {
-                                            store.toggleTodayTask(
-                                                goalID: item.goal.id,
-                                                taskID: item.task.id
-                                            )
+                                            store.toggleTodayTask(goalID: item.goal.id, taskID: item.task.id)
                                         }
                                     }
                                 }
@@ -231,12 +214,8 @@ struct today: View {
                     Spacer()
                 }
 
-                // ── Energy Prompt (مرة في اليوم) ─────────────────────
                 if energyVM.showPromptForToday {
-                    EnergyPromptOverlay(
-                        energyVM:        energyVM,
-                        selectedEnergyID: $selectedEnergyID
-                    )
+                    EnergyPromptOverlay(energyVM: energyVM, selectedEnergyID: $selectedEnergyID)
                 }
             }
             .toolbar {
@@ -253,8 +232,6 @@ struct today: View {
                     selectedEnergyID = Energytoday.defaults.first(where: { $0.title == entry.title })?.id.uuidString
                 }
             }
-
-            // Navigation destinations (same flow as GoalsPage)
             .navigationDestination(for: CreationStep.self) { step in
                 switch step {
                 case .write:
@@ -269,10 +246,7 @@ struct today: View {
                     .navigationBarBackButtonHidden(true)
 
                 case let .loading(shape, text):
-                    LoadingGoalShapesView(
-                        goalText: text,
-                        suggestedShape: shape
-                    ) {
+                    LoadingGoalShapesView(goalText: text, suggestedShape: shape) {
                         path.append(.suggested(shape: shape, text: text))
                     }
 
@@ -324,7 +298,7 @@ struct today: View {
             }
         }
     }
-    
+
     private func startCreation() {
         draftTitle = ""; chosenType = nil; chosenSettings = nil
         path = [.write]
@@ -338,7 +312,7 @@ struct TodayTaskRow: View {
     let onToggle: () -> Void
 
     var body: some View {
-        ZStack { 
+        ZStack {
             RoundedRectangle(cornerRadius: 20)
                 .frame(width: 350, height: 68)
                 .foregroundColor(.clear)
@@ -417,14 +391,14 @@ struct EnergyPromptOverlay: View {
     }
 }
 
-
-// MARK: - Settings
+// MARK: - Settings ✅
 struct Settings: View {
     @EnvironmentObject private var userVM: UserViewModel
     @State private var showSettingsButton = false
     @State private var isEditingName: Bool = false
     @State private var draftName: String = ""
     @State private var showGuestLogoutAlert: Bool = false
+    @State private var showDeleteConfirmation: Bool = false // ✅
 
     private var displayName: String {
         if let name = userVM.currentUser?.username, !name.isEmpty { return name }
@@ -444,50 +418,103 @@ struct Settings: View {
                 .resizable()
                 .ignoresSafeArea()
                 .opacity(0.7)
-                
             Image("Gliter")
                 .resizable()
                 .ignoresSafeArea()
-            
+
             VStack(alignment: .leading, spacing: 4) {
-                Text(displayName).font(.system(size: 28, weight: .bold)).foregroundColor(.primary).padding(.horizontal, 20)
-                Text("ID: \(displayID)").font(.caption).foregroundColor(.white.opacity(0.7)).padding(.horizontal, 20).padding(.bottom, 8)
+                Text(displayName)
+                    .font(.system(size: 28, weight: .bold))
+                    .foregroundColor(.primary)
+                    .padding(.horizontal, 20)
+                Text("ID: \(displayID)")
+                    .font(.caption)
+                    .foregroundColor(.white.opacity(0.7))
+                    .padding(.horizontal, 20)
+                    .padding(.bottom, 8)
+
                 Text("App Management").padding(.leading, 20)
 
                 ZStack {
-                    RoundedRectangle(cornerRadius: 30).frame(width: 360, height: 220).foregroundColor(.clear).glassEffect(.clear, in: .rect(cornerRadius: 30))
+                    RoundedRectangle(cornerRadius: 30)
+                        .frame(width: 360, height: 220)
+                        .foregroundColor(.clear)
+                        .glassEffect(.clear, in: .rect(cornerRadius: 30))
                     VStack(alignment: .leading, spacing: 10) {
                         Button(action: {
-                            if let url = URL(string: UIApplication.openSettingsURLString) { UIApplication.shared.open(url) }
-                        }) { HStack { Text("Notification").foregroundColor(.white) }.padding(.vertical, 12) }
+                            if let url = URL(string: UIApplication.openSettingsURLString) {
+                                UIApplication.shared.open(url)
+                            }
+                        }) {
+                            HStack { Text("Notification").foregroundColor(.white) }.padding(.vertical, 12)
+                        }
                         Rectangle().frame(width: 320, height: 2).foregroundColor(.white.opacity(0.3)).glassEffect()
-                        NavigationLink(destination: Report()) { HStack { Text("Progress Report").foregroundColor(.white) }.padding(.vertical, 12) }
+                        NavigationLink(destination: Report()) {
+                            HStack { Text("Progress Report").foregroundColor(.white) }.padding(.vertical, 12)
+                        }
                         Rectangle().frame(width: 320, height: 2).foregroundColor(.white.opacity(0.3)).glassEffect()
-                        NavigationLink(destination: Energy()) { HStack { Text("Energy Settings").foregroundColor(.white) }.padding(.vertical, 12) }
+                        NavigationLink(destination: Energy()) {
+                            HStack { Text("Energy Settings").foregroundColor(.white) }.padding(.vertical, 12)
+                        }
                     }
                     .padding(.leading, 10)
                 }
 
                 Text("Account Management").padding(.leading, 20).padding(.top, 20)
+
                 ZStack {
-                    RoundedRectangle(cornerRadius: 30).frame(width: 360, height: 140).foregroundColor(.clear).glassEffect(.clear, in: .rect(cornerRadius: 30))
+                    RoundedRectangle(cornerRadius: 30)
+                        .frame(width: 360, height: 200) // ✅ كبّرنا عشان يتسع للزر الجديد
+                        .foregroundColor(.clear)
+                        .glassEffect(.clear, in: .rect(cornerRadius: 30))
                     VStack(alignment: .leading, spacing: 10) {
-                        Button(action: { print("Clear Goals") }) { HStack { Text("Clear Goals").foregroundColor(Color(.lightRed)) }.padding(.vertical, 12) }
+                        Button(action: { print("Clear Goals") }) {
+                            HStack { Text("Clear Goals").foregroundColor(Color(.lightRed)) }.padding(.vertical, 12)
+                        }
                         Rectangle().frame(width: 320, height: 2).foregroundColor(.white.opacity(0.3)).glassEffect()
                         Button(action: {
                             if userVM.currentUser?.authMode == .guest { showGuestLogoutAlert = true }
                             else { userVM.clearLocalUser() }
-                        }) { HStack { Text("Log Out").foregroundColor(Color(.lightRed)) }.padding(.vertical, 12) }
+                        }) {
+                            HStack { Text("Log Out").foregroundColor(Color(.lightRed)) }.padding(.vertical, 12)
+                        }
+                        Rectangle().frame(width: 320, height: 2).foregroundColor(.white.opacity(0.3)).glassEffect()
+
+                        // ✅ زر Delete Account
+                        Button(action: { showDeleteConfirmation = true }) {
+                            HStack {
+                                Image(systemName: "trash")
+                                Text("Delete Account")
+                            }
+                            .foregroundColor(Color(.lightRed))
+                            .padding(.vertical, 12)
+                        }
                     }
                     .colorScheme(.dark)
+                    .padding(.leading, 10)
                 }
             }
             .padding(.top, -90)
         }
+        // ✅ Confirmation Dialog
+        .confirmationDialog(
+            "Delete Account?",
+            isPresented: $showDeleteConfirmation,
+            titleVisibility: .visible
+        ) {
+            Button("Delete Permanently", role: .destructive) {
+                Task { await userVM.deleteAccount() }
+            }
+            Button("Cancel", role: .cancel) {}
+        } message: {
+            Text("This will permanently delete your account and all your goals. This cannot be undone.")
+        }
         .alert("Log Out?", isPresented: $showGuestLogoutAlert) {
             Button("Cancel", role: .cancel) {}
             Button("Log Out", role: .destructive) { userVM.clearLocalUser() }
-        } message: { Text("You are continuing as a guest. Logging out will erase all local data.") }
+        } message: {
+            Text("You are continuing as a guest. Logging out will erase all local data.")
+        }
         .colorScheme(.dark)
     }
 }
@@ -531,19 +558,20 @@ func notificationDenied(_ completion: @escaping (Bool) -> Void) {
         completion(settings.authorizationStatus == .denied)
     }
 }
-#Preview{
+
+#Preview {
     Home()
         .environmentObject(OrbGoalStore())
 }
-#Preview{
+#Preview {
     Settings()
         .environmentObject(UserViewModel())
 }
-#Preview{
+#Preview {
     FriendsV()
         .environmentObject(UserViewModel())
 }
-#Preview{
+#Preview {
     GoalsPage()
         .environmentObject(UserViewModel())
 }

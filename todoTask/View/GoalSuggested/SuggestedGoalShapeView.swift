@@ -1,9 +1,13 @@
+//
+//  SuggestedGoalShapeView.swift
+//  todoTask
+//
+
 import SwiftUI
 
 struct SuggestedGoalShapeView: View {
     let goalText: String
     let suggestedShape: GoalShape
-    // Parent-driven flow
     let onFinish: (GoalType) -> Void
     let onChangeShape: () -> Void
     let onBack: (() -> Void)?
@@ -16,15 +20,11 @@ struct SuggestedGoalShapeView: View {
         ZStack {
             AppBackground()
 
-            
-            
-            
             Image("Background 2")
                 .scaledToFill()
                 .ignoresSafeArea()
 
             VStack(spacing: 0) {
-                // Top Bar
                 HStack {
                     Button(action: { onBack?() }) {
                         Image(systemName: "chevron.left")
@@ -33,13 +33,8 @@ struct SuggestedGoalShapeView: View {
                             .frame(width: 50, height: 50)
                             .glassEffect(.clear.tint(Color.black.opacity(0.4)), in: Circle())
                     }
-
                     Spacer()
-
-                    // Checkmark confirms suggested type → go to its form
-                    Button(action: {
-                        onFinish(convertedGoalType)
-                    }) {
+                    Button(action: { onFinish(convertedGoalType) }) {
                         Image(systemName: "checkmark")
                             .font(.title2)
                             .foregroundColor(.white)
@@ -47,8 +42,8 @@ struct SuggestedGoalShapeView: View {
                             .glassEffect(.clear.tint(Color.black.opacity(0.4)), in: Circle())
                     }
                 }
-                .padding(.top,60)
-                .padding(.horizontal,20)
+                .padding(.top, 60)
+                .padding(.horizontal, 20)
 
                 Spacer()
 
@@ -77,10 +72,7 @@ struct SuggestedGoalShapeView: View {
 
                 Spacer()
 
-                // Change → go to selection screen
-                Button(action: {
-                    onChangeShape()
-                }) {
+                Button(action: { onChangeShape() }) {
                     Text("Change")
                         .font(.system(size: 17, weight: .medium))
                         .foregroundColor(.white)
@@ -94,13 +86,14 @@ struct SuggestedGoalShapeView: View {
     }
 }
 
+// ✅ محدث للـ 4 cases الجديدة
 func convertToGoalType(_ shape: GoalShape) -> GoalType {
     switch shape {
-    case .finishTotal: return .finishTotal
-    case .repeatOnSchedule: return .repeatSchedule
-    case .buildStreak: return .buildStreak
-    case .levelUpGradually: return .levelUp
-    case .finishByMilestones: return .milestones
-    case .reduceSomething: return .reduce
+    case .finishTotal:        return .reachTarget
+    case .repeatOnSchedule:   return .buildHabit
+    case .buildStreak:        return .buildHabit
+    case .levelUpGradually:   return .levelUp
+    case .finishByMilestones: return .reachTarget
+    case .reduceSomething:    return .reduce
     }
 }
