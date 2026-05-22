@@ -15,6 +15,7 @@ import SwiftUI
 
 // MARK: - GoalShapeView
 struct GoalShapeView: View {
+    @EnvironmentObject private var lang: LanguageManager
     @State private var selectedGoal: GoalType?
     @State private var showSettings = false
     @State private var capturedDays:            Set<Int> = [1,2,3,4,5,6,7]
@@ -22,7 +23,7 @@ struct GoalShapeView: View {
     @State private var capturedEndTime:         Date     = Calendar.current.date(bySettingHour: 9,  minute: 0, second: 0, of: Date())!
     @State private var capturedTarget:          Int      = 10
     @State private var capturedUnit:            String   = ""
-    @State private var capturedDeadline:        Date     = Calendar.current.date(byAdding: .month, value: 1, to: Date())!
+    @State private var capturedDeadline:        Date?    = nil
     @State private var capturedBreakDays:       Int      = 0
     @State private var capturedPaceWeeks:       Int      = 1
     @State private var capturedScope:           Double   = 50
@@ -32,144 +33,188 @@ struct GoalShapeView: View {
     @State private var capturedIsStreakMode:    Bool     = false
     @State private var capturedIsMilestoneMode: Bool     = false
 
+    let draftText: String
+    let openSettingsDirectly: Bool
     let onFinished: ((GoalType, GoalSettings) -> Void)?
     let onBack:     (() -> Void)?
 
     init(
         selectedGoal: GoalType? = nil,
-        showSettings: Bool      = false,
+        draftText: String = "",
+        openSettingsDirectly: Bool = false,
+        showSettings: Bool = false,
         onFinished: ((GoalType, GoalSettings) -> Void)? = nil,
-        onBack: (() -> Void)?   = nil
+        onBack: (() -> Void)? = nil
     ) {
+        self.draftText = draftText
+        self.openSettingsDirectly = openSettingsDirectly
         self._selectedGoal = State(initialValue: selectedGoal)
-        self._showSettings = State(initialValue: showSettings)
-        self.onFinished    = onFinished
-        self.onBack        = onBack
+        self._showSettings = State(initialValue: openSettingsDirectly || showSettings)
+        self.onFinished = onFinished
+        self.onBack = onBack
     }
 
     var body: some View {
-        ZStack {
-            Rectangle()
-                .fill(LinearGradient(colors: [.darkBlu, .dark], startPoint: .bottom, endPoint: .top))
-                .ignoresSafeArea()
-            Image("Gliter").resizable().scaledToFit().scaleEffect(1.9).contrast(1.8).saturation(1.8).ignoresSafeArea()
-
-            VStack {
-                HStack {
-                    Button(action: {
-                        if showSettings { withAnimation { showSettings = false } }
-                        else { onBack?() }
-                    }) {
-                        Image(systemName: "chevron.left")
-                            .font(.title2).foregroundColor(.white)
-                            .frame(width: 50, height: 50)
-                            .glassEffect(.clear.tint(Color.black.opacity(0.4)), in: .rect(cornerRadius: 24))
-                    }
-                    Spacer()
-                    Button(action: {
-                        if !showSettings {
-                            if selectedGoal != nil { withAnimation { showSettings = true } }
-                        } else {
-                            if let type = selectedGoal { onFinished?(type, buildSettings()) }
-                        }
-                    }) {
-                        Text("Next").font(.headline).foregroundColor(.white)
-                            .padding(.horizontal, 30).padding(.vertical, 12)
-                            .glassEffect(.clear.tint(Color.black.opacity(0.4)), in: .rect(cornerRadius: 24))
-                    }
+        GoalFlowScreen(
+            background: {
+                ZStack {
+                    Rectangle()
+                        .fill(LinearGradient(colors: [.darkBlu, .dark], startPoint: .bottom, endPoint: .top))
+                    Image("Gliter")
+                        .resizable()
+                        .scaledToFit()
+                        .scaleEffect(1.9)
+                        .contrast(1.8)
+                        .saturation(1.8)
                 }
-                .padding()
-
-                Text(showSettings ? getTitle(for: selectedGoal) : "Select Your Goal Shape")
-                    .font(.system(size: 32, weight: .bold)).foregroundColor(.white).padding(.top, 1)
-
-                Spacer()
-
-                if !showSettings {
-                    LazyVGrid(columns: [GridItem(.flexible(), spacing: 16), GridItem(.flexible(), spacing: 16)], spacing: 16) {
-                        GoalCard(
-                            icon: "scope",
-                            title: "Reach a Target",
-                            description: "Hit a number or finish step by step",
-                            isSelected: selectedGoal == .reachTarget
-                        ) { selectedGoal = .reachTarget }
-
-                        GoalCard(
-                            icon: "flame.fill",
-                            title: "Build a Habit",
-                            description: "Repeat on schedule or build a streak",
-                            isSelected: selectedGoal == .buildHabit
-                        ) { selectedGoal = .buildHabit }
-
-                        GoalCard(
-                            icon: "chart.line.uptrend.xyaxis",
-                            title: "Level Up",
-                            description: "Start small and slowly do more",
-                            isSelected: selectedGoal == .levelUp
-                        ) { selectedGoal = .levelUp }
-
-                        GoalCard(
-                            icon: "arrow.down.circle",
-                            title: "Reduce",
-                            description: "Do less or stay under a limit",
-                            isSelected: selectedGoal == .reduce
-                        ) { selectedGoal = .reduce }
-                    }
-                    .padding(.horizontal, 17)
-
-                } else {
-                    ScrollView {
-                        VStack(spacing: 16) {
-                            Spacer().frame(height: 40)
-                            switch selectedGoal {
-                            case .reachTarget:
-                                ReachTargetContent(
-                                    targetNumber:        $capturedTarget,
-                                    unit:                $capturedUnit,
-                                    deadlineDate:        $capturedDeadline,
-                                    selectedDays:        $capturedDays,
-                                    startTime:           $capturedStartTime,
-                                    endTime:             $capturedEndTime,
-                                    isMilestoneMode:     $capturedIsMilestoneMode,
-                                    scopeSize:           $capturedScope,
-                                    dailyTimePreference: $capturedDailyMin
-                                )
-                            case .buildHabit:
-                                BuildHabitContent(
-                                    selectedDays:  $capturedDays,
-                                    startTime:     $capturedStartTime,
-                                    endTime:       $capturedEndTime,
-                                    unit:          $capturedUnit,
-                                    isStreakMode:  $capturedIsStreakMode,
-                                    targetNumber:  $capturedTarget,
-                                    breakDays:     $capturedBreakDays
-                                )
-                            case .levelUp:
-                                LevelUpContent(
-                                    activity:     $capturedUnit,
-                                    targetLevel:  $capturedTarget,
-                                    selectedDays: $capturedDays,
-                                    stepUpPace:   $capturedPaceWeeks
-                                )
-                            case .reduce:
-                                ReduceContent(
-                                    metricType:     $capturedUnit,
-                                    isReduceBy:     $capturedIsReduceBy,
-                                    baselineNumber: $capturedBaseline,
-                                    targetNumber:   $capturedTarget
-                                )
-                            case .none:
-                                EmptyView()
+            },
+            topBar: {
+                GoalFlowNavigationRow(
+                    onBack: handleBack,
+                    trailing: {
+                        GoalFlowNextButton(action: {
+                            if !showSettings {
+                                if selectedGoal != nil { withAnimation { showSettings = true } }
+                            } else if let type = selectedGoal {
+                                onFinished?(type, buildSettings())
                             }
-                            Spacer().frame(height: 40)
+                        })
+                    }
+                )
+                .frame(height: GoalFlowLayout.topBarHeight)
+            },
+            content: {
+                GeometryReader { geo in
+                    VStack(spacing: 0) {
+                        GoalCreationStepIndicator(current: 3)
+                            .padding(.horizontal, GoalFlowLayout.horizontalPadding)
+                            .padding(.bottom, 12)
+
+                        Text(settingsScreenTitle)
+                            .font(.system(size: GoalFlowLayout.scaled(28, width: geo.size.width), weight: .bold))
+                            .foregroundColor(.white)
+                            .multilineTextAlignment(.center)
+                            .padding(.horizontal, 12)
+                            .padding(.bottom, showSettings ? 8 : 16)
+
+                        if !showSettings {
+                            Spacer(minLength: 8)
+                            LazyVGrid(
+                                columns: [
+                                    GridItem(.flexible(), spacing: 16),
+                                    GridItem(.flexible(), spacing: 16)
+                                ],
+                                spacing: 16
+                            ) {
+                                GoalCard(
+                                    icon: "scope",
+                                    title: lang.goalTypeTitle(.reachTarget),
+                                    description: lang.goalTypeDescription(.reachTarget),
+                                    isSelected: selectedGoal == .reachTarget
+                                ) { selectedGoal = .reachTarget }
+
+                                GoalCard(
+                                    icon: "flame.fill",
+                                    title: lang.goalTypeTitle(.buildHabit),
+                                    description: lang.goalTypeDescription(.buildHabit),
+                                    isSelected: selectedGoal == .buildHabit
+                                ) { selectedGoal = .buildHabit }
+
+                                GoalCard(
+                                    icon: "chart.line.uptrend.xyaxis",
+                                    title: lang.goalTypeTitle(.levelUp),
+                                    description: lang.goalTypeDescription(.levelUp),
+                                    isSelected: selectedGoal == .levelUp
+                                ) { selectedGoal = .levelUp }
+
+                                GoalCard(
+                                    icon: "arrow.down.circle",
+                                    title: lang.goalTypeTitle(.reduce),
+                                    description: lang.goalTypeDescription(.reduce),
+                                    isSelected: selectedGoal == .reduce
+                                ) { selectedGoal = .reduce }
+                            }
+                            .padding(.horizontal, GoalFlowLayout.horizontalPadding)
+                            Spacer(minLength: 8)
+                        } else {
+                            ScrollView(showsIndicators: false) {
+                                VStack(spacing: 16) {
+                                    if !draftText.isEmpty {
+                                        GoalDraftBanner(goalText: draftText, goalType: selectedGoal)
+                                    }
+                                    switch selectedGoal {
+                                    case .reachTarget:
+                                        ReachTargetContent(
+                                            goalTitle:           draftText,
+                                            targetNumber:        $capturedTarget,
+                                            unit:                $capturedUnit,
+                                            deadlineDate:        $capturedDeadline,
+                                            selectedDays:        $capturedDays,
+                                            startTime:           $capturedStartTime,
+                                            endTime:             $capturedEndTime,
+                                            isMilestoneMode:     $capturedIsMilestoneMode,
+                                            scopeSize:           $capturedScope,
+                                            dailyTimePreference: $capturedDailyMin
+                                        )
+                                    case .buildHabit:
+                                        BuildHabitContent(
+                                            selectedDays:  $capturedDays,
+                                            startTime:     $capturedStartTime,
+                                            endTime:       $capturedEndTime,
+                                            unit:          $capturedUnit,
+                                            isStreakMode:  $capturedIsStreakMode,
+                                            targetNumber:  $capturedTarget,
+                                            breakDays:     $capturedBreakDays
+                                        )
+                                    case .levelUp:
+                                        LevelUpContent(
+                                            activity:     $capturedUnit,
+                                            targetLevel:  $capturedTarget,
+                                            selectedDays: $capturedDays,
+                                            stepUpPace:   $capturedPaceWeeks
+                                        )
+                                    case .reduce:
+                                        ReduceContent(
+                                            metricType:     $capturedUnit,
+                                            isReduceBy:     $capturedIsReduceBy,
+                                            baselineNumber: $capturedBaseline,
+                                            targetNumber:   $capturedTarget
+                                        )
+                                    case .none:
+                                        EmptyView()
+                                    }
+                                }
+                                .padding(.horizontal, GoalFlowLayout.horizontalPadding)
+                                .padding(.bottom, 32)
+                            }
                         }
-                        .padding(.horizontal, 20)
                     }
                 }
-                Spacer()
             }
+        )
+        .onAppear(perform: applyDraftIfNeeded)
+    }
+
+    private var settingsScreenTitle: String {
+        showSettings ? lang.t(.goalSetup) : lang.t(.selectGoalShape)
+    }
+
+    private func handleBack() {
+        if showSettings, !openSettingsDirectly {
+            withAnimation { showSettings = false }
+        } else {
+            onBack?()
         }
-        .toolbar(.hidden, for: .tabBar)
+    }
+
+    private func applyDraftIfNeeded() {
+        guard !draftText.isEmpty else { return }
+        let draft = GoalSuggestionData.parse(draftText)
+        if let n = draft.targetNumber { capturedTarget = min(max(n, 1), 1000) }
+        if let b = draft.baselineNumber { capturedBaseline = b }
+        if let u = draft.unit, !u.isEmpty { capturedUnit = u }
+        if draft.prefersMilestones { capturedIsMilestoneMode = true }
+        if draft.prefersStreak { capturedIsStreakMode = true }
     }
 
     private func buildSettings() -> GoalSettings {
@@ -205,9 +250,11 @@ struct GoalShapeView: View {
 
 // MARK: - ReachTargetContent
 struct ReachTargetContent: View {
+    @EnvironmentObject private var lang: LanguageManager
+    let goalTitle: String
     @Binding var targetNumber:        Int
     @Binding var unit:                String
-    @Binding var deadlineDate:        Date
+    @Binding var deadlineDate:        Date?
     @Binding var selectedDays:        Set<Int>
     @Binding var startTime:           Date
     @Binding var endTime:             Date
@@ -216,70 +263,106 @@ struct ReachTargetContent: View {
     @Binding var dailyTimePreference: Int
     @State private var showMore = false
 
+    private var unitLabel: String { unit.isEmpty ? "units" : unit }
+
     var body: some View {
         GlassCard {
-            VStack(spacing: 16) {
-                VStack(alignment: .leading, spacing: 8) {
-                    SectionHeader(title: "Target number")
-                    NumberStepper(title: "", value: $targetNumber, range: 1...1000, suffix: "")
+            VStack(alignment: .leading, spacing: 16) {
+                GoalFormField(title: lang.t(.targetNumber)) {
+                    NumberStepper(title: "", value: $targetNumber, range: 1...1000, suffix: unitLabel, allowsTyping: true)
                 }
-                GlassDatePicker(title: "Deadline Date", date: $deadlineDate)
-                VStack(alignment: .leading, spacing: 8) {
-                    SectionHeader(title: "How to track it").padding(.horizontal, -24)
-                    GlassToggle(option1: "By Total", option2: "By Milestones", isOption1: Binding(
+
+                GoalFormField(title: lang.t(.deadline)) {
+                    OptionalGoalDateField(date: $deadlineDate)
+                }
+                Text(lang.t(.deadlineHint))
+                    .font(.caption2)
+                    .foregroundColor(.white.opacity(0.45))
+                    .fixedSize(horizontal: false, vertical: true)
+
+                GoalFormField(title: lang.t(.howToTrack)) {
+                    GlassToggle(option1: lang.t(.total), option2: lang.t(.milestones), isOption1: Binding(
                         get: { !isMilestoneMode },
                         set: { isMilestoneMode = !$0 }
                     ))
+                    trackingExplanation(
+                        title: isMilestoneMode ? lang.t(.milestones) : lang.t(.total),
+                        body: isMilestoneMode ? milestoneExplanation : totalExplanation
+                    )
                 }
+
                 if isMilestoneMode {
-                    VStack(alignment: .leading, spacing: 8) {
-                        SectionHeader(title: "Scope Size")
-                        GlassSlider(value: $scopeSize, range: 0...100).padding(.horizontal, 14)
+                    GoalFormField(title: lang.t(.scopeSize)) {
+                        GlassSlider(value: $scopeSize, range: 0...100)
+                            .padding(.horizontal, 8)
                     }
-                    VStack(alignment: .leading, spacing: 8) {
-                        SectionHeader(title: "Daily Time Preference")
-                        NumberStepper(title: "", value: $dailyTimePreference, range: 5...180, suffix: "min")
-                    }
-                }
-                Button {
-                    withAnimation(.spring(response: 0.3)) { showMore.toggle() }
-                } label: {
-                    HStack(spacing: 6) {
-                        Text(showMore ? "Less options" : "More options")
-                            .font(.system(size: 15, weight: .medium)).foregroundColor(.white.opacity(0.55))
-                        Image(systemName: showMore ? "chevron.up" : "chevron.down")
-                            .font(.system(size: 12)).foregroundColor(.white.opacity(0.55))
+                    GoalFormField(title: lang.t(.dailyTimePreference)) {
+                        NumberStepper(title: "", value: $dailyTimePreference, range: 5...180, suffix: lang.language == .arabic ? "د" : "min")
                     }
                 }
+
+                moreOptionsButton
+
                 if showMore {
-                    VStack(spacing: 16) {
-                        VStack(alignment: .leading, spacing: 8) {
-                            SectionHeader(title: "Unit")
-                            CustomTextField(placeholder: "eg. Pages, Km, Bottles", text: $unit).padding(.horizontal, 14)
-                        }
-                        VStack(alignment: .leading) {
-                            SectionHeader(title: "Days of the Week").padding(.horizontal, -10)
-                            WeekDaysSelector(selectedDays: $selectedDays)
-                        }
-                        VStack(alignment: .leading, spacing: 8) {
-                            SectionHeader(title: "Preferred Time").padding(.horizontal, -1)
-                            HStack {
-                                DatePicker("", selection: $startTime, displayedComponents: .hourAndMinute).labelsHidden().colorScheme(.dark)
-                                Text("to").foregroundColor(.white.opacity(0.6))
-                                DatePicker("", selection: $endTime, displayedComponents: .hourAndMinute).labelsHidden().colorScheme(.dark)
-                            }
-                            .padding(.leading, 80)
-                        }
-                        .frame(maxWidth: .infinity, alignment: .leading)
+                    GoalFormField(title: lang.t(.unit)) {
+                        CustomTextField(placeholder: lang.t(.phUnit), text: $unit)
+                    }
+                    GoalFormField(title: lang.t(.daysOfWeek)) {
+                        WeekDaysSelector(selectedDays: $selectedDays)
+                    }
+                    GoalFormField(title: lang.t(.preferredTime)) {
+                        TimePickerRow(startTime: $startTime, endTime: $endTime)
                     }
                 }
             }
         }
     }
+
+    private var moreOptionsButton: some View {
+        Button {
+            withAnimation(.spring(response: 0.3)) { showMore.toggle() }
+        } label: {
+            HStack(spacing: 6) {
+                Text(showMore ? lang.t(.lessOptions) : lang.t(.moreOptions))
+                    .font(.system(size: 15, weight: .medium))
+                    .foregroundColor(.white.opacity(0.55))
+                Image(systemName: showMore ? "chevron.up" : "chevron.down")
+                    .font(.system(size: 12))
+                    .foregroundColor(.white.opacity(0.55))
+            }
+        }
+        .buttonStyle(.plain)
+    }
+
+    private var totalExplanation: String {
+        if goalTitle.isEmpty { return lang.t(.totalExplainEmpty) }
+        return String(format: lang.t(.totalExplainGoal), goalTitle, targetNumber, unitLabel)
+    }
+
+    private var milestoneExplanation: String {
+        if goalTitle.isEmpty { return lang.t(.milestoneExplainEmpty) }
+        return String(format: lang.t(.milestoneExplainGoal), goalTitle, targetNumber, unitLabel)
+    }
+
+    private func trackingExplanation(title: String, body: String) -> some View {
+        VStack(alignment: .leading, spacing: 6) {
+            Text(title)
+                .font(.subheadline.weight(.semibold))
+                .foregroundColor(.white.opacity(0.85))
+            Text(body)
+                .font(.caption)
+                .foregroundColor(.white.opacity(0.6))
+                .fixedSize(horizontal: false, vertical: true)
+        }
+        .padding(12)
+        .frame(maxWidth: .infinity, alignment: .leading)
+        .background(RoundedRectangle(cornerRadius: 12).fill(Color.white.opacity(0.06)))
+    }
 }
 
 // MARK: - BuildHabitContent
 struct BuildHabitContent: View {
+    @EnvironmentObject private var lang: LanguageManager
     @Binding var selectedDays: Set<Int>
     @Binding var startTime:    Date
     @Binding var endTime:      Date
@@ -291,57 +374,44 @@ struct BuildHabitContent: View {
 
     var body: some View {
         GlassCard {
-            VStack(spacing: 16) {
-                VStack(alignment: .leading, spacing: 8) {
-                    SectionHeader(title: "Habit type").padding(.horizontal, -24)
-                    GlassToggle(option1: "Schedule", option2: "Streak", isOption1: Binding(
+            VStack(alignment: .leading, spacing: 16) {
+                GoalFormField(title: lang.t(.habitType)) {
+                    GlassToggle(option1: lang.t(.schedule), option2: lang.t(.streak), isOption1: Binding(
                         get: { !isStreakMode },
                         set: { isStreakMode = !$0 }
                     ))
                 }
                 if !isStreakMode {
-                    VStack(alignment: .leading) {
-                        SectionHeader(title: "Days of the Week").padding(.horizontal, -10)
+                    GoalFormField(title: lang.t(.daysOfWeek)) {
                         WeekDaysSelector(selectedDays: $selectedDays)
                     }
                 }
-                VStack(alignment: .leading, spacing: 8) {
-                    SectionHeader(title: "Preferred Time").padding(.horizontal, -1)
-                    HStack {
-                        DatePicker("", selection: $startTime, displayedComponents: .hourAndMinute).labelsHidden().colorScheme(.dark)
-                        Text("to").foregroundColor(.white.opacity(0.6))
-                        DatePicker("", selection: $endTime, displayedComponents: .hourAndMinute).labelsHidden().colorScheme(.dark)
-                    }
-                    .padding(.leading, 80)
+                GoalFormField(title: lang.t(.preferredTime)) {
+                    TimePickerRow(startTime: $startTime, endTime: $endTime)
                 }
-                .frame(maxWidth: .infinity, alignment: .leading)
                 if isStreakMode {
-                    VStack(alignment: .leading, spacing: 8) {
-                        SectionHeader(title: "Target Days")
-                        NumberStepper(title: "", value: $targetNumber, range: 1...365, suffix: "days")
+                    GoalFormField(title: lang.t(.targetDays)) {
+                        NumberStepper(title: "", value: $targetNumber, range: 1...365, suffix: lang.language == .arabic ? "يوم" : "days")
                     }
                 }
                 Button {
                     withAnimation(.spring(response: 0.3)) { showMore.toggle() }
                 } label: {
                     HStack(spacing: 6) {
-                        Text(showMore ? "Less options" : "More options")
+                        Text(showMore ? lang.t(.lessOptions) : lang.t(.moreOptions))
                             .font(.system(size: 15, weight: .medium)).foregroundColor(.white.opacity(0.55))
                         Image(systemName: showMore ? "chevron.up" : "chevron.down")
                             .font(.system(size: 12)).foregroundColor(.white.opacity(0.55))
                     }
                 }
+                .buttonStyle(.plain)
                 if showMore {
-                    VStack(spacing: 16) {
-                        VStack(alignment: .leading, spacing: 6) {
-                            SectionHeader(title: "Activity")
-                            CustomTextField(placeholder: "eg. journaling, workout", text: $unit).padding(.horizontal, 14)
-                        }
-                        if isStreakMode {
-                            VStack(alignment: .leading, spacing: 8) {
-                                SectionHeader(title: "Break Days Allowed")
-                                NumberStepper(title: "", value: $breakDays, range: 0...7, suffix: "")
-                            }
+                    GoalFormField(title: lang.t(.activity)) {
+                        CustomTextField(placeholder: lang.t(.phActivity), text: $unit)
+                    }
+                    if isStreakMode {
+                        GoalFormField(title: lang.t(.breakDaysAllowed)) {
+                            NumberStepper(title: "", value: $breakDays, range: 0...7, suffix: "")
                         }
                     }
                 }
@@ -352,6 +422,7 @@ struct BuildHabitContent: View {
 
 // MARK: - LevelUpContent
 struct LevelUpContent: View {
+    @EnvironmentObject private var lang: LanguageManager
     @Binding var activity:     String
     @Binding var targetLevel:  Int
     @Binding var selectedDays: Set<Int>
@@ -359,22 +430,18 @@ struct LevelUpContent: View {
 
     var body: some View {
         GlassCard {
-            VStack(spacing: 20) {
-                VStack(alignment: .leading, spacing: 8) {
-                    SectionHeader(title: "Activity")
-                    CustomTextField(placeholder: "eg. running, reading", text: $activity).padding(.horizontal, 14)
+            VStack(alignment: .leading, spacing: 20) {
+                GoalFormField(title: lang.t(.activity)) {
+                    CustomTextField(placeholder: lang.t(.phActivity), text: $activity)
                 }
-                VStack(alignment: .leading, spacing: 8) {
-                    SectionHeader(title: "Target Level")
-                    NumberStepper(title: "", value: $targetLevel, range: 1...100, suffix: "")
+                GoalFormField(title: lang.t(.targetLevel)) {
+                    NumberStepper(title: "", value: $targetLevel, range: 1...100, suffix: "", allowsTyping: true)
                 }
-                VStack(alignment: .leading, spacing: 8) {
-                    SectionHeader(title: "Days of the Week").padding(.horizontal, -10)
+                GoalFormField(title: lang.t(.daysOfWeek)) {
                     WeekDaysSelector(selectedDays: $selectedDays)
                 }
-                VStack(alignment: .leading, spacing: 8) {
-                    SectionHeader(title: "Step-up Every")
-                    NumberStepper(title: "", value: $stepUpPace, range: 1...52, suffix: "Weeks")
+                GoalFormField(title: lang.t(.stepUpEvery)) {
+                    NumberStepper(title: "", value: $stepUpPace, range: 1...52, suffix: lang.t(.weeks))
                 }
             }
         }
@@ -383,6 +450,7 @@ struct LevelUpContent: View {
 
 // MARK: - ReduceContent
 struct ReduceContent: View {
+    @EnvironmentObject private var lang: LanguageManager
     @Binding var metricType:     String
     @Binding var isReduceBy:     Bool
     @Binding var baselineNumber: Int
@@ -390,28 +458,41 @@ struct ReduceContent: View {
 
     var body: some View {
         GlassCard {
-            VStack(spacing: 20) {
-                VStack(alignment: .leading, spacing: 8) {
-                    SectionHeader(title: "Metric type")
-                    CustomTextField(placeholder: "eg. screen time, sugar", text: $metricType).padding(.horizontal, 14)
+            VStack(alignment: .leading, spacing: 20) {
+                GoalFormField(title: lang.t(.metricType)) {
+                    CustomTextField(placeholder: lang.t(.phMetric), text: $metricType)
                 }
-                VStack(alignment: .leading, spacing: 8) {
-                    SectionHeader(title: "Tracking mode").padding(.horizontal, -24)
-                    GlassToggle(option1: "Reduce by", option2: "Stay Under", isOption1: $isReduceBy)
+                GoalFormField(title: lang.t(.trackingMode)) {
+                    GlassToggle(option1: lang.t(.reduceBy), option2: lang.t(.stayUnder), isOption1: $isReduceBy)
+                    reduceModeExplanation
                 }
-                VStack(alignment: .leading, spacing: 8) {
-                    SectionHeader(title: "Starting Number")
-                    NumberStepper(title: "", value: $baselineNumber, range: 0...1000, suffix: "")
+                GoalFormField(title: lang.t(.startingNumber)) {
+                    NumberStepper(title: "", value: $baselineNumber, range: 0...1000, suffix: metricType.isEmpty ? "" : metricType, allowsTyping: true)
                 }
-                VStack(alignment: .leading, spacing: 8) {
-                    SectionHeader(title: "Target Number")
-                    NumberStepper(title: "", value: $targetNumber, range: 0...1000, suffix: "")
+                GoalFormField(title: lang.t(.targetNumberLabel)) {
+                    NumberStepper(title: "", value: $targetNumber, range: 0...1000, suffix: metricType.isEmpty ? "" : metricType, allowsTyping: true)
                 }
             }
         }
+    }
+
+    private var reduceModeExplanation: some View {
+        VStack(alignment: .leading, spacing: 6) {
+            Text(isReduceBy ? lang.t(.reduceBy) : lang.t(.stayUnder))
+                .font(.subheadline.weight(.semibold))
+                .foregroundColor(.white.opacity(0.85))
+            Text(isReduceBy ? lang.t(.reduceByExplain) : lang.t(.stayUnderExplain))
+                .font(.caption)
+                .foregroundColor(.white.opacity(0.6))
+                .fixedSize(horizontal: false, vertical: true)
+        }
+        .padding(12)
+        .frame(maxWidth: .infinity, alignment: .leading)
+        .background(RoundedRectangle(cornerRadius: 12).fill(Color.white.opacity(0.06)))
     }
 }
 
 #Preview {
     GoalShapeView(onFinished: { _, _ in }, onBack: {})
+        .environmentObject(LanguageManager())
 }

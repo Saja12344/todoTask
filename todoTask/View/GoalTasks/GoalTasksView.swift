@@ -7,11 +7,15 @@ import SwiftUI
 
 struct GoalTasksView: View {
     @EnvironmentObject private var store: OrbGoalStore
+    @EnvironmentObject private var lang: LanguageManager
     @State private var showAddSheet      = false
     @State private var showDeleteConfirm = false
     @State private var taskPendingDelete: GoalTask?
+    @State private var showAllTasks = false
 
     let goalID: UUID
+
+    private let tasksPreviewLimit = 10
 
     private var goal: OrbGoal? { store.goal(with: goalID) }
 
@@ -24,232 +28,231 @@ struct GoalTasksView: View {
                 .resizable()
                 .ignoresSafeArea()
                 .opacity(0.7)
-            
             Image("Gliter")
                 .resizable()
                 .ignoresSafeArea()
 
+            ScrollView(showsIndicators: false) {
+                VStack(spacing: 14) {
+                    planetSection
 
-            VStack(spacing: 16) {
-
-                // ── Planet + Progress Ring ─────────────────────────
-                ZStack {
-                    if let goal {
-                        PlanetOrbView(
-                            size: 150,
-                            gradientColors: goal.design.gradientStops.map { $0.swiftUIColor },
-                            glow: min(goal.design.glow, 0.15),
-                            textureAssetName: goal.design.textureAssetName,
-                            textureOpacity: goal.design.textureOpacity
+                    if let goal, goal.isChallenge, let winnerID = goal.challengeInfo?.winnerID {
+                        WinnerBanner(
+                            winnerID: winnerID,
+                            winnerName: winnerID == goal.challengeInfo?.opponentID
+                                ? (goal.challengeInfo?.opponentName ?? "Friend")
+                                : "You",
+                            isYou: winnerID != goal.challengeInfo?.opponentID
                         )
-                        .frame(width: 200, height: 200)
                     }
 
-                    // اذا تحدي: خطين، اذا عادي: خط واحد
-                    if let goal, goal.isChallenge, let info = goal.challengeInfo {
-                        DualProgressRing(
-                            myProgress: goal.progress,
-                            friendProgress: info.friendProgress,
-                            friendName: info.opponentName
-                        )
-                        .frame(width: 310, height: 310)
-                    } else {
-                        ProgressCircle(progress: goal?.progress ?? 0)
-                            .frame(width: 200, height: 200)
-                            .animation(.easeInOut(duration: 0.4), value: goal?.progress)
-                    }
+                    progressTasksCard
                 }
-                .padding(.top, 10)
-
-                // ── Winner Banner ──────────────────────────────────
-                if let goal, goal.isChallenge, let winnerID = goal.challengeInfo?.winnerID {
-                    WinnerBanner(
-                        winnerID: winnerID,
-                        winnerName: winnerID == goal.challengeInfo?.opponentID
-                            ? (goal.challengeInfo?.opponentName ?? "Friend")
-                            : "You",
-                        isYou: winnerID != goal.challengeInfo?.opponentID
-                    )
-                    .padding(.horizontal)
-                    .transition(.move(edge: .top).combined(with: .opacity))
-                }
-
-                // ── Tasks Panel ───────────────────────────────────
-                ZStack(alignment: .bottomTrailing) {
-                    RoundedRectangle(cornerRadius: 20, style: .continuous)
-                        .fill(.clear)
-                        .glassEffect(.clear, in: .rect(cornerRadius: 20))
-                        .frame(height: 370)
-
-                    VStack(alignment: .leading, spacing: 10) {
-
-                        // Title + Challenge badge
-                        HStack {
-                            Text(goal?.title ?? "")
-                                .font(.title2).bold().foregroundColor(.white)
-                            if goal?.isChallenge == true {
-                                Text("⚡️ Challenge")
-                                    .font(.caption.bold())
-                                    .foregroundColor(.yellow)
-                                    .padding(.horizontal, 8).padding(.vertical, 4)
-                                    .background(Capsule().fill(Color.yellow.opacity(0.15)))
-                            }
-                        }
-                        .padding(.top, 55)
-
-                        // Opponent info
-                        if let info = goal?.challengeInfo {
-                            HStack(spacing: 6) {
-                                Image(systemName: "person.fill")
-                                    .font(.caption).foregroundColor(.gray)
-                                Text("vs \(info.opponentName)")
-                                    .font(.caption).foregroundColor(.gray)
-                                Spacer()
-                                // Friend progress
-                                Text("\(info.opponentName): \(Int(info.friendProgress * 100))%")
-                                    .font(.caption.bold()).foregroundColor(.orange)
-                            }
-                        }
-
-                        // Progress bar + stats
-                        HStack {
-                            Text("\(goal?.doneTasks ?? 0) / \(goal?.totalTasks ?? 0) tasks")
-                                .font(.subheadline).foregroundColor(.secondary)
-                            Spacer()
-                            Text("\(Int((goal?.progress ?? 0) * 100))%")
-                                .font(.headline.weight(.semibold)).foregroundColor(.cyan)
-                        }
-
-                        GeometryReader { geo in
-                            ZStack(alignment: .leading) {
-                                RoundedRectangle(cornerRadius: 4).fill(.white.opacity(0.15)).frame(height: 6)
-                                RoundedRectangle(cornerRadius: 4).fill(Color.cyan)
-                                    .frame(width: geo.size.width * (goal?.progress ?? 0), height: 6)
-                                    .animation(.easeInOut(duration: 0.4), value: goal?.progress)
-                            }
-                        }
-                        .frame(height: 6).padding(.bottom, 8)
-
-                        // Tasks List
-                        ScrollView {
-                            VStack(spacing: 10) {
-                                if let tasks = goal?.tasks, !tasks.isEmpty {
-                                    ForEach(tasks) { task in
-                                        TaskCheckRow(task: task) {
-                                            store.toggleTask(goalID: goalID, taskID: task.id)
-                                            checkWinner()
-                                        }
-                                        .contextMenu {
-                                            Button(role: .destructive) {
-                                                taskPendingDelete = task
-                                                showDeleteConfirm = true
-                                            } label: { Label("Delete", systemImage: "trash") }
-                                        }
-                                    }
-                                } else {
-                                    VStack(spacing: 8) {
-                                        Image(systemName: "tray").font(.system(size: 32)).foregroundColor(.white.opacity(0.3))
-                                        Text("No tasks yet — tap + to add")
-                                            .foregroundColor(.white.opacity(0.4)).font(.subheadline)
-                                    }
-                                    .frame(maxWidth: .infinity).padding(.top, 40)
-                                }
-                            }
-                            .padding(.vertical, 4)
-                        }
-                        .scrollIndicators(.hidden)
-                    }
-                    .padding(22)
-
-                    // Add button
-                    Button { showAddSheet = true } label: {
-                        Image(systemName: "plus")
-                            .font(.title2.weight(.semibold)).foregroundColor(.white)
-                            .frame(width: 56, height: 56)
-                            .glassEffect(.clear.tint(.accent.opacity(0.6)))
-                    }
-                    .padding(18)
-                }
-                .padding(.horizontal)
-
-                Spacer(minLength: 0)
+                .padding(.horizontal, GoalFlowLayout.horizontalPadding)
+                .padding(.top, 8)
+                .padding(.bottom, 24)
             }
         }
-        .colorScheme(.dark)
+        .navigationTitle(goal?.title ?? "")
+        .navigationBarTitleDisplayMode(.inline)
+        .orbitForcedDark()
         .sheet(isPresented: $showAddSheet) {
-            AddTaskSheet(goalTitle: goal?.title ?? "") { title in
-                store.addTask(goalID: goalID, title: title, scheduledDate: Date())
+            AddTaskSheet(
+                goalTitle: goal?.title ?? "",
+                defaultUnit: goal?.settings?.unit ?? ""
+            ) { title, quantity in
+                store.addTask(
+                    goalID: goalID,
+                    title: title,
+                    scheduledDate: Date(),
+                    targetAmount: max(1, quantity)
+                )
             }
         }
-        .confirmationDialog("Delete this task?", isPresented: $showDeleteConfirm, titleVisibility: .visible) {
-            Button("Delete", role: .destructive) {
+        .confirmationDialog(lang.t(.deleteTaskQuestion), isPresented: $showDeleteConfirm, titleVisibility: .visible) {
+            Button(lang.t(.deleteTask), role: .destructive) {
                 if let task = taskPendingDelete { store.deleteTask(goalID: goalID, taskID: task.id) }
                 taskPendingDelete = nil
             }
-            Button("Cancel", role: .cancel) { taskPendingDelete = nil }
+            Button(lang.t(.cancel), role: .cancel) { taskPendingDelete = nil }
         }
     }
 
-    // MARK: - Check Winner
+    // MARK: - Planet
+
+    @ViewBuilder
+    private var planetSection: some View {
+        if let goal {
+            PlanetOrbView(
+                size: 140,
+                gradientColors: goal.design.gradientStops.map { $0.swiftUIColor },
+                glow: min(goal.design.glow, 0.15),
+                textureAssetName: goal.design.textureAssetName,
+                textureOpacity: goal.design.textureOpacity
+            )
+            .frame(maxWidth: .infinity)
+        }
+    }
+
+    // MARK: - Progress + tasks card
+
+    private var progressTasksCard: some View {
+        VStack(alignment: .leading, spacing: 12) {
+            cardHeader
+            progressSection
+            tasksList
+        }
+        .padding(18)
+        .frame(maxWidth: .infinity, alignment: .top)
+        .background {
+            RoundedRectangle(cornerRadius: 20, style: .continuous)
+                .fill(.clear)
+                .glassEffect(.clear, in: .rect(cornerRadius: 20))
+        }
+        .overlay {
+            RoundedRectangle(cornerRadius: 20, style: .continuous)
+                .stroke(Color.white.opacity(0.14), lineWidth: 1)
+        }
+    }
+
+    private var cardHeader: some View {
+        VStack(alignment: .leading, spacing: 6) {
+            HStack(alignment: .top, spacing: 10) {
+                Text(goal?.title ?? "")
+                    .font(.title3.bold())
+                    .foregroundColor(.white)
+                    .lineLimit(2)
+                Spacer(minLength: 4)
+                if goal?.isChallenge == true {
+                    Text("⚡️ \(lang.t(.challenge))")
+                        .font(.caption.bold())
+                        .foregroundColor(.yellow)
+                        .padding(.horizontal, 8)
+                        .padding(.vertical, 4)
+                        .background(Capsule().fill(Color.yellow.opacity(0.15)))
+                }
+                GoalFlowAddButton(size: 44) { showAddSheet = true }
+            }
+
+            if let info = goal?.challengeInfo {
+                HStack(spacing: 6) {
+                    Image(systemName: "person.fill")
+                        .font(.caption)
+                        .foregroundColor(.gray)
+                    Text("vs \(info.opponentName)")
+                        .font(.caption)
+                        .foregroundColor(.gray)
+                }
+            }
+        }
+    }
+
+    private var progressSection: some View {
+        VStack(alignment: .leading, spacing: 8) {
+            VStack(alignment: .leading, spacing: 2) {
+                Text(progressSummary(for: goal))
+                    .font(.subheadline)
+                    .foregroundColor(.white.opacity(0.75))
+                if let goal, let settings = goal.settings, settings.goalType == .reachTarget, !settings.isMilestoneMode {
+                    Text(goalTotalSubtitle(settings: settings))
+                        .font(.caption2)
+                        .foregroundColor(.white.opacity(0.4))
+                }
+            }
+            .frame(maxWidth: .infinity, alignment: .leading)
+
+            if let goal, goal.isChallenge, let info = goal.challengeInfo {
+                GoalChallengeProgressBars(
+                    myProgress: goal.progress,
+                    friendProgress: info.friendProgress,
+                    friendName: info.opponentName
+                )
+            } else {
+                GoalProgressBar(progress: goal?.progress ?? 0)
+            }
+        }
+        .padding(.bottom, 4)
+    }
+
+    private var sortedTasks: [GoalTask] {
+        goal?.tasks.sorted { $0.scheduledDate < $1.scheduledDate } ?? []
+    }
+
+    private var visibleTasks: [GoalTask] {
+        let all = sortedTasks
+        if showAllTasks || all.count <= tasksPreviewLimit { return all }
+        return Array(all.prefix(tasksPreviewLimit))
+    }
+
+    private var tasksList: some View {
+        VStack(spacing: 10) {
+            if !sortedTasks.isEmpty {
+                ForEach(visibleTasks) { task in
+                    TaskTrackRow(task: task, goal: goal, lang: lang)
+                        .contextMenu {
+                            Button(role: .destructive) {
+                                taskPendingDelete = task
+                                showDeleteConfirm = true
+                            } label: { Label(lang.t(.deleteTask), systemImage: "trash") }
+                        }
+                }
+
+                if sortedTasks.count > tasksPreviewLimit {
+                    Button {
+                        withAnimation(.easeInOut(duration: 0.2)) { showAllTasks.toggle() }
+                    } label: {
+                        Text(showAllTasks ? lang.t(.showLess) : lang.t(.readMore))
+                            .font(.subheadline.weight(.semibold))
+                            .foregroundColor(.cyan)
+                            .frame(maxWidth: .infinity)
+                            .padding(.vertical, 8)
+                    }
+                    .buttonStyle(.plain)
+                }
+            } else {
+                VStack(spacing: 8) {
+                    Image(systemName: "tray")
+                        .font(.system(size: 32))
+                        .foregroundColor(.white.opacity(0.3))
+                    Text(lang.t(.noTasksYet))
+                        .foregroundColor(.white.opacity(0.4))
+                        .font(.subheadline)
+                        .multilineTextAlignment(.center)
+                }
+                .frame(maxWidth: .infinity)
+                .padding(.top, 24)
+            }
+        }
+    }
+
+    private func goalTotalSubtitle(settings: GoalSettings) -> String {
+        let u = settings.unit.isEmpty ? "" : " \(settings.unit)"
+        switch lang.language {
+        case .english:
+            return "Goal: \(settings.targetNumber)\(u) total"
+        case .arabic:
+            return "الهدف: \(settings.targetNumber)\(u) إجمالي"
+        }
+    }
+
+    private func progressSummary(for goal: OrbGoal?) -> String {
+        guard let goal else { return "0 / 0 tasks" }
+        if let settings = goal.settings, settings.goalType == .reachTarget, !settings.isMilestoneMode {
+            let unit = settings.unit.isEmpty ? "" : " \(settings.unit)"
+            return "\(goal.completedUnits) / \(goal.targetUnits)\(unit)"
+        }
+        return lang.tasksProgressSummary(done: goal.doneTasks, total: goal.totalTasks)
+    }
+
     private func checkWinner() {
         guard var goal = store.goal(with: goalID),
               goal.isChallenge,
               goal.challengeInfo?.winnerID == nil else { return }
 
-        // اذا وصلت 100% أنت الفائز
         if goal.progress >= 1.0 {
             goal.challengeInfo?.winnerID = "me"
             goal.challengeInfo?.isWinner = true
             store.updateGoal(goal)
-        }
-    }
-}
-
-// MARK: - Dual Progress Ring
-struct DualProgressRing: View {
-    var myProgress:     Double
-    var friendProgress: Double
-    var friendName:     String
-
-    var body: some View {
-        ZStack {
-            // الخلفية
-            Circle().stroke(.white.opacity(0.08), style: StrokeStyle(lineWidth: 10, lineCap: .round))
-                .frame(width: 310, height: 310)
-            Circle().stroke(.white.opacity(0.08), style: StrokeStyle(lineWidth: 10, lineCap: .round))
-                .frame(width: 280, height: 280)
-
-            // Progress الصديق - الخط الخارجي (برتقالي)
-            Circle()
-                .trim(from: 0, to: max(0, min(friendProgress, 1)))
-                .stroke(Color.orange, style: StrokeStyle(lineWidth: 10, lineCap: .round))
-                .frame(width: 310, height: 310)
-                .rotationEffect(.degrees(-90))
-                .animation(.easeInOut(duration: 0.4), value: friendProgress)
-
-            // Progress أنا - الخط الداخلي (سيان)
-            Circle()
-                .trim(from: 0, to: max(0, min(myProgress, 1)))
-                .stroke(Color.cyan, style: StrokeStyle(lineWidth: 10, lineCap: .round))
-                .frame(width: 280, height: 280)
-                .rotationEffect(.degrees(-90))
-                .animation(.easeInOut(duration: 0.4), value: myProgress)
-        }
-        .overlay(alignment: .bottom) {
-            // Legend
-            HStack(spacing: 16) {
-                HStack(spacing: 4) {
-                    Circle().fill(Color.cyan).frame(width: 8, height: 8)
-                    Text("You").font(.caption2).foregroundColor(.white.opacity(0.8))
-                }
-                HStack(spacing: 4) {
-                    Circle().fill(Color.orange).frame(width: 8, height: 8)
-                    Text(friendName).font(.caption2).foregroundColor(.white.opacity(0.8))
-                }
-            }
-            .padding(6)
-            .background(Capsule().fill(.black.opacity(0.4)))
-            .offset(y: 20)
         }
     }
 }
@@ -282,26 +285,74 @@ struct WinnerBanner: View {
     }
 }
 
-// MARK: - TaskCheckRow
-struct TaskCheckRow: View {
-    let task:     GoalTask
-    let onToggle: () -> Void
+// MARK: - TaskTrackRow (read-only; check off tasks on Today / calendar only)
+struct TaskTrackRow: View {
+    let task: GoalTask
+    let goal: OrbGoal?
+    let lang: LanguageManager
+
+    private var statusTitle: String {
+        if let goal, let partial = GoalTaskDisplay.partialProgressLine(for: task, in: goal), task.completedAmount > 0 {
+            return partial
+        }
+        return goal.map { GoalTaskDisplay.label(for: task, in: $0, lang: lang) } ?? task.title
+    }
+
+    private var trailingStatus: String? {
+        if task.targetAmount > 1 {
+            return "\(task.completedAmount)/\(task.targetAmount)"
+        }
+        if task.isDone || task.isFullyComplete {
+            return lang.language == .arabic ? "تم" : "Done"
+        }
+        return nil
+    }
 
     var body: some View {
-        HStack(alignment: .top, spacing: 12) {
+        HStack(alignment: .center, spacing: 12) {
             Text("•").font(.title3).foregroundStyle(.white.opacity(0.9))
-            Text(task.title)
+            Text(statusTitle)
                 .foregroundStyle(.white)
-                .opacity(task.isDone ? 0.4 : 0.92)
-                .strikethrough(task.isDone, color: .white.opacity(0.4))
-                .animation(.easeInOut(duration: 0.2), value: task.isDone)
+                .opacity(task.isFullyComplete ? 0.45 : 0.92)
+                .strikethrough(task.isFullyComplete, color: .white.opacity(0.35))
             Spacer()
-//            Image(systemName: task.isDone ? "checkmark.circle.fill" : "circle")
-//                .foregroundColor(task.isDone ? .blue : .gray)
-//                .font(.system(size: 26))
-//                .onTapGesture { onToggle() }
-//                .animation(.easeInOut(duration: 0.2), value: task.isDone)
+            if let trailingStatus {
+                Text(trailingStatus)
+                    .font(.caption.weight(.semibold))
+                    .foregroundColor(task.isFullyComplete ? .cyan.opacity(0.7) : .white.opacity(0.45))
+            }
         }
-        .padding(.vertical, 4)
+        .padding(.vertical, 6)
+    }
+}
+
+// MARK: - TaskAmountStepper
+struct TaskAmountStepper: View {
+    let completed: Int
+    let target:    Int
+    let onMinus:   () -> Void
+    let onPlus:    () -> Void
+
+    var body: some View {
+        HStack(spacing: 8) {
+            stepButton(systemName: "minus", enabled: completed > 0, action: onMinus)
+            Text("\(completed)/\(target)")
+                .font(.caption.monospacedDigit().weight(.semibold))
+                .foregroundColor(.white.opacity(0.9))
+                .frame(minWidth: 36)
+            stepButton(systemName: "plus", enabled: completed < target, action: onPlus)
+        }
+    }
+
+    private func stepButton(systemName: String, enabled: Bool, action: @escaping () -> Void) -> some View {
+        Button(action: action) {
+            Image(systemName: systemName)
+                .font(.system(size: 14, weight: .bold))
+                .foregroundColor(enabled ? .white : .white.opacity(0.25))
+                .frame(width: 28, height: 28)
+                .background(Circle().fill(.white.opacity(enabled ? 0.12 : 0.05)))
+        }
+        .disabled(!enabled)
+        .buttonStyle(.plain)
     }
 }

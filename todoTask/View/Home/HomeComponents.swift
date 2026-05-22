@@ -37,31 +37,26 @@ struct CheckBoxView: View {
     }
 }
 
-// ✅ شيلت .suggested من الـ enum
-private enum CreationStep: Hashable {
-    case write
-    case loading(shape: GoalShape, text: String)
-    case manual(typePrefill: GoalType?)
-    case design
-}
 
 // MARK: - today
 struct today: View {
     @EnvironmentObject private var store: OrbGoalStore
+    @EnvironmentObject private var lang: LanguageManager
     @StateObject private var viewModel = HomeViewModel()
     @StateObject private var calVM     = MiniCalendarViewModel()
     @StateObject private var energyVM  = DailyEnergyViewModel()
     @State private var draftTitle:     String        = ""
     @State private var chosenType:     GoalType?     = nil
     @State private var chosenSettings: GoalSettings? = nil
-    @State private var path:           [CreationStep] = []
+    @State private var path:           [GoalCreationStep] = []
     @State private var selectedEnergyID: String? = nil
 
     private var selectedDate: Date { calVM.selectedDate }
 
     var todayItems: [TodayItem] {
-        store.todayTasks(for: selectedDate).map {
-            TodayItem(goal: $0.goal, task: $0.task)
+        let energy = energyVM.energy(for: selectedDate)
+        return store.todayTasks(for: selectedDate, energy: energy).map {
+            TodayItem(goal: $0.goal, task: $0.task, isLate: $0.isLate)
         }
     }
 
@@ -125,7 +120,7 @@ struct today: View {
                                             .font(.system(size: 14, weight: .medium))
                                             .foregroundColor(.white.opacity(0.9))
                                             .padding(.leading, 6)
-                                        Text("Today")
+                                        Text(lang.t(.todayShortcut))
                                             .font(.system(size: 17, weight: .medium))
                                     }
                                 }
@@ -136,23 +131,7 @@ struct today: View {
                             .padding(.horizontal, 20)
                             .padding(.bottom, 5)
 
-                            HStack(spacing: 4) {
-                                Button { calVM.moveWeek(by: -1) } label: {
-                                    Image(systemName: "chevron.left")
-                                        .font(.system(size: 14, weight: .medium))
-                                        .foregroundColor(.white.opacity(0.9))
-                                }
-                                ForEach(calVM.visibleWeek, id: \.self) { date in
-                                    DayView(date: date, selectedDate: calVM.selectedDate, today: calVM.today)
-                                        .frame(maxWidth: .infinity)
-                                        .onTapGesture { calVM.selectedDate = date }
-                                }
-                                Button { calVM.moveWeek(by: 1) } label: {
-                                    Image(systemName: "chevron.right")
-                                        .font(.system(size: 14, weight: .medium))
-                                        .foregroundColor(.white.opacity(0.9))
-                                }
-                            }
+                            CalendarWeekRow(calVM: calVM)
                             .padding(.horizontal)
                         }
                     }
@@ -160,7 +139,7 @@ struct today: View {
                     .padding(.bottom, 12)
 
                     HStack {
-                        Text("Today's Tasks")
+                        Text(lang.t(.todaysTasks))
                             .foregroundColor(.primary).font(.title).bold().padding(.leading, 20)
                         Spacer()
                         let done  = todayItems.filter { $0.task.isDone }.count
@@ -179,9 +158,9 @@ struct today: View {
                         if todayItems.isEmpty {
                             VStack(spacing: 10) {
                                 Image(systemName: "moon.stars").font(.system(size: 36)).foregroundColor(.white.opacity(0.3))
-                                Text("No tasks scheduled for this day")
+                                Text(lang.t(.noTasksToday))
                                     .foregroundColor(.white.opacity(0.5)).font(.subheadline)
-                                Text("Add a goal or pick another day")
+                                Text(lang.t(.addGoalHint))
                                     .foregroundColor(.white.opacity(0.3)).font(.caption)
                             }
                             .frame(maxWidth: .infinity)
@@ -190,11 +169,19 @@ struct today: View {
                             ScrollView {
                                 VStack(alignment: .center, spacing: 8) {
                                     ForEach(todayItems) { item in
+                                        let lines = item.goal.todayTaskLines(for: item.task, lang: lang)
                                         TodayTaskRow(
                                             task: item.task,
-                                            goalName: item.goal.title
-                                        ) {
-                                            store.toggleTodayTask(goalID: item.goal.id, taskID: item.task.id)
+                                            goal: item.goal,
+                                            primaryText: lines.primary,
+                                            secondaryText: lines.secondary,
+                                            isLate: item.isLate
+                                        ) { newAmount in
+                                            if let newAmount {
+                                                store.setTaskCompletedAmount(goalID: item.goal.id, taskID: item.task.id, amount: newAmount)
+                                            } else {
+                                                store.toggleTodayTask(goalID: item.goal.id, taskID: item.task.id)
+                                            }
                                         }
                                     }
                                 }
@@ -214,8 +201,11 @@ struct today: View {
             }
             .toolbar {
                 ToolbarItem(placement: .navigationBarTrailing) {
-                    Button { startCreation() } label: { Image(systemName: "plus") }
-                        .foregroundStyle(.white)
+                    Button(action: startCreation) {
+                        Image(systemName: "plus")
+                            .font(.title2.weight(.semibold))
+                            .foregroundStyle(.white)
+                    }
                 }
             }
             .colorScheme(.dark)
@@ -223,39 +213,41 @@ struct today: View {
                 LoginTracker.recordTodayOpened()
                 energyVM.refreshToday()
                 if let entry = energyVM.todayEntry {
-                    selectedEnergyID = Energytoday.defaults.first(where: { $0.title == entry.title })?.id.uuidString
+                    selectedEnergyID = lang.energyLevels().first(where: { $0.value == entry.value })?.id.uuidString
                 }
             }
-            .navigationDestination(for: CreationStep.self) { step in
+            .navigationDestination(for: GoalCreationStep.self) { step in
                 switch step {
 
                 case .write:
-                    WriteGoalView(onDone: { title, suggestion in
-                        draftTitle = title
-                        if let shape = suggestion {
-                            path.append(.loading(shape: shape, text: title))
-                        } else {
-                            path.append(.manual(typePrefill: nil))
-                        }
-                    }, onCancel: { _ = path.popLast() })
-                    .navigationBarBackButtonHidden(true)
+                    WriteGoalView(
+                        onDone: { title, suggestion in
+                            draftTitle = title
+                            path.append(.suggested(text: title, type: suggestion))
+                        },
+                        onSkipToManual: {
+                            draftTitle = ""
+                            path.append(.configure(type: nil, draftText: "", openSettings: false))
+                        },
+                        onCancel: { _ = path.popLast() }
+                    )
 
-                case let .loading(shape: shape, text: text):
-                    // Show a lightweight loading view, then advance automatically
-                    ProgressView()
-                        .progressViewStyle(.circular)
-                        .onAppear {
-                            // Directly proceed to manual without suggested
-                            // If you later add a Loading view, replace this with navigation to it
-                            DispatchQueue.main.async {
-                                path.append(.manual(typePrefill: nil))
-                            }
-                        }
+                case let .suggested(text, type):
+                    SuggestedGoalView(
+                        goalText: text,
+                        suggestedType: type,
+                        onContinue: { chosen in
+                            chosenType = chosen
+                            path.append(.configure(type: chosen, draftText: draftTitle, openSettings: true))
+                        },
+                        onBack: { _ = path.popLast() }
+                    )
 
-                case let .manual(typePrefill):
+                case let .configure(type, draftText, openSettings):
                     GoalShapeView(
-                        selectedGoal: typePrefill,
-                        showSettings: typePrefill != nil,
+                        selectedGoal: type,
+                        draftText: draftText,
+                        openSettingsDirectly: openSettings,
                         onFinished: { type, settings in
                             chosenType = type
                             chosenSettings = settings
@@ -274,9 +266,10 @@ struct today: View {
                             settings: chosenSettings
                         )
                         if let settings = chosenSettings {
-                            newGoal.tasks = OrbGoalStore.TaskGenerator.generate(
-                                from: settings, goalID: newGoal.id,
-                                goalTitle: newGoal.title, scheduledDate: Date()
+                            newGoal.tasks = TaskGenerator.generate(
+                                from: settings,
+                                goalID: newGoal.id,
+                                goalTitle: newGoal.title
                             )
                         }
                         store.add(newGoal)
@@ -301,36 +294,61 @@ struct today: View {
 
 // MARK: - TodayTaskRow
 struct TodayTaskRow: View {
-    let task:     GoalTask
-    let goalName: String
-    let onToggle: () -> Void
+    @EnvironmentObject private var lang: LanguageManager
+    let task:            GoalTask
+    let goal:            OrbGoal
+    let primaryText:     String
+    let secondaryText:   String
+    var isLate:          Bool = false
+    let onChange:        (Int?) -> Void
+
+    private var showsStepper: Bool { task.targetAmount > 1 }
 
     var body: some View {
         ZStack {
             RoundedRectangle(cornerRadius: 20)
                 .frame(maxWidth: .infinity)
-                .frame(height: 68)
+                .frame(height: showsStepper ? 72 : 68)
                 .foregroundColor(.clear)
                 .glassEffect(.clear, in: .rect(cornerRadius: 20))
 
             HStack {
                 VStack(alignment: .leading, spacing: 4) {
-                    Text(task.title)
-                        .foregroundColor(.white)
-                        .font(.system(size: 14, weight: .medium))
-                        .strikethrough(task.isDone, color: .white.opacity(0.5))
-                        .opacity(task.isDone ? 0.5 : 1)
-                        .lineLimit(2)
-                    Text(goalName)
-                        .font(.caption)
-                        .foregroundColor(.white.opacity(0.5))
+                    HStack(spacing: 6) {
+                        Text(primaryText)
+                            .foregroundColor(.white)
+                            .font(.system(size: 14, weight: .medium))
+                            .strikethrough(task.isFullyComplete, color: .white.opacity(0.5))
+                            .opacity(task.isFullyComplete ? 0.5 : 1)
+                            .lineLimit(2)
+                        if isLate && !task.isFullyComplete {
+                            Text(lang.t(.late))
+                                .font(.caption.bold())
+                                .foregroundColor(.red)
+                        }
+                    }
+                    if !secondaryText.isEmpty {
+                        Text(secondaryText)
+                            .font(.caption)
+                            .foregroundColor(.white.opacity(0.5))
+                            .lineLimit(1)
+                    }
                 }
                 Spacer()
-                Image(systemName: task.isDone ? "checkmark.circle.fill" : "circle")
-                    .foregroundColor(task.isDone ? .blue : .gray)
-                    .font(.system(size: 28))
-                    .onTapGesture { onToggle() }
-                    .animation(.easeInOut(duration: 0.2), value: task.isDone)
+                if showsStepper {
+                    TaskAmountStepper(
+                        completed: task.completedAmount,
+                        target: task.targetAmount,
+                        onMinus: { onChange(max(0, task.completedAmount - 1)) },
+                        onPlus:  { onChange(min(task.targetAmount, task.completedAmount + 1)) }
+                    )
+                } else {
+                    Image(systemName: task.isDone ? "checkmark.circle.fill" : "circle")
+                        .foregroundColor(task.isDone ? .blue : .gray)
+                        .font(.system(size: 28))
+                        .onTapGesture { onChange(nil) }
+                        .animation(.easeInOut(duration: 0.2), value: task.isDone)
+                }
             }
             .padding(.horizontal, 30)
         }
@@ -340,6 +358,7 @@ struct TodayTaskRow: View {
 
 // MARK: - EnergyPromptOverlay
 struct EnergyPromptOverlay: View {
+    @EnvironmentObject private var lang: LanguageManager
     @ObservedObject var energyVM: DailyEnergyViewModel
     @Binding var selectedEnergyID: String?
 
@@ -347,9 +366,9 @@ struct EnergyPromptOverlay: View {
         ZStack {
             Color.black.opacity(0.6).ignoresSafeArea()
             VStack(spacing: 10) {
-                Text("What's your energy level today?").bold().foregroundColor(.white)
+                Text(lang.t(.energyPrompt)).bold().foregroundColor(.white)
                 HStack {
-                    ForEach(Energytoday.defaults) { level in
+                    ForEach(lang.energyLevels()) { level in
                         Button {
                             Task {
                                 await energyVM.setEnergyForToday(level)
@@ -372,10 +391,15 @@ struct EnergyPromptOverlay: View {
                 }
                 .padding(.horizontal)
                 if let sid = selectedEnergyID,
-                   let sel = Energytoday.defaults.first(where: { $0.id.uuidString == sid }) {
-                    Text("Selected: \(sel.title)").font(.caption).foregroundColor(.white.opacity(0.9))
+                   let sel = lang.energyLevels().first(where: { $0.id.uuidString == sid }) {
+                    Text(String(format: lang.t(.energySelectedFormat), sel.title))
+                        .font(.caption)
+                        .foregroundColor(.white.opacity(0.9))
                 } else {
-                    Text("you can change it later in settings").font(.caption).foregroundColor(.white).padding(.top)
+                    Text(lang.t(.energyChangeLater))
+                        .font(.caption)
+                        .foregroundColor(.white)
+                        .padding(.top)
                 }
             }
             .padding(30)
@@ -390,17 +414,11 @@ struct EnergyPromptOverlay: View {
 // MARK: - Settings
 struct Settings: View {
     @EnvironmentObject private var userVM: UserViewModel
+    @EnvironmentObject private var store: OrbGoalStore
+    @EnvironmentObject private var lang: LanguageManager
     @State private var showGuestLogoutAlert: Bool = false
     @State private var showDeleteConfirmation: Bool = false
-
-    private var displayName: String {
-        if let name = userVM.currentUser?.username, !name.isEmpty { return name }
-        return "Guest"
-    }
-    private var displayID: String {
-        if let id = userVM.currentUser?.id, !id.isEmpty { return String(id.prefix(8)) + "..." }
-        return "N/A"
-    }
+    @State private var showClearGoalsConfirm: Bool = false
 
     var body: some View {
         ZStack {
@@ -416,90 +434,200 @@ struct Settings: View {
                 .ignoresSafeArea()
 
             ScrollView {
-                VStack(alignment: .leading, spacing: 4) {
-                    Text(displayName)
-                        .font(.system(size: 28, weight: .bold))
-                        .foregroundColor(.primary)
+                VStack(alignment: .leading, spacing: 16) {
+                    Text(lang.t(.settingsTitle))
+                        .font(.system(size: 32, weight: .bold))
+                        .foregroundColor(.white)
                         .padding(.horizontal, 20)
-                        .padding(.top, 20)
-                    Text("ID: \(displayID)")
-                        .font(.caption)
-                        .foregroundColor(.white.opacity(0.7))
+                        .padding(.top, 12)
+
+                    // معلّق مؤقتاً — لا تحذف
+                    // Text(displayName) ...
+                    // Text("\(lang.t(.guestIDLabel)) \(displayID)") ...
+
+                    Text(lang.t(.appManagement))
+                        .font(.subheadline.weight(.semibold))
+                        .foregroundColor(.white.opacity(0.6))
                         .padding(.horizontal, 20)
-                        .padding(.bottom, 8)
 
-                    Text("App Management").padding(.leading, 20)
+                    settingsCard {
+                        SettingsRow(icon: "globe", title: lang.t(.language), subtitle: lang.t(.languageHint)) {
+                            Picker("", selection: $lang.language) {
+                                ForEach(AppLanguage.allCases) { option in
+                                    Text(option.displayName).tag(option)
+                                }
+                            }
+                            .pickerStyle(.menu)
+                            .tint(.cyan)
+                        }
 
-                    VStack(alignment: .leading, spacing: 10) {
-                        Button(action: {
+                        settingsDivider
+
+                        SettingsRow(icon: "bell.badge", title: lang.t(.notification)) {
+                            Image(systemName: "chevron.right")
+                                .font(.caption.weight(.semibold))
+                                .foregroundColor(.white.opacity(0.35))
+                        }
+                        .onTapGesture {
                             if let url = URL(string: UIApplication.openSettingsURLString) {
                                 UIApplication.shared.open(url)
                             }
-                        }) {
-                            HStack { Text("Notification").foregroundColor(.white) }.padding(.vertical, 12)
                         }
-                        Divider().background(Color.white.opacity(0.3))
-                        NavigationLink(destination: Report()) {
-                            HStack { Text("Progress Report").foregroundColor(.white) }.padding(.vertical, 12)
+
+                        settingsDivider
+
+                        NavigationLink(destination: Report().orbitForcedDark()) {
+                            SettingsRow(icon: "chart.bar.fill", title: lang.t(.progressReport)) {
+                                Image(systemName: "chevron.right")
+                                    .font(.caption.weight(.semibold))
+                                    .foregroundColor(.white.opacity(0.35))
+                            }
                         }
-                        Divider().background(Color.white.opacity(0.3))
-                        NavigationLink(destination: Energy()) {
-                            HStack { Text("Energy Settings").foregroundColor(.white) }.padding(.vertical, 12)
+                        .buttonStyle(.plain)
+
+                        settingsDivider
+
+                        NavigationLink(destination: Energy().orbitForcedDark()) {
+                            SettingsRow(icon: "bolt.heart.fill", title: lang.t(.energySettings)) {
+                                Image(systemName: "chevron.right")
+                                    .font(.caption.weight(.semibold))
+                                    .foregroundColor(.white.opacity(0.35))
+                            }
                         }
+                        .buttonStyle(.plain)
                     }
-                    .padding(.horizontal, 20)
-                    .padding(.vertical, 10)
-                    .frame(maxWidth: .infinity)
-                    .glassEffect(.clear, in: .rect(cornerRadius: 30))
-                    .padding(.horizontal, 16)
 
-                    Text("Account Management").padding(.leading, 20).padding(.top, 20)
+                    Text(lang.t(.accountManagement))
+                        .font(.subheadline.weight(.semibold))
+                        .foregroundColor(.white.opacity(0.6))
+                        .padding(.horizontal, 20)
+                        .padding(.top, 4)
 
-                    VStack(alignment: .leading, spacing: 10) {
-                        Button(action: { print("Clear Goals") }) {
-                            HStack { Text("Clear Goals").foregroundColor(Color(.lightRed)) }.padding(.vertical, 12)
+                    settingsCard {
+                        SettingsRow(icon: "target", title: lang.t(.clearGoals), tint: Color(.lightRed)) {
+                            EmptyView()
                         }
-                        Divider().background(Color.white.opacity(0.3))
-                        Button(action: {
+                        .onTapGesture { showClearGoalsConfirm = true }
+
+                        settingsDivider
+
+                        SettingsRow(icon: "rectangle.portrait.and.arrow.right", title: lang.t(.logOut), tint: Color(.lightRed)) {
+                            EmptyView()
+                        }
+                        .onTapGesture {
                             if userVM.currentUser?.authMode == .guest { showGuestLogoutAlert = true }
                             else { userVM.clearLocalUser() }
-                        }) {
-                            HStack { Text("Log Out").foregroundColor(Color(.lightRed)) }.padding(.vertical, 12)
                         }
-                        Divider().background(Color.white.opacity(0.3))
-                        Button(action: { showDeleteConfirmation = true }) {
-                            HStack {
-                                Image(systemName: "trash")
-                                Text("Delete Account")
-                            }
-                            .foregroundColor(Color(.lightRed))
-                            .padding(.vertical, 12)
+
+                        settingsDivider
+
+                        SettingsRow(icon: "trash", title: lang.t(.deleteAccount), tint: Color(.lightRed)) {
+                            EmptyView()
                         }
+                        .onTapGesture { showDeleteConfirmation = true }
                     }
-                    .padding(.horizontal, 20)
-                    .padding(.vertical, 10)
-                    .frame(maxWidth: .infinity)
-                    .glassEffect(.clear, in: .rect(cornerRadius: 30))
-                    .padding(.horizontal, 16)
-                    .colorScheme(.dark)
                 }
+                .padding(.bottom, 24)
             }
         }
-        .confirmationDialog("Delete Account?", isPresented: $showDeleteConfirmation, titleVisibility: .visible) {
-            Button("Delete Permanently", role: .destructive) {
+        .confirmationDialog(lang.t(.deleteAccountQuestion), isPresented: $showDeleteConfirmation, titleVisibility: .visible) {
+            Button(lang.t(.deletePermanently), role: .destructive) {
                 Task { await userVM.deleteAccount() }
             }
-            Button("Cancel", role: .cancel) {}
+            Button(lang.t(.cancel), role: .cancel) {}
         } message: {
-            Text("This will permanently delete your account and all your goals. This cannot be undone.")
+            Text(lang.t(.deleteAccountMessage))
         }
-        .alert("Log Out?", isPresented: $showGuestLogoutAlert) {
-            Button("Cancel", role: .cancel) {}
-            Button("Log Out", role: .destructive) { userVM.clearLocalUser() }
+        .confirmationDialog(lang.t(.clearGoalsQuestion), isPresented: $showClearGoalsConfirm, titleVisibility: .visible) {
+            Button(lang.t(.clearGoals), role: .destructive) { store.clearAll() }
+            Button(lang.t(.cancel), role: .cancel) {}
         } message: {
-            Text("You are continuing as a guest. Logging out will erase all local data.")
+            Text(lang.t(.clearGoalsMessage))
         }
-        .colorScheme(.dark)
+        .alert(lang.t(.logOutQuestion), isPresented: $showGuestLogoutAlert) {
+            Button(lang.t(.cancel), role: .cancel) {}
+            Button(lang.t(.logOut), role: .destructive) { userVM.clearLocalUser() }
+        } message: {
+            Text(lang.t(.guestLogoutMessage))
+        }
+        .orbitForcedDark()
+    }
+
+    private var settingsDivider: some View {
+        Divider().background(Color.white.opacity(0.22))
+    }
+
+    @ViewBuilder
+    private func settingsCard<Content: View>(@ViewBuilder content: () -> Content) -> some View {
+        VStack(alignment: .leading, spacing: 0) {
+            content()
+        }
+        .padding(.horizontal, 18)
+        .padding(.vertical, 6)
+        .frame(maxWidth: .infinity)
+        .glassEffect(.clear, in: .rect(cornerRadius: 24))
+        .padding(.horizontal, 16)
+    }
+}
+
+struct SettingsRow<Trailing: View>: View {
+    let icon: String
+    let title: String
+    var subtitle: String? = nil
+    var tint: Color = .white
+    @ViewBuilder var trailing: () -> Trailing
+
+    var body: some View {
+        HStack(spacing: 14) {
+            Image(systemName: icon)
+                .font(.system(size: 18, weight: .semibold))
+                .foregroundColor(tint.opacity(0.9))
+                .frame(width: 28)
+            VStack(alignment: .leading, spacing: 3) {
+                Text(title)
+                    .font(.system(size: 16, weight: .medium))
+                    .foregroundColor(tint)
+                if let subtitle {
+                    Text(subtitle)
+                        .font(.caption)
+                        .foregroundColor(.white.opacity(0.45))
+                        .lineLimit(2)
+                }
+            }
+            Spacer(minLength: 8)
+            trailing()
+        }
+        .padding(.vertical, 12)
+        .contentShape(Rectangle())
+    }
+}
+
+// MARK: - Calendar week row (arrow direction fixed for RTL)
+
+struct CalendarWeekRow: View {
+    @ObservedObject var calVM: MiniCalendarViewModel
+    @EnvironmentObject private var lang: LanguageManager
+
+    var body: some View {
+        HStack(spacing: 4) {
+            Button { calVM.moveWeek(by: -1) } label: {
+                Image(systemName: "chevron.left")
+                    .font(.system(size: 14, weight: .medium))
+                    .foregroundColor(.white.opacity(0.9))
+            }
+            ForEach(calVM.visibleWeek, id: \.self) { date in
+                DayView(date: date, selectedDate: calVM.selectedDate, today: calVM.today)
+                    .frame(maxWidth: .infinity)
+                    .onTapGesture { calVM.selectedDate = date }
+            }
+            Button { calVM.moveWeek(by: 1) } label: {
+                Image(systemName: "chevron.right")
+                    .font(.system(size: 14, weight: .medium))
+                    .foregroundColor(.white.opacity(0.9))
+            }
+        }
+        .padding(.horizontal)
+        .environment(\.layoutDirection, .leftToRight)
     }
 }
 
@@ -513,9 +641,16 @@ struct DayView: View {
     var isSelected: Bool { calendar.isDate(date, inSameDayAs: selectedDate) }
     var isToday:    Bool { calendar.isDate(date, inSameDayAs: today) }
 
+    private var weekdayEN: String {
+        let f = DateFormatter()
+        f.locale = Locale(identifier: "en_US_POSIX")
+        f.dateFormat = "EEE"
+        return f.string(from: date)
+    }
+
     var body: some View {
         VStack(spacing: 4) {
-            Text(date, format: .dateTime.weekday(.abbreviated)).font(.caption)
+            Text(weekdayEN).font(.caption)
             Text(date, format: .dateTime.day()).font(.headline)
         }
         .frame(height: 56)

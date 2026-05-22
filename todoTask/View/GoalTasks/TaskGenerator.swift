@@ -5,8 +5,37 @@
 
 import Foundation
 
+extension GoalSettings {
+    /// User-chosen deadline, or a short horizon when none was picked (avoids 100+ auto sessions).
+    func scheduleEnd(calendar: Calendar = .current) -> Date {
+        if let deadline {
+            return calendar.startOfDay(for: deadline)
+        }
+        return calendar.date(byAdding: .day, value: 28, to: calendar.startOfDay(for: Date()))!
+    }
+
+    /// Max sessions to generate when the user did not set a deadline.
+    var sessionCapWithoutDeadline: Int {
+        max(1, min(targetNumber, 30))
+    }
+}
+
 struct TaskGenerator {
-    
+
+    private static func unitSuffix(_ unit: String) -> String {
+        let u = unit.trimmingCharacters(in: .whitespaces)
+        return u.isEmpty ? "" : " \(u)"
+    }
+
+    private static func incrementLabel(amount: Int, unit: String) -> String {
+        "+\(max(1, amount))\(unitSuffix(unit))"
+    }
+
+    private static func stepLabel(index: Int, total: Int, prefix: String, unit: String = "") -> String {
+        let u = unitSuffix(unit)
+        return "\(prefix) \(index + 1) of \(total)\(u)"
+    }
+
     static func generate(
         from settings: GoalSettings,
         goalID: UUID,
@@ -42,7 +71,7 @@ struct TaskGenerator {
         let unit = settings.unit.isEmpty ? "units" : settings.unit
         let calendar = Calendar.current
         let today = calendar.startOfDay(for: Date())
-        let deadline = calendar.startOfDay(for: settings.deadline)
+        let deadline = settings.scheduleEnd(calendar: calendar)
         let selectedDays = settings.selectedDays
         var validExecutionDates: [Date] = []
         var currentDate = today
@@ -54,86 +83,90 @@ struct TaskGenerator {
             currentDate = calendar.date(byAdding: .day, value: 1, to: currentDate)!
         }
         let executionDaysCount = max(1, validExecutionDates.count)
-        var tasks: [GoalTask] = []
-        for (index, date) in validExecutionDates.enumerated() {
-            let progress = min(target, target * Double(index + 1) / Double(executionDaysCount))
-            tasks.append(GoalTask(
+        let perStep = max(1, Int(ceil(target / Double(executionDaysCount))))
+        return validExecutionDates.map { date in
+            GoalTask(
                 goalID: goalID,
-                title: "\(title) | \(Int(progress))/\(Int(target)) \(unit)",
-                scheduledDate: date
-            ))
+                title: incrementLabel(amount: perStep, unit: unit),
+                scheduledDate: date,
+                targetAmount: perStep,
+                completedAmount: 0
+            )
         }
-        return tasks
     }
 
     // MARK: - Repeat on Schedule
     private static func generateRepeatSchedule(settings: GoalSettings, goalID: UUID, title: String, factor: Double) -> [GoalTask] {
         let calendar = Calendar.current
         let today = calendar.startOfDay(for: Date())
-        let deadline = settings.deadline
+        let deadline = settings.scheduleEnd(calendar: calendar)
         let selectedDays = settings.selectedDays
-        var tasks: [GoalTask] = []
+        let cap = settings.deadline == nil ? settings.sessionCapWithoutDeadline : Int.max
+        var scheduledDates: [Date] = []
         var currentDate = today
-        while currentDate <= deadline {
+        while currentDate <= deadline, scheduledDates.count < cap {
             let weekday = calendar.component(.weekday, from: currentDate)
             if selectedDays.contains(weekday) {
-                let fmt = DateFormatter()
-                fmt.dateFormat = "EEE d MMM"
-                let unit = settings.unit.isEmpty ? "session" : settings.unit
-                tasks.append(GoalTask(
-                    goalID: goalID,
-                    title: "\(title) — \(unit) on \(fmt.string(from: currentDate))",
-                    scheduledDate: currentDate
-                ))
+                scheduledDates.append(currentDate)
             }
             currentDate = calendar.date(byAdding: .day, value: 1, to: currentDate)!
         }
-        return tasks
+        let total = max(1, scheduledDates.count)
+        let unit = settings.unit.isEmpty ? nil : settings.unit
+        return scheduledDates.enumerated().map { index, date in
+            GoalTask(
+                goalID: goalID,
+                title: stepLabel(index: index, total: total, prefix: "Session", unit: settings.unit),
+                scheduledDate: date
+            )
+        }
     }
-    
+
     // MARK: - Build Streak
     private static func generateBuildStreak(settings: GoalSettings, goalID: UUID, title: String, factor: Double) -> [GoalTask] {
         let target = settings.targetNumber
-        let unit = settings.unit.isEmpty ? "day" : settings.unit
+        let unit = settings.unit.isEmpty ? "days" : settings.unit
         let adjTarget = max(3, Int(Double(target) * factor))
         let cal = Calendar.current
         let today = cal.startOfDay(for: Date())
-        var tasks: [GoalTask] = []
-        for i in 0..<adjTarget {
-            guard let date = cal.date(byAdding: .day, value: i, to: today) else { continue }
-            tasks.append(GoalTask(goalID: goalID, title: "\(title) — \(unit) \(i+1)", scheduledDate: date))
+        return (0..<adjTarget).compactMap { i -> GoalTask? in
+            guard let date = cal.date(byAdding: .day, value: i, to: today) else { return nil }
+            return GoalTask(
+                goalID: goalID,
+                title: stepLabel(index: i, total: adjTarget, prefix: "Day", unit: unit),
+                scheduledDate: date
+            )
         }
-        return tasks
     }
-    
+
     // MARK: - Level Up
     private static func generateLevelUp(settings: GoalSettings, goalID: UUID, title: String, factor: Double) -> [GoalTask] {
-        let target = settings.targetNumber
         let paceWeeks = max(1, settings.stepUpPaceWeeks)
-        let unit = settings.unit.isEmpty ? "min" : settings.unit
+        let unit = settings.unit.isEmpty ? nil : settings.unit
         let calendar = Calendar.current
         let today = calendar.startOfDay(for: Date())
-        let deadline = settings.deadline
-        let steps = max(1, calendar.dateComponents([.weekOfYear], from: today, to: deadline).weekOfYear ?? 1)
-        let startAmount = min(steps / paceWeeks, 10)
-        var tasks: [GoalTask] = []
-        for i in 0..<steps {
-            let weekOffset = i * paceWeeks
-            guard let date = calendar.date(byAdding: .weekOfYear, value: weekOffset, to: today) else { continue }
-            tasks.append(GoalTask(
-                goalID: goalID,
-                title: "\(title): \(unit) — Week \(weekOffset + 1)",
-                scheduledDate: date
-            ))
+        let deadline = settings.scheduleEnd(calendar: calendar)
+        var steps = max(1, calendar.dateComponents([.weekOfYear], from: today, to: deadline).weekOfYear ?? 1)
+        if settings.deadline == nil {
+            steps = min(steps, settings.sessionCapWithoutDeadline)
         }
-        return tasks
+        return (0..<steps).compactMap { i -> GoalTask? in
+            let weekOffset = i * paceWeeks
+            guard let date = calendar.date(byAdding: .weekOfYear, value: weekOffset, to: today) else { return nil }
+            let u = settings.unit.isEmpty ? "" : settings.unit
+            return GoalTask(
+                goalID: goalID,
+                title: stepLabel(index: i, total: steps, prefix: "Week", unit: u),
+                scheduledDate: date
+            )
+        }
     }
-    
+
     // MARK: - Milestones
     private static func generateMilestones(settings: GoalSettings, goalID: UUID, title: String, factor: Double) -> [GoalTask] {
         let calendar = Calendar.current
         let today = calendar.startOfDay(for: Date())
-        let deadline = settings.deadline
+        let deadline = settings.scheduleEnd(calendar: calendar)
         let totalDays = max(1, calendar.dateComponents([.day], from: today, to: deadline).day ?? 30)
         let activeDays = settings.selectedDays
         let activeDaysPerWeek = max(1, activeDays.count)
@@ -147,34 +180,33 @@ struct TaskGenerator {
             guard let date = calendar.date(byAdding: .day, value: dayOffset, to: today) else { continue }
             let weekday = calendar.component(.weekday, from: date)
             if !activeDays.contains(weekday) { continue }
-            tasks.append(GoalTask(
-                goalID: goalID,
-                title: "\(title) — Milestone \(i+1)/\(count)",
-                scheduledDate: date
-            ))
+            tasks.append(GoalTask(goalID: goalID, title: "", scheduledDate: date))
         }
-        return tasks
+        let total = max(1, tasks.count)
+        return tasks.enumerated().map { index, task in
+            GoalTask(
+                goalID: task.goalID,
+                title: stepLabel(index: index, total: total, prefix: "Milestone"),
+                scheduledDate: task.scheduledDate
+            )
+        }
     }
 
     // MARK: - Reduce
     private static func generateReduce(settings: GoalSettings, goalID: UUID, title: String, factor: Double) -> [GoalTask] {
         let baseline = settings.baselineNumber
         let target = settings.targetNumber
+        let unit = settings.unit.isEmpty ? nil : settings.unit
         let diff = max(1, baseline - target)
         let steps = min(max(3, diff), 10)
         let stepSize = max(1, diff / steps)
         let today = Calendar.current.startOfDay(for: Date())
-        var tasks: [GoalTask] = []
-        for i in 0..<steps {
-            let current = baseline - (stepSize * i)
+        return (0..<steps).map { i in
+            let current = max(target, baseline - (stepSize * i))
             let date = Calendar.current.date(byAdding: .day, value: i, to: today)!
-            tasks.append(GoalTask(
-                goalID: goalID,
-                title: "Reduce \(title) to \(max(target, current))",
-                scheduledDate: date
-            ))
+            let label = "Stay at \(current)\(unitSuffix(settings.unit)) or less"
+            return GoalTask(goalID: goalID, title: label, scheduledDate: date)
         }
-        return tasks
     }
 }
 

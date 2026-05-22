@@ -2,14 +2,15 @@
 //  Energy.swift
 //  todoTask
 //
-//  Created by Jana Abdulaziz Malibari on 13/02/2026.
-//
 
 import SwiftUI
 
 struct Energy: View {
+    @EnvironmentObject private var lang: LanguageManager
     @StateObject private var energyVM = DailyEnergyViewModel()
     @State private var selectedEnergyID: String? = nil
+
+    private var levels: [Energytoday] { lang.energyLevels() }
 
     var body: some View {
         NavigationStack {
@@ -24,15 +25,14 @@ struct Energy: View {
                 Image("Gliter")
                     .resizable()
                     .ignoresSafeArea()
-                
+
                 VStack(spacing: 20) {
-                    ForEach(Energytoday.defaults) { level in
+                    ForEach(levels) { level in
                         Button {
                             Task {
                                 await energyVM.setEnergyForToday(level)
                                 await MainActor.run {
                                     selectedEnergyID = level.id.uuidString
-                                    print("Selected energy level: \(level.title)")
                                 }
                             }
                         } label: {
@@ -58,21 +58,21 @@ struct Energy: View {
                         .frame(width: 340, height: 160)
                         .glassEffect(.clear.interactive(), in: .rect(cornerRadius: 30))
                     }
-                    
-                    // Selected label
+
                     if let selectedID = selectedEnergyID,
-                       let selected = Energytoday.defaults.first(where: { $0.id.uuidString == selectedID }) {
-                        Text("Selected: \(selected.title)")
+                       let selected = levels.first(where: { $0.id.uuidString == selectedID }) {
+                        Text(String(format: lang.t(.energySelectedFormat), selected.title))
                             .font(.caption)
                             .foregroundColor(.white.opacity(0.9))
                             .padding(.top, 4)
                     } else if let entry = energyVM.todayEntry {
-                        Text("Selected: \(entry.title)")
+                        Text(String(format: lang.t(.energySelectedFormat),
+                                    lang.localizedEnergyTitle(value: entry.value, fallback: entry.title)))
                             .font(.caption)
                             .foregroundColor(.white.opacity(0.9))
                             .padding(.top, 4)
                     } else {
-                        Text("Tap to set your energy for today")
+                        Text(lang.t(.energyPrompt))
                             .font(.caption)
                             .foregroundColor(.white.opacity(0.8))
                             .padding(.top, 4)
@@ -81,13 +81,13 @@ struct Energy: View {
                 .padding(.horizontal)
                 .padding(.bottom, 50)
             }
-            .navigationTitle("Today's Energy")
+            .navigationTitle(lang.t(.energySettings))
         }
         .colorScheme(.dark)
         .onAppear {
             energyVM.refreshToday()
             if let entry = energyVM.todayEntry {
-                selectedEnergyID = Energytoday.defaults.first(where: { $0.title == entry.title })?.id.uuidString
+                selectedEnergyID = levels.first(where: { $0.value == entry.value })?.id.uuidString
             }
         }
     }
@@ -95,4 +95,5 @@ struct Energy: View {
 
 #Preview {
     Energy()
+        .environmentObject(LanguageManager())
 }

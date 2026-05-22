@@ -34,9 +34,9 @@ final class GoalDesignViewModel {
     }
 
     // Actions
-    func addStop() {
+    func appendStop(_ color: Color) {
         withAnimation(.easeInOut) {
-            gradientStops.append(.purple)
+            gradientStops.append(color)
         }
     }
 

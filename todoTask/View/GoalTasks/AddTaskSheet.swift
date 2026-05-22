@@ -7,76 +7,120 @@ import SwiftUI
 
 struct AddTaskSheet: View {
     let goalTitle: String
-    let onAdd: (String) -> Void  // يمرر العنوان مباشرة
+    let defaultUnit: String
+    let onAdd: (String, Int) -> Void
 
     @Environment(\.dismiss) private var dismiss
+    @EnvironmentObject private var lang: LanguageManager
 
-    @State private var action:       String = ""
-    @State private var quantityText: String = ""
-    @State private var unit:         String = ""
-
-    private var quantity: Int? { Int(quantityText) }
+    @State private var action:   String = ""
+    @State private var quantity: Int    = 1
+    @State private var unit:     String = ""
 
     private var canSave: Bool {
         !action.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty &&
         !unit.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty &&
-        (quantity ?? 0) > 0
-    }
-
-    private var taskTitle: String {
-        "\(action.trimmingCharacters(in: .whitespacesAndNewlines)) \(quantityText) \(unit.trimmingCharacters(in: .whitespacesAndNewlines))"
+        quantity > 0
     }
 
     var body: some View {
-        ZStack(alignment: .bottomTrailing) {
-            LinearGradient(colors: [Color.black.opacity(0.70), Color.black.opacity(0.95)], startPoint: .top, endPoint: .bottom)
-                .ignoresSafeArea()
+        NavigationStack {
+            ScrollView(showsIndicators: false) {
+                VStack(spacing: 16) {
+                    linkedGoalBanner
 
-            VStack(spacing: 18) {
-                Capsule().fill(.white.opacity(0.25)).frame(width: 48, height: 5).padding(.top, 10)
+                    VStack(alignment: .leading, spacing: 14) {
+                        Text(lang.t(.addTaskHint))
+                            .font(.caption)
+                            .foregroundColor(.white.opacity(0.55))
+                            .fixedSize(horizontal: false, vertical: true)
 
-                Text(goalTitle).font(.title3.weight(.semibold)).foregroundStyle(.white)
-                Text("Add an Action Required To Finish This Goal").font(.subheadline).foregroundStyle(.white.opacity(0.75))
+                        GoalFormField(title: lang.t(.action)) {
+                            CustomTextField(placeholder: lang.t(.phRead), text: $action)
+                        }
 
-                VStack(spacing: 14) {
-                    inputRow(title: "Action",         placeholder: "e.g. read, write, run",        text: $action)
-                    inputRow(title: "Total Quantity",  placeholder: "number",                       text: $quantityText)
-                        .keyboardType(.numbersAndPunctuation)
-                    inputRow(title: "Action Unit",    placeholder: "e.g. pages, miles, chapters",  text: $unit)
+                        GoalFormField(title: lang.t(.amountPerDay)) {
+                            NumberStepper(
+                                title: "",
+                                value: $quantity,
+                                range: 1...999,
+                                suffix: unit.isEmpty ? "units" : unit,
+                                allowsTyping: true
+                            )
+                        }
+
+                        GoalFormField(title: lang.t(.unit)) {
+                            CustomTextField(placeholder: lang.t(.phUnit), text: $unit)
+                        }
+                    }
+                    .padding(18)
+                    .frame(maxWidth: .infinity, alignment: .leading)
+                    .glassEffect(.clear.tint(Color.black.opacity(0.4)), in: .rect(cornerRadius: 20))
                 }
-                .padding(18)
-                .background(.white.opacity(0.08))
-                .clipShape(RoundedRectangle(cornerRadius: 22, style: .continuous))
-                .padding(.horizontal, 18)
-
-                Spacer()
+                .padding(.horizontal, GoalFlowLayout.horizontalPadding)
+                .padding(.bottom, 16)
             }
-
-            Button {
-                guard canSave else { return }
-                onAdd(taskTitle)
-                dismiss()
-            } label: {
-                Image(systemName: "checkmark")
-                    .font(.title3.weight(.semibold)).foregroundColor(.white)
-                    .frame(width: 56, height: 56)
-                    .background(Circle().fill(.white.opacity(0.14)))
+            .background(Color.darkBlu.ignoresSafeArea())
+            .navigationTitle(lang.t(.addDailyStep))
+            .navigationBarTitleDisplayMode(.inline)
+            .toolbar {
+                ToolbarItem(placement: .topBarLeading) {
+                    Button(lang.t(.cancel)) { dismiss() }
+                        .foregroundColor(.white.opacity(0.8))
+                }
+                ToolbarItem(placement: .topBarTrailing) {
+                    Button(action: save) {
+                        Image(systemName: "checkmark.circle.fill")
+                            .font(.title2)
+                            .foregroundColor(canSave ? .cyan : .gray.opacity(0.4))
+                    }
+                    .disabled(!canSave)
+                }
             }
-            .padding(18)
-            .disabled(!canSave)
-            .opacity(canSave ? 1 : 0.4)
+            .toolbarBackground(Color.darkBlu, for: .navigationBar)
+            .toolbarBackground(.visible, for: .navigationBar)
         }
-        .presentationDetents([.medium, .large])
-        .presentationDragIndicator(.hidden)
+        .orbitForcedDark()
+        .presentationSizing(.fitted)
+        .presentationDragIndicator(.visible)
+        .presentationBackground(Color.darkBlu)
+        .onAppear {
+            if unit.isEmpty, !defaultUnit.isEmpty {
+                unit = defaultUnit
+            }
+        }
     }
 
-    private func inputRow(title: String, placeholder: String, text: Binding<String>) -> some View {
+    private var linkedGoalBanner: some View {
         HStack(spacing: 12) {
-            Text(title).foregroundStyle(.white).frame(width: 120, alignment: .leading)
-            TextField(placeholder, text: text)
-                .textInputAutocapitalization(.never).autocorrectionDisabled()
-                .foregroundStyle(.white).padding(.vertical, 10).padding(.horizontal, 12)
-                .background(.white.opacity(0.10)).clipShape(Capsule())
+            Image(systemName: "link.circle.fill")
+                .font(.title2)
+                .foregroundColor(.cyan)
+            VStack(alignment: .leading, spacing: 4) {
+                Text(lang.t(.linkedToGoal))
+                    .font(.caption.weight(.semibold))
+                    .foregroundColor(.white.opacity(0.5))
+                Text(goalTitle)
+                    .font(.system(size: 17, weight: .semibold))
+                    .foregroundColor(.white)
+                    .lineLimit(2)
+            }
+            Spacer()
         }
+        .padding(14)
+        .frame(maxWidth: .infinity, alignment: .leading)
+        .glassEffect(.clear.tint(Color.black.opacity(0.35)), in: .rect(cornerRadius: 16))
+    }
+
+    private func save() {
+        guard canSave else { return }
+        onAdd(formattedTaskLabel(), quantity)
+        dismiss()
+    }
+
+    private func formattedTaskLabel() -> String {
+        let u = unit.trimmingCharacters(in: .whitespacesAndNewlines)
+        let q = max(1, quantity)
+        return u.isEmpty ? "+\(q)" : "+\(q) \(u)"
     }
 }

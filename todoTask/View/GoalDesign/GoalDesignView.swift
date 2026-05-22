@@ -7,10 +7,14 @@ import SwiftUI
 
 struct GoalDesign: View {
     @EnvironmentObject private var store: OrbGoalStore
+    @EnvironmentObject private var lang: LanguageManager
     @Environment(\.dismiss) private var dismiss
     @State private var goalTitle: String = ""
     @State private var totalTasks: Int = 10
     @State private var vm = GoalDesignViewModel()
+    @State private var showAddColorPicker = false
+    @State private var pickerColor = Color.cyan
+    @State private var commitPickerColor = false
 
     let onSaveDesign: ((OrbDesign) -> Void)?
 
@@ -19,17 +23,22 @@ struct GoalDesign: View {
     }
 
     var body: some View {
-        ZStack {
-            AppBackground()
-
-            VStack(spacing: 0) {
-                AppNavigationBar(
-                    title: "Design Your Orb",
+        GoalFlowScreen(
+            background: { AppBackground() },
+            topBar: {
+                GoalFlowTitleBar(
+                    title: lang.t(.designYourOrb),
                     onBack: { dismiss() },
                     onNext: { saveGoal() }
                 )
-
+            },
+            content: {
                 ScrollView(showsIndicators: false) {
+                    GoalCreationStepIndicator(current: 4)
+                        .padding(.horizontal, 20)
+                        .padding(.top, 4)
+                        .padding(.bottom, 8)
+
                     GeometryReader { proxy in
                         Color.clear
                             .preference(
@@ -39,7 +48,6 @@ struct GoalDesign: View {
                     }
                     .frame(height: 0)
 
-                    // ✅ الكوكب فوق
                     PlanetOrbView(
                         size: 180,
                         gradientColors: vm.gradientStops,
@@ -47,24 +55,24 @@ struct GoalDesign: View {
                         textureAssetName: vm.selectedEffectAsset,
                         textureOpacity: vm.textureOpacity
                     )
-                    .padding(.top, 20)
+                    .padding(.top, 0)
                     .padding(.bottom, 10)
 
-                    // ✅ الكارد تحت الكوكب مباشرة
                     GlassCard {
                         VStack(alignment: .leading, spacing: 18) {
-                            SectionHeader(title: "Planet Colors")
+                            SectionHeader(title: lang.t(.planetColors))
                                 .padding(.top, -20)
 
                             ScrollView(.horizontal, showsIndicators: false) {
                                 HStack(spacing: 12) {
                                     ForEach(vm.gradientStops.indices, id: \.self) { i in
-                                        GradientStopDot(color: $vm.gradientStops[i]) {
+                                        ColorStopSwatch(color: vm.gradientStops[i]) {
                                             vm.deleteStop(at: i)
                                         }
                                     }
                                     Button {
-                                        vm.addStop()
+                                        pickerColor = vm.gradientStops.last ?? .cyan
+                                        showAddColorPicker = true
                                     } label: {
                                         ZStack {
                                             Circle().fill(Color.white.opacity(0.08))
@@ -77,14 +85,14 @@ struct GoalDesign: View {
                                 }
                             }
 
-                            SectionHeader(title: "Glow")
+                            SectionHeader(title: lang.t(.glow))
                             HStack {
                                 Image(systemName: "sun.min").foregroundStyle(.white.opacity(0.7))
                                 Slider(value: $vm.glow, in: 0...0.15)
                                 Image(systemName: "sun.max.fill").foregroundStyle(.white.opacity(0.85))
                             }
 
-                            SectionHeader(title: "Effect")
+                            SectionHeader(title: lang.t(.effect))
                             ScrollView(.horizontal, showsIndicators: false) {
                                 HStack(spacing: 10) {
                                     ForEach(Array(vm.effects.enumerated()), id: \.offset) { i, asset in
@@ -96,7 +104,7 @@ struct GoalDesign: View {
                             }
 
                             HStack {
-                                Text("Intensity")
+                                Text(lang.t(.intensity))
                                     .foregroundStyle(.white.opacity(0.75))
                                     .font(.system(size: 14, weight: .medium))
                                 Slider(value: $vm.textureOpacity, in: 0...1)
@@ -114,8 +122,23 @@ struct GoalDesign: View {
                     vm.scrollY = value
                 }
             }
+        )
+        .sheet(isPresented: $showAddColorPicker) {
+            PlanetColorPickerSheet(
+                color: $pickerColor,
+                title: lang.t(.planetColors),
+                addTitle: lang.t(.save),
+                cancelTitle: lang.t(.cancel),
+                onAdd: {
+                    vm.appendStop(pickerColor)
+                    showAddColorPicker = false
+                },
+                onCancel: {
+                    showAddColorPicker = false
+                }
+            )
         }
-        .toolbar(.hidden, for: .tabBar)
+        .orbitForcedDark()
     }
 
     private func saveGoal() {

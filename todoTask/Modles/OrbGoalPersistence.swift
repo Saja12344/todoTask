@@ -20,12 +20,12 @@ struct OrbGoalPersistence {
     }
 
     func load() -> [OrbGoal] {
-        guard let data = UserDefaults.standard.data(forKey: key) else { return [.mock] }
+        guard let data = UserDefaults.standard.data(forKey: key) else { return [] }
         do {
             return try JSONDecoder().decode([OrbGoal].self, from: data)
         } catch {
             print("❌ Load goals failed:", error)
-            return [.mock]
+            return []
         }
     }
 }

@@ -13,13 +13,60 @@ final class OrbGoalStore: ObservableObject {
 
     private let persistence = OrbGoalPersistence()
 
-    init() { load()
+    init() {
+        load()
+        migratePartialTaskAmounts()
+        GoalTaskNotificationScheduler.reschedule(goals: goals)
         debugPrintGoalsAndTasks()
     }
 
     // MARK: - Load / Save
     func load() { goals = persistence.load() }
-    private func save() { persistence.save(goals) }
+
+    /// Backfill targetAmount from titles; sync completedAmount with legacy isDone.
+    private func migratePartialTaskAmounts() {
+        var changed = false
+        for i in goals.indices {
+            for j in goals[i].tasks.indices {
+                var task = goals[i].tasks[j]
+                let before = task
+                if task.targetAmount <= 1, let inferred = inferredTargetAmount(for: task, in: goals[i]), inferred > 1 {
+                    task.targetAmount = inferred
+                }
+                if task.isDone, task.completedAmount == 0 {
+                    task.completedAmount = max(1, task.targetAmount)
+                }
+                task.syncDoneFlag()
+                if task != before {
+                    goals[i].tasks[j] = task
+                    changed = true
+                }
+            }
+        }
+        if changed { save() }
+    }
+
+    private func inferredTargetAmount(for task: GoalTask, in goal: OrbGoal) -> Int? {
+        if let n = parsePlusAmount(from: task.title) { return n }
+        guard let settings = goal.settings, settings.goalType == .reachTarget, !settings.isMilestoneMode else {
+            return nil
+        }
+        let ordered = goal.tasks.sorted { $0.scheduledDate < $1.scheduledDate }
+        let count = max(1, ordered.count)
+        return max(1, Int(ceil(Double(settings.targetNumber) / Double(count))))
+    }
+
+    private func parsePlusAmount(from title: String) -> Int? {
+        let t = title.trimmingCharacters(in: .whitespaces)
+        guard t.hasPrefix("+") else { return nil }
+        let rest = String(t.dropFirst())
+        let digits = rest.prefix(while: { $0.isNumber })
+        return Int(digits)
+    }
+    private func save() {
+        persistence.save(goals)
+        GoalTaskNotificationScheduler.reschedule(goals: goals)
+    }
 
     // MARK: - Add Goal
     func add(_ goal: OrbGoal) {
@@ -44,13 +91,15 @@ final class OrbGoalStore: ObservableObject {
 //        goals[i].tasks.append(GoalTask(title: title, scheduledDate: scheduledDate))
 //        save()
 //    }
-    func addTask(goalID: UUID, title: String, scheduledDate: Date) {
+    func addTask(goalID: UUID, title: String, scheduledDate: Date, targetAmount: Int = 1) {
         guard let i = goals.firstIndex(where: { $0.id == goalID }) else { return }
 
         let task = GoalTask(
             goalID: goalID,
             title: title,
-            scheduledDate: scheduledDate
+            scheduledDate: scheduledDate,
+            targetAmount: max(1, targetAmount),
+            completedAmount: 0
         )
 
         goals[i].tasks.append(task)
@@ -74,8 +123,35 @@ final class OrbGoalStore: ObservableObject {
     func toggleTask(goalID: UUID, taskID: UUID) {
         guard let i = goals.firstIndex(where: { $0.id == goalID }) else { return }
         guard let j = goals[i].tasks.firstIndex(where: { $0.id == taskID }) else { return }
-        goals[i].tasks[j].isDone.toggle()
+        var task = goals[i].tasks[j]
+        if task.targetAmount > 1 {
+            let cap = task.targetAmount
+            task.completedAmount = (task.completedAmount + 1) % (cap + 1)
+        } else {
+            task.isDone.toggle()
+            task.completedAmount = task.isDone ? 1 : 0
+        }
+        task.syncDoneFlag()
+        goals[i].tasks[j] = task
         save()
+    }
+
+    func setTaskCompletedAmount(goalID: UUID, taskID: UUID, amount: Int) {
+        guard let i = goals.firstIndex(where: { $0.id == goalID }) else { return }
+        guard let j = goals[i].tasks.firstIndex(where: { $0.id == taskID }) else { return }
+        var task = goals[i].tasks[j]
+        let cap = max(1, task.targetAmount)
+        task.completedAmount = min(max(0, amount), cap)
+        task.syncDoneFlag()
+        goals[i].tasks[j] = task
+        save()
+    }
+
+    func bumpTaskCompletedAmount(goalID: UUID, taskID: UUID, delta: Int) {
+        guard let i = goals.firstIndex(where: { $0.id == goalID }) else { return }
+        guard let j = goals[i].tasks.firstIndex(where: { $0.id == taskID }) else { return }
+        var task = goals[i].tasks[j]
+        setTaskCompletedAmount(goalID: goalID, taskID: taskID, amount: task.completedAmount + delta)
     }
 
     func replaceTasks(goalID: UUID, tasks: [GoalTask]) {
@@ -155,7 +231,7 @@ final class OrbGoalStore: ObservableObject {
             let cal = Calendar.current
             var currentDate = Date()
 
-            while currentDate <= settings.deadline {
+            while currentDate <= settings.scheduleEnd(calendar: cal) {
 
                 let weekday = cal.component(.weekday, from: currentDate)
 //                - 1
@@ -192,16 +268,20 @@ final class OrbGoalStore: ObservableObject {
     }
 
     
+    // MARK: - Scheduling (late rollover + energy break)
+    func refreshScheduling(for date: Date = Date(), energy: DailyEnergyEntry? = nil) {
+        var updated = goals
+        let useEnergy = Calendar.current.isDate(date, inSameDayAs: Date()) ? energy : nil
+        TaskScheduling.refreshSchedule(goals: &updated, referenceDate: date, energy: useEnergy)
+        guard updated != goals else { return }
+        goals = updated
+        save()
+    }
+
     // MARK: - Today's Tasks (للهوم)
-    /// جميع المهام المجدولة لليوم من كل الأهداف
-    func todayTasks(for date: Date = Date()) -> [(goal: OrbGoal, task: GoalTask)] {
-        var result: [(OrbGoal, GoalTask)] = []
-        for goal in goals {
-            for task in goal.tasks(for: date) {
-                result.append((goal, task))
-            }
-        }
-        return result
+    func todayTasks(for date: Date = Date(), energy: DailyEnergyEntry? = nil) -> [TodayTaskItem] {
+        refreshScheduling(for: date, energy: energy)
+        return TaskScheduling.itemsForDate(goals: goals, date: date)
     }
 
 
@@ -213,6 +293,8 @@ final class OrbGoalStore: ObservableObject {
     // MARK: - Legacy
     func clearAll() {
         goals.removeAll()
+        UserProgressStore.resetAll()
+        GoalTaskNotificationScheduler.reschedule(goals: [])
         save()
     }
 

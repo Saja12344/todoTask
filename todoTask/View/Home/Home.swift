@@ -10,49 +10,51 @@ import UserNotifications
 
 struct Home: View {
     @EnvironmentObject var userVM: UserViewModel
+    @EnvironmentObject var language: LanguageManager
     @State private var showLoginPopup = false
-    
+
     var body: some View {
         NativeTabView()
+            .id(language.language)
             .navigationBarBackButtonHidden(true)
-            .colorScheme(.dark)
+            .orbitForcedDark()
     }
 }
 
-@ViewBuilder
-func NativeTabView() -> some View {
-    TabView{
-        Tab.init("Today", systemImage: "checklist"){
-            NavigationStack{
-                today()
-                    .navigationTitle("Goals Of The Day")
+struct NativeTabView: View {
+    @EnvironmentObject private var lang: LanguageManager
+
+    var body: some View {
+        TabView {
+            Tab(lang.t(.tabToday), systemImage: "checklist") {
+                NavigationStack {
+                    today()
+                        .navigationTitle(lang.t(.goalsOfTheDay))
+                }
             }
-        }
-        Tab.init("Orbs", systemImage: "globe.americas.fill"){
-            NavigationStack{
+            Tab(lang.t(.tabOrbs), systemImage: "globe.americas.fill") {
                 GoalsPage()
-                    .navigationTitle("Orbit Dashboard")
+            }
+            Tab(lang.t(.tabFriends), systemImage: "person.2.fill") {
+                NavigationStack {
+                    FriendsV()
+                        .navigationTitle(lang.t(.tabFriends))
+                }
+            }
+            Tab(lang.t(.tabSettings), systemImage: "gear") {
+                NavigationStack {
+                    Settings()
+                        .navigationTitle(lang.t(.settingsTitle))
+                }
             }
         }
-        Tab.init("Friends", systemImage: "person.2.fill"){
-            NavigationStack{
-                FriendsV()
-                    .navigationTitle("Friends List")
-            }
-        }
-        Tab.init("Settings", systemImage: "gear"){
-            NavigationStack{
-                Settings()
-                    .navigationTitle("Settings")
-            }
-        }
+        .accentColor(.accent)
     }
-    .accentColor(.accent)
-    
 }
 #Preview{
     Home()
         .environmentObject(OrbGoalStore())
+        .environmentObject(LanguageManager())
 }
 
 #Preview{

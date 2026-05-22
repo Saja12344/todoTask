@@ -2,60 +2,36 @@
 //  Report.swift
 //  todoTask
 //
-//  Created by Jana Abdulaziz Malibari on 11/02/2026.
-//
 
 import SwiftUI
-import Combine
 
 struct Report: View {
     @EnvironmentObject private var userVM: UserViewModel
+    @EnvironmentObject private var store: OrbGoalStore
+    @EnvironmentObject private var lang: LanguageManager
     @StateObject private var vm = ReportScreenViewModel()
 
-    // Build cards from published summary
+    private var orbSummary: OrbReportSummary {
+        OrbReportSummary.from(goals: store.goals)
+    }
+
     private var reportCards: [ReportCard] {
-        [
-            ReportCard(title: "Total Goals",
-                       value: "\(vm.summary.totalGoals)",
-                       icon: "target"),
-            ReportCard(title: "Goals Completed",
-                       value: "\(vm.summary.goalsCompleted)",
-                       icon: "checkmark.seal.fill"),
-            ReportCard(title: "Total Planets",
-                       value: "\(vm.summary.planetsCount)",
-                       icon: "globe.americas.fill"),
-            ReportCard(title: "Over Deadline",
-                       value: "\(vm.summary.goalsOverDeadline)",
-                       icon: "calendar.badge.exclamationmark")
+        let s = orbSummary
+        return [
+            ReportCard(title: lang.t(.reportTotalGoals), value: "\(s.totalGoals)", icon: "target"),
+            ReportCard(title: lang.t(.reportGoalsCompleted), value: "\(s.goalsCompleted)", icon: "checkmark.seal.fill"),
+            ReportCard(title: lang.t(.reportAvgProgress), value: "\(s.averageProgressPercent)%", icon: "chart.line.uptrend.xyaxis"),
+            ReportCard(title: lang.t(.reportOverdue), value: "\(s.goalsOverDeadline)", icon: "calendar.badge.exclamationmark")
         ]
     }
 
-    // Build consistency rows (most recent first) from first use date to today
     private var consistencyRows: [(dateKey: String, opened: Bool)] {
+        guard !store.goals.isEmpty else { return [] }
+
         let cal = Calendar(identifier: .gregorian)
         let today = cal.startOfDay(for: Date())
+        let startDate = UserProgressStore.consistencyStartDate(goals: store.goals, calendar: cal)
 
-        // Start date selection:
-        // 1) If you later add createdAt to your User model, prefer it here.
-        // 2) Otherwise use locally persisted firstLaunchDate.
-        // 3) Fallback to earliest open date from stored keys.
-        // 4) Final fallback: today (so it shows only today).
-        let startDate: Date = {
-            // Prefer locally stored first launch date
-            if let first = UserDefaults.standard.object(forKey: "login.firstLaunchDate") as? Date {
-                return cal.startOfDay(for: first)
-            }
-            // Fallback to earliest open date based on stored keys
-            let stored = LoginTracker.load()
-            if let minKey = stored.min(),
-               let parsed = Self.parseDateKey(minKey) {
-                return cal.startOfDay(for: parsed)
-            }
-            // Last fallback: today
-            return today
-        }()
-
-        // Cap the window to keep UI manageable (e.g., last 90 days)
         let windowStart: Date = {
             if let ninetyDaysAgo = cal.date(byAdding: .day, value: -90, to: today) {
                 return max(startDate, ninetyDaysAgo)
@@ -63,10 +39,8 @@ struct Report: View {
             return startDate
         }()
 
-        // Build rows from windowStart to today (inclusive)
         let stored = LoginTracker.load()
         var rows: [(dateKey: String, opened: Bool)] = []
-
         var cursor = windowStart
         while cursor <= today {
             let key = LoginTracker.dateKey(for: cursor)
@@ -74,12 +48,16 @@ struct Report: View {
             guard let next = cal.date(byAdding: .day, value: 1, to: cursor) else { break }
             cursor = next
         }
-
-        // Sort newest first
         return rows.sorted(by: { $0.dateKey > $1.dateKey })
     }
 
-    // Helper to parse yyyy-MM-dd keys back into Date
+    private var consistencyPercentageText: String {
+        guard !consistencyRows.isEmpty else { return "0%" }
+        let opened = consistencyRows.filter(\.opened).count
+        let pct = Int(round(Double(opened) / Double(consistencyRows.count) * 100))
+        return "\(pct)%"
+    }
+
     private static func parseDateKey(_ key: String) -> Date? {
         let f = DateFormatter()
         f.calendar = Calendar(identifier: .gregorian)
@@ -103,21 +81,21 @@ struct Report: View {
                     .resizable()
                     .ignoresSafeArea()
 
-                VStack(spacing: 10){
-                    Text("Progress Report")
+                VStack(spacing: 10) {
+                    Text(lang.t(.reportTitle))
                         .font(Font.largeTitle.bold())
                         .foregroundColor(.white)
-                        .padding(.leading,-80)
+                        .frame(maxWidth: .infinity, alignment: lang.language == .arabic ? .trailing : .leading)
+                        .padding(.horizontal, 24)
 
                     Color.clear
-                    TabView{
+                    TabView {
                         ForEach(reportCards) { card in
                             ZStack {
                                 HStack {
                                     ZStack {
                                         RoundedRectangle(cornerRadius: 30)
                                             .fill(Color.white.opacity(0.2))
-
                                         Image(systemName: card.icon)
                                             .font(.system(size: 40))
                                             .foregroundColor(.white)
@@ -128,24 +106,21 @@ struct Report: View {
                                         Text(card.value)
                                             .font(.system(size: 50, weight: .bold))
                                             .foregroundColor(.white)
-
                                         Text(card.title)
                                             .font(.title3)
                                             .foregroundColor(.white.opacity(0.8))
                                     }
                                     .padding()
-
                                     Spacer()
                                 }
-                                .glassEffect(.clear, in: .rect (cornerRadius: 30))
+                                .glassEffect(.clear, in: .rect(cornerRadius: 30))
                             }
-                            .frame(width:350, height: 160)
+                            .frame(width: 350, height: 160)
                         }
                     }
                     .tabViewStyle(.page(indexDisplayMode: .automatic))
                     .padding(.all, -100)
 
-                    // Consistency card (logs instead of chart)
                     ZStack {
                         Rectangle()
                             .frame(width: 340, height: 200)
@@ -156,22 +131,25 @@ struct Report: View {
                                 RoundedRectangle(cornerRadius: 20)
                                     .frame(width: 340, height: 45)
                                     .foregroundColor(Color.white.opacity(0.2))
-
                                 HStack {
-                                    Text("Consistency")
-                                        .font(.system(size: 14, weight: .semibold, design: .default))
+                                    Text(lang.t(.reportConsistency))
+                                        .font(.system(size: 14, weight: .semibold))
                                         .foregroundColor(.white)
-
-                                    Text(vm.summary.consistencyPercentageText)
-                                        .font(.system(size: 14, weight: .semibold, design: .default))
+                                    Text(consistencyPercentageText)
+                                        .font(.system(size: 14, weight: .semibold))
                                         .foregroundColor(.white)
                                 }
                                 .padding(.horizontal)
                             }
-
-                            // Logs list
                             ScrollView {
                                 VStack(alignment: .leading, spacing: 8) {
+                                    if consistencyRows.isEmpty {
+                                        Text(lang.t(.reportConsistencyEmpty))
+                                            .font(.caption)
+                                            .foregroundColor(.white.opacity(0.5))
+                                            .frame(maxWidth: .infinity, alignment: .center)
+                                            .padding(.vertical, 20)
+                                    }
                                     ForEach(consistencyRows, id: \.dateKey) { row in
                                         HStack {
                                             Text(row.dateKey)
@@ -181,7 +159,7 @@ struct Report: View {
                                             HStack(spacing: 8) {
                                                 Image(systemName: row.opened ? "checkmark.circle.fill" : "xmark.circle")
                                                     .foregroundColor(.white)
-                                                Text(row.opened ? "Opened" : "Missed")
+                                                Text(row.opened ? lang.t(.reportOpened) : lang.t(.reportMissed))
                                                     .foregroundColor(.white)
                                                     .font(.caption)
                                             }
@@ -202,24 +180,20 @@ struct Report: View {
                     .glassEffect(.clear, in: .rect(cornerRadius: 20))
                     .padding(.top, 80)
 
-                    // Energy Over Time
                     ZStack {
                         Rectangle()
                             .frame(width: 340, height: 200)
                             .cornerRadius(20)
                             .foregroundColor(Color.clear)
-
                         VStack(spacing: 0) {
                             ZStack {
                                 RoundedRectangle(cornerRadius: 20)
                                     .frame(width: 340, height: 45)
                                     .foregroundColor(Color.white.opacity(0.2))
-
-                                Text("Energy Over Time")
-                                    .font(.system(size: 14, weight: .semibold, design: .default))
+                                Text(lang.t(.reportEnergyOverTime))
+                                    .font(.system(size: 14, weight: .semibold))
                                     .foregroundColor(.white)
                             }
-
                             ScrollView {
                                 VStack(alignment: .leading, spacing: 8) {
                                     ForEach(vm.summary.energyHistory) { entry in
@@ -231,7 +205,7 @@ struct Report: View {
                                             HStack(spacing: 8) {
                                                 Image(systemName: entry.icon)
                                                     .foregroundColor(.white)
-                                                Text(entry.title)
+                                                Text(lang.localizedEnergyTitle(value: entry.value, fallback: entry.title))
                                                     .foregroundColor(.white)
                                                     .font(.caption)
                                             }
@@ -256,36 +230,14 @@ struct Report: View {
         }
         .task {
             await vm.load(userID: userVM.currentUser?.id)
-            // Record open and ensure firstLaunchDate is set if missing
-            LoginTracker.recordTodayOpened()
         }
         .colorScheme(.dark)
-    }
-}
-
-// MARK: - Tiny inline chart view (bars) — no longer used, but kept if needed elsewhere
-private struct ConsistencyMiniChart: View {
-    let series: [Int] // 0/1 per day of current month
-
-    var body: some View {
-        GeometryReader { geo in
-            let count = max(1, series.count)
-            let barWidth = max(2, (geo.size.width / CGFloat(count)).rounded(.down) - 1)
-            let maxHeight = geo.size.height
-
-            HStack(alignment: .bottom, spacing: 1) {
-                ForEach(series.indices, id: \.self) { i in
-                    let v = CGFloat(series[i])
-                    RoundedRectangle(cornerRadius: 2)
-                        .fill(v > 0 ? Color.accentColor : Color.white.opacity(0.15))
-                        .frame(width: barWidth, height: v * maxHeight)
-                }
-            }
-        }
     }
 }
 
 #Preview {
     Report()
         .environmentObject(UserViewModel())
+        .environmentObject(OrbGoalStore())
+        .environmentObject(LanguageManager())
 }

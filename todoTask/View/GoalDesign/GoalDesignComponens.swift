@@ -2,8 +2,6 @@
 //  GoalDesignComponents.swift
 //  OrbitDemo
 //
-//  Created by Ruba Alghamdi on 07/02/2026.
-//
 
 import SwiftUI
 
@@ -15,37 +13,20 @@ public struct ScrollOffsetKey: PreferenceKey {
     }
 }
 
-// MARK: - Gradient Stop Dot (tap to edit, context menu delete)
-public struct GradientStopDot: View {
-    @Binding var color: Color
+// MARK: - Color swatch (display only — picker opens from + button)
+public struct ColorStopSwatch: View {
+    let color: Color
     var onDelete: () -> Void
 
-    public init(color: Binding<Color>, onDelete: @escaping () -> Void) {
-        self._color = color
-        self.onDelete = onDelete
-    }
-
     public var body: some View {
-        ZStack {
-            Circle()
-                .fill(color)
-                .frame(width: 44, height: 44)
-                .overlay(
-                    Circle().stroke(Color.white.opacity(0.20), lineWidth: 1)
-                )
-
-            // Invisible ColorPicker (opens on tap)
-            ColorPicker("", selection: $color)
-                .labelsHidden()
-                .opacity(0.02)
-                .frame(width: 44, height: 44)
-                .contentShape(Circle())
-        }
-        .contextMenu {
-            Button(role: .destructive) { onDelete() } label: {
-                Label("Delete Color", systemImage: "trash")
+        Circle()
+            .fill(color)
+            .frame(width: 44, height: 44)
+            .contextMenu {
+                Button(role: .destructive, action: onDelete) {
+                    Label("Delete Color", systemImage: "trash")
+                }
             }
-        }
     }
 }
 
@@ -98,62 +79,46 @@ public struct PlanetOrbView: View {
     }
 
     private var glowColor: Color { gradientColors.first ?? .purple }
-    private var glowSpread: CGFloat { 40 + CGFloat(glow) * 280 }
-    private var auraBlur: CGFloat { 18 + CGFloat(glow) * 120 }
-    private var shadowRadius: CGFloat { 10 + CGFloat(glow) * 160 }
 
     public var body: some View {
         ZStack {
             Circle()
-                .fill(glowColor.opacity(0.10 + glow * 1.1))
-                .frame(width: size + glowSpread, height: size + glowSpread)
-                .blur(radius: auraBlur)
+                .fill(
+                    RadialGradient(
+                        colors: [glowColor.opacity(glow * 2.5), glowColor.opacity(0)],
+                        center: .center,
+                        startRadius: size * 0.2,
+                        endRadius: size * 0.65
+                    )
+                )
+                .frame(width: size * 1.3, height: size * 1.3)
 
-            ZStack {
-                Circle()
-                    .fill(
-                        LinearGradient(
+            Circle()
+                .fill(
+                    AngularGradient(
+                        gradient: Gradient(
                             colors: gradientColors.count >= 2
                             ? gradientColors
-                            : [glowColor, glowColor.opacity(0.7)],
-                            startPoint: .topLeading,
-                            endPoint: .bottomTrailing
-                        )
+                            : [glowColor, glowColor.opacity(0.7)]
+                        ),
+                        center: .center
                     )
-
-                Circle()
-                    .fill(
-                        RadialGradient(
-                            colors: [Color.white.opacity(0.25), .clear],
-                            center: .topLeading,
-                            startRadius: 10,
-                            endRadius: size * 0.6
-                        )
-                    )
-                    .blendMode(.softLight)
-
-                if let textureAssetName {
-                    Image(textureAssetName)
-                        .resizable()
-                        .scaledToFill()
-                        .frame(width: size, height: size)
-                        .clipShape(Circle())
-                        .blendMode(.hardLight)
-                        .opacity(textureOpacity)
-                }
-
-                Circle()
-                    .stroke(glowColor.opacity(0.18 + glow * 1.2), lineWidth: 2)
-                    .blur(radius: 8 + glow * 80)
-            }
-            .frame(width: size, height: size)
-            .shadow(
-                color: glowColor.opacity(0.15 + glow * 2.0),
-                radius: shadowRadius,
-                x: 0, y: 0
-            )
+                )
+                .frame(width: size, height: size)
+                .overlay(
+                    Group {
+                        if let name = textureAssetName {
+                            Image(name)
+                                .resizable()
+                                .scaledToFill()
+                                .frame(width: size, height: size)
+                                .clipShape(Circle())
+                                .opacity(textureOpacity)
+                                .blendMode(.hardLight)
+                        }
+                    }
+                )
+                .shadow(color: glowColor.opacity(0.35), radius: 18, x: 0, y: 8)
         }
-        .frame(width: size + 160, height: size + 160)
-        .drawingGroup()
     }
 }

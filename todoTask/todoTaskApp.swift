@@ -8,12 +8,14 @@ import SwiftUI
 @main
 struct todoTaskApp: App {
 
-    @StateObject private var userVM    = UserViewModel()
-    @StateObject private var goalStore = OrbGoalStore()
-    @StateObject private var deepLink  = DeepLinkManager.shared
+    @StateObject private var userVM      = UserViewModel()
+    @StateObject private var goalStore   = OrbGoalStore()
+    @StateObject private var language    = LanguageManager()
+    @StateObject private var deepLink    = DeepLinkManager.shared
     @State private var showSplash = true
 
     init() {
+        OrbitAppearance.configure()
         NotificationPermissionManager.shared.requestPermissionIfNeeded()
     }
 
@@ -31,7 +33,11 @@ struct todoTaskApp: App {
                     RootRouterView()
                         .environmentObject(userVM)
                         .environmentObject(goalStore)
+                        .environmentObject(language)
                         .environmentObject(deepLink)
+                        .environment(\.layoutDirection, language.language.layoutDirection)
+                        .preferredColorScheme(.dark)
+                        .orbitForcedDark()
                         .onOpenURL { url in
                             DeepLinkManager.shared.handle(url: url)
                         }

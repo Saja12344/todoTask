@@ -7,7 +7,7 @@ import SwiftUI
 import Foundation
 
 // MARK: - GoalType ✅ 4 cases
-enum GoalType: String, CaseIterable, Codable {
+enum GoalType: String, CaseIterable, Codable, Hashable {
     case reachTarget = "Reach a Target"
     case buildHabit  = "Build a Habit"
     case levelUp     = "Level Up"
@@ -33,11 +33,23 @@ enum GoalType: String, CaseIterable, Codable {
 
 // MARK: - GoalTask
 struct GoalTask: Identifiable, Codable, Hashable {
-    var id:            UUID   = UUID()
-    var goalID:        UUID
-    var title:         String
-    var isDone:        Bool   = false
-    var scheduledDate: Date
+    var id:              UUID   = UUID()
+    var goalID:          UUID
+    var title:           String
+    var isDone:          Bool   = false
+    var scheduledDate:   Date
+    /// How much this session asks for (e.g. 4 books today).
+    var targetAmount:    Int    = 1
+    /// How much the user actually did (e.g. 3 of 4).
+    var completedAmount: Int    = 0
+
+    var isFullyComplete: Bool {
+        targetAmount > 0 && completedAmount >= targetAmount
+    }
+
+    mutating func syncDoneFlag() {
+        isDone = isFullyComplete
+    }
 }
 
 // MARK: - GoalSettings ✅ + isStreakMode + isMilestoneMode
@@ -48,7 +60,8 @@ struct GoalSettings: Codable, Equatable {
     var endTime:          Date     = Calendar.current.date(bySettingHour: 9,  minute: 0, second: 0, of: Date())!
     var targetNumber:     Int      = 10
     var unit:             String   = ""
-    var deadline:         Date     = Calendar.current.date(byAdding: .month, value: 1, to: Date())!
+    /// nil until the user picks a date in goal setup — calendar must not filter by deadline when nil.
+    var deadline:         Date?    = nil
     var breakDaysAllowed: Int      = 0
     var stepUpPaceWeeks:  Int      = 1
     var scopeSize:        Double   = 50
@@ -82,22 +95,58 @@ struct OrbGoal: Identifiable, Codable, Equatable {
     var challengeInfo: ChallengeInfo? = nil
     var isChallenge: Bool { challengeInfo != nil }
 
+    /// Tasks rolled forward after 34h+ overdue (show «متأخر» on the new day).
+    var lateTaskIDs: [UUID: Bool] = [:]
+
     var progress: Double {
         guard !tasks.isEmpty else { return 0 }
-        return Double(tasks.filter(\.isDone).count) / Double(tasks.count)
+
+        if let settings, settings.goalType == .reachTarget, !settings.isMilestoneMode {
+            let goalTotal = max(1, settings.targetNumber)
+            let done = tasks.reduce(0) { $0 + min($1.completedAmount, $1.targetAmount) }
+            return min(1.0, Double(done) / Double(goalTotal))
+        }
+
+        let total = tasks.reduce(0) { $0 + max(1, $1.targetAmount) }
+        guard total > 0 else {
+            return Double(tasks.filter(\.isDone).count) / Double(tasks.count)
+        }
+        let done = tasks.reduce(0) { $0 + min($1.completedAmount, $1.targetAmount) }
+        return min(1.0, Double(done) / Double(total))
     }
 
     var doneTasks:  Int { tasks.filter(\.isDone).count }
     var totalTasks: Int { tasks.count }
 
-    func tasks(for date: Date) -> [GoalTask] {
-        let cal     = Calendar.current
-        let weekday = cal.component(.weekday, from: date)
-        let activeDays = settings?.selectedDays ?? []
+    /// Units completed toward the goal (e.g. 7 books when 3+4 on two days).
+    var completedUnits: Int {
+        tasks.reduce(0) { $0 + min($1.completedAmount, max(1, $1.targetAmount)) }
+    }
 
-        guard activeDays.contains(weekday),
-              let deadline = settings?.deadline,
-              date <= deadline else { return [] }
+    var targetUnits: Int {
+        if let settings, settings.goalType == .reachTarget, !settings.isMilestoneMode {
+            return max(1, settings.targetNumber)
+        }
+        return max(1, tasks.reduce(0) { $0 + max(1, $1.targetAmount) })
+    }
+
+    /// Primary: readable step label. Secondary: goal name.
+    func todayTaskLines(for task: GoalTask, lang: LanguageManager) -> (primary: String, secondary: String) {
+        (GoalTaskDisplay.todayPrimary(for: task, in: self, lang: lang), title)
+    }
+
+    func tasks(for date: Date) -> [GoalTask] {
+        let cal = Calendar.current
+
+        if let settings, let deadline = settings.deadline {
+            let day = cal.startOfDay(for: date)
+            if day > cal.startOfDay(for: deadline) { return [] }
+            let activeDays = settings.selectedDays
+            if !activeDays.isEmpty {
+                let weekday = cal.component(.weekday, from: date)
+                guard activeDays.contains(weekday) else { return [] }
+            }
+        }
 
         return tasks.filter { cal.isDate($0.scheduledDate, inSameDayAs: date) }
     }
@@ -112,9 +161,17 @@ struct OrbDesign: Codable, Equatable {
 }
 
 struct TodayItem: Identifiable {
-    let id   = UUID()
+    let id: UUID
     let goal: OrbGoal
     let task: GoalTask
+    let isLate: Bool
+
+    init(goal: OrbGoal, task: GoalTask, isLate: Bool = false) {
+        self.id = task.id
+        self.goal = goal
+        self.task = task
+        self.isLate = isLate
+    }
 }
 
 // MARK: - RGBAColor

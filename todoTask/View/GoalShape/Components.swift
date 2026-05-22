@@ -11,8 +11,10 @@ struct GoalCard: View {
         Button(action: action) {
             VStack(spacing: 10) {
                 Image(systemName: icon)
-                    .font(.system(size: 50))
+                    .font(.system(size: 44, weight: .medium))
                     .foregroundColor(.white)
+                    .frame(width: 56, height: 56)
+                    .frame(maxWidth: .infinity)
                 
                 Text(title)
                     .font(.system(size: 16, weight: .bold))
@@ -28,7 +30,7 @@ struct GoalCard: View {
             }
             .padding()
             .frame(maxWidth: .infinity)
-            .frame(height: 160)
+            .frame(minHeight: 140)
             .background(Color.clear)
             .glassEffect(
                 .clear.tint(Color.black.opacity(isSelected ? 0.5 : 0.4)),
