@@ -10,7 +10,6 @@ private enum CreationStep: Hashable {
     case loading(shape: GoalShape, text: String)
     case suggested(shape: GoalShape, text: String)
     case manual(typePrefill: GoalType?)
-    case form(type: GoalType)
     case design
 }
 
@@ -39,13 +38,11 @@ struct GoalsPage: View {
                     .resizable()
                     .ignoresSafeArea()
                     .opacity(0.7)
-                
                 Image("Gliter")
                     .resizable()
                     .ignoresSafeArea()
                 
                 VStack(spacing: 16) {
-                    
                     Picker("", selection: $selectedTab) {
                         Text("Your Orbs").tag(0)
                         Text("Shared Orbs").tag(1)
@@ -86,21 +83,16 @@ struct GoalsPage: View {
                                 Spacer().frame(height: 30)
                             }
                         }
-                        
                     } else {
-                        
                         ScrollView {
                             Text("Shared Orbs")
                                 .font(.title2)
                                 .foregroundColor(.white)
                                 .padding()
-                            
-                            // هنا لاحقاً تضيفي الشيرد أورب
                             Text("Coming soon...")
                                 .foregroundColor(.white.opacity(0.6))
                                 .padding()
                         }
-                        
                     }
                 }
             }
@@ -113,9 +105,9 @@ struct GoalsPage: View {
             } message: { Text("This will remove the orb and its progress.") }
             .colorScheme(.dark)
             .onAppear { energyVM.refreshToday() }
-
             .navigationDestination(for: CreationStep.self) { step in
                 switch step {
+
                 case .write:
                     WriteGoalView(onDone: { title, suggestion in
                         draftTitle = title
@@ -127,38 +119,33 @@ struct GoalsPage: View {
                     }, onCancel: { _ = path.popLast() })
                     .navigationBarBackButtonHidden(true)
 
+                case let .loading(shape, text):
+                    LoadingGoalShapesView(goalText: text, suggestedShape: shape) {
+                        path.append(.suggested(shape: shape, text: text))
+                    }
+
                 case let .suggested(shape, text):
                     SuggestedGoalShapeView(
                         goalText: text, suggestedShape: shape,
-                        onFinish: { type in chosenType = type; path.append(.form(type: type)) },
+                        onFinish: { type in
+                            chosenType = type
+                            path.append(.manual(typePrefill: type)) // ✅ يروح للـ GoalShapeView مع النوع محدد
+                        },
                         onChangeShape: { path.append(.manual(typePrefill: nil)) },
-                        onBack: { _ =
-//                            path.popLast()
-                            path.removeLast(2)
-                        }
-                    )
-                    .navigationBarBackButtonHidden(true)
-                    
-                case let .loading(shape, text):
-                    LoadingGoalShapesView(
-                        goalText: text,
-                        suggestedShape: shape
-                    ) {
-                        path.append(.suggested(shape: shape, text: text))
-                    }
-//                    .navigationBarBackButtonHidden(true)
-                case let .manual(typePrefill):
-                    GoalShapeView(
-                        selectedGoal: typePrefill, showSettings: false,
-                        onFinished: { type, settings in chosenType = type; chosenSettings = settings; path.append(.form(type: type)) },
-                        onBack: { _ = path.popLast() }
+                        onBack: { _ = path.removeLast(2) }
                     )
                     .navigationBarBackButtonHidden(true)
 
-                case let .form(type):
+                case let .manual(typePrefill):
+                    // ✅ صفحة وحدة تختار النوع وتحشي البيانات
                     GoalShapeView(
-                        selectedGoal: type, showSettings: true,
-                        onFinished: { type, settings in chosenType = type; chosenSettings = settings; path.append(.design) },
+                        selectedGoal: typePrefill,
+                        showSettings: typePrefill != nil, // لو في نوع محدد يفتح البيانات مباشرة
+                        onFinished: { type, settings in
+                            chosenType = type
+                            chosenSettings = settings
+                            path.append(.design)
+                        },
                         onBack: { _ = path.popLast() }
                     )
                     .navigationBarBackButtonHidden(true)
@@ -181,7 +168,6 @@ struct GoalsPage: View {
                         path.removeAll()
                     }
                     .environmentObject(store)
-//                    .preferredColorScheme(.dark)
                     .navigationBarBackButtonHidden(true)
                 }
             }
@@ -211,7 +197,6 @@ struct GoalGridCard: View {
                         anim = 2 * .pi
                     }
                 }
-                // Mini dual ring اذا تحدي
                 .overlay(
                     Group {
                         if goal.isChallenge, let info = goal.challengeInfo {
@@ -246,7 +231,6 @@ struct GoalGridCard: View {
             .contentShape(RoundedRectangle(cornerRadius: 18))
             .shadow(color: .black.opacity(0.22), radius: 8, x: 0, y: 5)
 
-            // ⚡️ Challenge Badge
             if goal.isChallenge {
                 Text("⚡️")
                     .font(.caption)
@@ -258,7 +242,7 @@ struct GoalGridCard: View {
     }
 }
 
-// MARK: - Mini Dual Ring (للكارد الصغير)
+// MARK: - Mini Dual Ring
 struct MiniDualRing: View {
     var myProgress:     Double
     var friendProgress: Double

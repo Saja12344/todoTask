@@ -18,7 +18,8 @@ struct CheckBoxView: View {
     var body: some View {
         ZStack {
             RoundedRectangle(cornerRadius: 20)
-                .frame(width: 330, height: 60)
+                .frame(maxWidth: .infinity)
+                .frame(height: 60)
                 .foregroundColor(.clear)
                 .glassEffect(.clear, in: .rect(cornerRadius: 20))
             HStack {
@@ -30,11 +31,9 @@ struct CheckBoxView: View {
                     .glassEffect(.clear.interactive())
                     .onTapGesture { item.isChecked.toggle() }
             }
-            .padding(.all, 10)
-            .padding(.leading, 30)
-            .padding(.trailing, 30)
+            .padding(.horizontal, 30)
         }
-        .padding(.trailing, 20)
+        .padding(.horizontal, 20)
     }
 }
 
@@ -43,21 +42,19 @@ private enum CreationStep: Hashable {
     case loading(shape: GoalShape, text: String)
     case suggested(shape: GoalShape, text: String)
     case manual(typePrefill: GoalType?)
-    case form(type: GoalType)
     case design
 }
 
-// MARK: - today (Main Home View)
+// MARK: - today
 struct today: View {
-
     @EnvironmentObject private var store: OrbGoalStore
     @StateObject private var viewModel = HomeViewModel()
     @StateObject private var calVM     = MiniCalendarViewModel()
     @StateObject private var energyVM  = DailyEnergyViewModel()
-    @State private var draftTitle:        String         = ""
-    @State private var chosenType:        GoalType?      = nil
-    @State private var chosenSettings:    GoalSettings?  = nil
-    @State private var path:              [CreationStep] = []
+    @State private var draftTitle:     String        = ""
+    @State private var chosenType:     GoalType?     = nil
+    @State private var chosenSettings: GoalSettings? = nil
+    @State private var path:           [CreationStep] = []
     @State private var selectedEnergyID: String? = nil
 
     private var selectedDate: Date { calVM.selectedDate }
@@ -99,11 +96,10 @@ struct today: View {
                         .padding(.bottom, 7)
                         .font(.footnote.weight(.light))
 
-                    // ── Mini Calendar
                     ZStack(alignment: .center) {
-                        Rectangle()
-                            .frame(width: 355, height: 124)
+                        RoundedRectangle(cornerRadius: 20)
                             .foregroundColor(.clear)
+                            .frame(height: 124)
                             .glassEffect(.clear, in: .rect(cornerRadius: 20))
 
                         VStack(alignment: .leading, spacing: 8) {
@@ -138,8 +134,6 @@ struct today: View {
                                 .glassEffect(.clear.interactive())
                             }
                             .padding(.horizontal, 20)
-                            .padding(.leading, -5)
-                            .padding(.trailing, 15)
                             .padding(.bottom, 5)
 
                             HStack(spacing: 4) {
@@ -150,6 +144,7 @@ struct today: View {
                                 }
                                 ForEach(calVM.visibleWeek, id: \.self) { date in
                                     DayView(date: date, selectedDate: calVM.selectedDate, today: calVM.today)
+                                        .frame(maxWidth: .infinity)
                                         .onTapGesture { calVM.selectedDate = date }
                                 }
                                 Button { calVM.moveWeek(by: 1) } label: {
@@ -164,7 +159,6 @@ struct today: View {
                     .padding(.horizontal)
                     .padding(.bottom, 12)
 
-                    // ── Today's Tasks Header
                     HStack {
                         Text("Today's Tasks")
                             .foregroundColor(.primary).font(.title).bold().padding(.leading, 20)
@@ -179,7 +173,6 @@ struct today: View {
                         }
                     }
 
-                    // ── Tasks List
                     ZStack {
                         RoundedRectangle(cornerRadius: 20).foregroundColor(.clear)
 
@@ -191,6 +184,7 @@ struct today: View {
                                 Text("Add a goal or pick another day")
                                     .foregroundColor(.white.opacity(0.3)).font(.caption)
                             }
+                            .frame(maxWidth: .infinity)
                             .frame(height: 300)
                         } else {
                             ScrollView {
@@ -204,10 +198,10 @@ struct today: View {
                                         }
                                     }
                                 }
-                                .padding(.leading, 13)
+                                .padding(.horizontal, 13)
                                 .padding(.vertical, 8)
                             }
-                            .frame(height: 400)
+                            .frame(maxHeight: .infinity)
                         }
                     }
 
@@ -234,6 +228,7 @@ struct today: View {
             }
             .navigationDestination(for: CreationStep.self) { step in
                 switch step {
+
                 case .write:
                     WriteGoalView(onDone: { title, suggestion in
                         draftTitle = title
@@ -253,7 +248,10 @@ struct today: View {
                 case let .suggested(shape, text):
                     SuggestedGoalShapeView(
                         goalText: text, suggestedShape: shape,
-                        onFinish: { type in chosenType = type; path.append(.form(type: type)) },
+                        onFinish: { type in
+                            chosenType = type
+                            path.append(.manual(typePrefill: type))
+                        },
                         onChangeShape: { path.append(.manual(typePrefill: nil)) },
                         onBack: { _ = path.removeLast(2) }
                     )
@@ -261,16 +259,13 @@ struct today: View {
 
                 case let .manual(typePrefill):
                     GoalShapeView(
-                        selectedGoal: typePrefill, showSettings: false,
-                        onFinished: { type, settings in chosenType = type; chosenSettings = settings; path.append(.form(type: type)) },
-                        onBack: { _ = path.popLast() }
-                    )
-                    .navigationBarBackButtonHidden(true)
-
-                case let .form(type):
-                    GoalShapeView(
-                        selectedGoal: type, showSettings: true,
-                        onFinished: { type, settings in chosenType = type; chosenSettings = settings; path.append(.design) },
+                        selectedGoal: typePrefill,
+                        showSettings: typePrefill != nil,
+                        onFinished: { type, settings in
+                            chosenType = type
+                            chosenSettings = settings
+                            path.append(.design)
+                        },
                         onBack: { _ = path.popLast() }
                     )
                     .navigationBarBackButtonHidden(true)
@@ -314,7 +309,8 @@ struct TodayTaskRow: View {
     var body: some View {
         ZStack {
             RoundedRectangle(cornerRadius: 20)
-                .frame(width: 350, height: 68)
+                .frame(maxWidth: .infinity)
+                .frame(height: 68)
                 .foregroundColor(.clear)
                 .glassEffect(.clear, in: .rect(cornerRadius: 20))
 
@@ -339,7 +335,7 @@ struct TodayTaskRow: View {
             }
             .padding(.horizontal, 30)
         }
-        .padding(.trailing, 20)
+        .padding(.horizontal, 4)
     }
 }
 
@@ -351,11 +347,8 @@ struct EnergyPromptOverlay: View {
     var body: some View {
         ZStack {
             Color.black.opacity(0.6).ignoresSafeArea()
-            RoundedRectangle(cornerRadius: 20)
-                .frame(width: 350, height: 260)
-                .glassEffect(.clear.tint(.darkBlu.opacity(0.5)), in: .rect(cornerRadius: 20))
             VStack(spacing: 10) {
-                Text("What's your energy level today?").bold()
+                Text("What's your energy level today?").bold().foregroundColor(.white)
                 HStack {
                     ForEach(Energytoday.defaults) { level in
                         Button {
@@ -368,7 +361,8 @@ struct EnergyPromptOverlay: View {
                                 Image(systemName: level.icon).font(.system(size: 35)).foregroundColor(.white)
                                 Text(level.title).foregroundColor(.white).font(.system(size: 16, weight: .medium))
                             }
-                            .frame(width: 105, height: 120)
+                            .frame(maxWidth: .infinity)
+                            .frame(height: 120)
                             .overlay(
                                 RoundedRectangle(cornerRadius: 25)
                                     .stroke(selectedEnergyID == level.id.uuidString ? Color.accent : Color.clear, lineWidth: 2)
@@ -377,28 +371,28 @@ struct EnergyPromptOverlay: View {
                         .glassEffect(.clear.interactive(), in: .rect(cornerRadius: 25))
                     }
                 }
+                .padding(.horizontal)
                 if let sid = selectedEnergyID,
                    let sel = Energytoday.defaults.first(where: { $0.id.uuidString == sid }) {
                     Text("Selected: \(sel.title)").font(.caption).foregroundColor(.white.opacity(0.9))
                 } else {
-                    Text("you can change it later in settings").font(.caption).padding(.top)
+                    Text("you can change it later in settings").font(.caption).foregroundColor(.white).padding(.top)
                 }
             }
-            .padding(.horizontal)
+            .padding(30)
+            .frame(maxWidth: 500)
+            .glassEffect(.clear.tint(.darkBlu.opacity(0.5)), in: .rect(cornerRadius: 20))
         }
         .transition(.opacity)
         .animation(.easeInOut, value: energyVM.showPromptForToday)
     }
 }
 
-// MARK: - Settings ✅
+// MARK: - Settings
 struct Settings: View {
     @EnvironmentObject private var userVM: UserViewModel
-    @State private var showSettingsButton = false
-    @State private var isEditingName: Bool = false
-    @State private var draftName: String = ""
     @State private var showGuestLogoutAlert: Bool = false
-    @State private var showDeleteConfirmation: Bool = false // ✅
+    @State private var showDeleteConfirmation: Bool = false
 
     private var displayName: String {
         if let name = userVM.currentUser?.username, !name.isEmpty { return name }
@@ -422,24 +416,21 @@ struct Settings: View {
                 .resizable()
                 .ignoresSafeArea()
 
-            VStack(alignment: .leading, spacing: 4) {
-                Text(displayName)
-                    .font(.system(size: 28, weight: .bold))
-                    .foregroundColor(.primary)
-                    .padding(.horizontal, 20)
-                Text("ID: \(displayID)")
-                    .font(.caption)
-                    .foregroundColor(.white.opacity(0.7))
-                    .padding(.horizontal, 20)
-                    .padding(.bottom, 8)
+            ScrollView {
+                VStack(alignment: .leading, spacing: 4) {
+                    Text(displayName)
+                        .font(.system(size: 28, weight: .bold))
+                        .foregroundColor(.primary)
+                        .padding(.horizontal, 20)
+                        .padding(.top, 20)
+                    Text("ID: \(displayID)")
+                        .font(.caption)
+                        .foregroundColor(.white.opacity(0.7))
+                        .padding(.horizontal, 20)
+                        .padding(.bottom, 8)
 
-                Text("App Management").padding(.leading, 20)
+                    Text("App Management").padding(.leading, 20)
 
-                ZStack {
-                    RoundedRectangle(cornerRadius: 30)
-                        .frame(width: 360, height: 220)
-                        .foregroundColor(.clear)
-                        .glassEffect(.clear, in: .rect(cornerRadius: 30))
                     VStack(alignment: .leading, spacing: 10) {
                         Button(action: {
                             if let url = URL(string: UIApplication.openSettingsURLString) {
@@ -448,39 +439,35 @@ struct Settings: View {
                         }) {
                             HStack { Text("Notification").foregroundColor(.white) }.padding(.vertical, 12)
                         }
-                        Rectangle().frame(width: 320, height: 2).foregroundColor(.white.opacity(0.3)).glassEffect()
+                        Divider().background(Color.white.opacity(0.3))
                         NavigationLink(destination: Report()) {
                             HStack { Text("Progress Report").foregroundColor(.white) }.padding(.vertical, 12)
                         }
-                        Rectangle().frame(width: 320, height: 2).foregroundColor(.white.opacity(0.3)).glassEffect()
+                        Divider().background(Color.white.opacity(0.3))
                         NavigationLink(destination: Energy()) {
                             HStack { Text("Energy Settings").foregroundColor(.white) }.padding(.vertical, 12)
                         }
                     }
-                    .padding(.leading, 10)
-                }
+                    .padding(.horizontal, 20)
+                    .padding(.vertical, 10)
+                    .frame(maxWidth: .infinity)
+                    .glassEffect(.clear, in: .rect(cornerRadius: 30))
+                    .padding(.horizontal, 16)
 
-                Text("Account Management").padding(.leading, 20).padding(.top, 20)
+                    Text("Account Management").padding(.leading, 20).padding(.top, 20)
 
-                ZStack {
-                    RoundedRectangle(cornerRadius: 30)
-                        .frame(width: 360, height: 200) // ✅ كبّرنا عشان يتسع للزر الجديد
-                        .foregroundColor(.clear)
-                        .glassEffect(.clear, in: .rect(cornerRadius: 30))
                     VStack(alignment: .leading, spacing: 10) {
                         Button(action: { print("Clear Goals") }) {
                             HStack { Text("Clear Goals").foregroundColor(Color(.lightRed)) }.padding(.vertical, 12)
                         }
-                        Rectangle().frame(width: 320, height: 2).foregroundColor(.white.opacity(0.3)).glassEffect()
+                        Divider().background(Color.white.opacity(0.3))
                         Button(action: {
                             if userVM.currentUser?.authMode == .guest { showGuestLogoutAlert = true }
                             else { userVM.clearLocalUser() }
                         }) {
                             HStack { Text("Log Out").foregroundColor(Color(.lightRed)) }.padding(.vertical, 12)
                         }
-                        Rectangle().frame(width: 320, height: 2).foregroundColor(.white.opacity(0.3)).glassEffect()
-
-                        // ✅ زر Delete Account
+                        Divider().background(Color.white.opacity(0.3))
                         Button(action: { showDeleteConfirmation = true }) {
                             HStack {
                                 Image(systemName: "trash")
@@ -490,18 +477,16 @@ struct Settings: View {
                             .padding(.vertical, 12)
                         }
                     }
+                    .padding(.horizontal, 20)
+                    .padding(.vertical, 10)
+                    .frame(maxWidth: .infinity)
+                    .glassEffect(.clear, in: .rect(cornerRadius: 30))
+                    .padding(.horizontal, 16)
                     .colorScheme(.dark)
-                    .padding(.leading, 10)
                 }
             }
-            .padding(.top, -90)
         }
-        // ✅ Confirmation Dialog
-        .confirmationDialog(
-            "Delete Account?",
-            isPresented: $showDeleteConfirmation,
-            titleVisibility: .visible
-        ) {
+        .confirmationDialog("Delete Account?", isPresented: $showDeleteConfirmation, titleVisibility: .visible) {
             Button("Delete Permanently", role: .destructive) {
                 Task { await userVM.deleteAccount() }
             }
@@ -534,7 +519,8 @@ struct DayView: View {
             Text(date, format: .dateTime.weekday(.abbreviated)).font(.caption)
             Text(date, format: .dateTime.day()).font(.headline)
         }
-        .frame(width: 42, height: 56)
+        .frame(height: 56)
+        .frame(maxWidth: .infinity)
         .background(
             isSelected ? Color.white.opacity(0.9) :
             isToday    ? Color.accent.opacity(0.35) :

@@ -4,241 +4,41 @@
 //
 
 import SwiftUI
-import CloudKit
-import Foundation
 
 struct FriendsV: View {
-    @StateObject private var viewModel = HomeViewModel()
-    @StateObject private var userVM = UserViewModel()
-    @StateObject private var friendRequestVM = FriendRequestViewModel()
-
-    @EnvironmentObject private var store: OrbGoalStore
-
     var body: some View {
-        NavigationStack {
-            ZStack {
-                Rectangle()
-                    .fill(LinearGradient(colors: [.darkBlu, .dark], startPoint: .bottom, endPoint: .top))
-                    .ignoresSafeArea()
-                Image("Background")
-                    .resizable()
-                    .ignoresSafeArea()
-                Image("Gliter")
-                    .resizable()
-                    .ignoresSafeArea()
-
-                VStack(spacing: 15) {
-                    if let user = userVM.currentUser {
-                        Text("Your ID: \"\(user.username)\"")
-                            .font(.caption)
-                            .foregroundColor(.gray)
-                    }
-
-                    TextField("Friend ID", text: $friendRequestVM.searchText)
-                        .padding(10)
-                        .padding(.horizontal, 30)
-                        .background(
-                            RoundedRectangle(cornerRadius: 35)
-                                .glassEffect(.clear.tint(.black.opacity(0.7)).interactive())
-                        )
-                        .overlay(
-                            HStack {
-                                Image(systemName: "magnifyingglass")
-                                    .foregroundColor(.gray)
-                                Spacer()
-                            }
-                            .padding(.horizontal, 12)
-                        )
-                        .padding(.horizontal)
-
-                    ScrollView {
-                        VStack(spacing: 15) {
-                            AcceptedFriendsSection(friendRequestVM: friendRequestVM) { id in
-                                try? await friendRequestVM.removeFriend(
-                                    myUserID: id,
-                                    friendID: friendRequestVM.currentUser?.id ?? ""
-                                )
-                            }
-                            ReceivedRequestsSection(
-                                friendRequestVM: friendRequestVM,
-                                acceptAction: { request in try? await friendRequestVM.acceptRequest(request) },
-                                declineAction: { request in try? await friendRequestVM.rejectRequest(request) }
-                            )
-                            PendingRequestsSection(friendRequestVM: friendRequestVM) { request in
-                                try? await friendRequestVM.cancelSentRequest(request)
-                            }
-                        }
-                    }
-                    .padding()
-                }
-            }
-            .colorScheme(.dark)
-            .navigationTitle("Friends")
-            .navigationBarTitleDisplayMode(.inline)
-            .toolbarColorScheme(.dark, for: .navigationBar)
-        }
-    }
-
-    // MARK: - Accepted Friends Section ✅ Challenge معلق
-    struct AcceptedFriendsSection: View {
-        @ObservedObject var friendRequestVM: FriendRequestViewModel
-        let removeAction: (String) async -> Void
-
-        @EnvironmentObject private var store: OrbGoalStore
-
-        var body: some View {
-            VStack(alignment: .leading, spacing: 10) {
-                if !friendRequestVM.friends.isEmpty {
-                    Text("Accepted Friends")
-                        .foregroundColor(.white)
-                        .font(.headline)
-                        .padding(.leading, 10)
-
-                    ForEach(friendRequestVM.friends) { friend in
-                        HStack {
-                            Text(friend.username)
-                                .foregroundColor(.white)
-                                .bold()
-                            Spacer()
-
-                            Button {
-                                Task { await removeAction(friend.id) }
-                            } label: {
-                                Image(systemName: "person.slash")
-                                    .foregroundColor(.white)
-                                    .font(.subheadline)
-                                    .padding(8)
-                                    .glassEffect(.clear.tint(.red.opacity(0.3)), in: .circle)
-                            }
-                            .buttonStyle(.plain)
-
-                            // ✅ Challenge معلق مؤقتاً - Coming Soon
-//                            Button {
-//                                selectedFriend = friend
-//                                showChallenge = true
-//                            } label: {
-//                                Text("Challenge")
-//                                    .foregroundColor(.white)
-//                                    .font(.subheadline)
-//                                    .bold()
-//                                    .padding(.vertical, 8)
-//                                    .padding(.horizontal, 16)
-//                                    .glassEffect(.clear.interactive(), in: .capsule)
-//                            }
-//                            .buttonStyle(.plain)
-                        }
-                        .padding()
-                        .glassEffect(.clear.tint(.white.opacity(0.1)), in: .rect(cornerRadius: 20))
-                    }
-                }
-            }
-            // ✅ Sheet معلق مؤقتاً
-//            .sheet(isPresented: $showChallenge) {
-//                if let friend = selectedFriend {
-//                    ChallengeFriendV(friend: friend, friendRequestVM: friendRequestVM)
-//                        .environmentObject(store)
-//                }
-//            }
-        }
-    }
-
-    // MARK: - Received Requests Section
-    struct ReceivedRequestsSection: View {
-        @ObservedObject var friendRequestVM: FriendRequestViewModel
-        let acceptAction: (FriendRequest) async -> Void
-        let declineAction: (FriendRequest) async -> Void
-
-        private func username(for userID: String) -> String {
-            return friendRequestVM.allUsers.first(where: { $0.id == userID })?.username ?? "Unknown"
-        }
-
-        var body: some View {
-            VStack(alignment: .leading, spacing: 10) {
-                if !friendRequestVM.receivedRequests.isEmpty {
-                    Text("Received Requests")
-                        .foregroundColor(.white)
-                        .font(.headline)
-                        .padding(.leading, 10)
-
-                    ForEach(friendRequestVM.receivedRequests) { request in
-                        HStack {
-                            Text(username(for: request.from))
-                                .foregroundColor(.white)
-                                .bold()
-                            Spacer()
-
-                            Button {
-                                Task { await declineAction(request) }
-                            } label: {
-                                Image(systemName: "xmark")
-                                    .foregroundColor(.white)
-                                    .padding(8)
-                            }
-                            .buttonStyle(.plain)
-                            .glassEffect(.clear, in: .circle)
-
-                            Button {
-                                Task { try? await acceptAction(request) }
-                            } label: {
-                                Image(systemName: "checkmark")
-                                    .foregroundColor(.white)
-                                    .padding(8)
-                            }
-                            .buttonStyle(.plain)
-                            .glassEffect(.clear.tint(.accent.opacity(0.5)), in: .circle)
-                        }
-                        .padding()
-                        .glassEffect(.clear.tint(.darkBlu.opacity(0.1)), in: .rect(cornerRadius: 20))
-                    }
-                }
+        ZStack {
+            Rectangle()
+                .fill(LinearGradient(colors: [.darkBlu, .dark], startPoint: .bottom, endPoint: .top))
+                .ignoresSafeArea()
+            
+            Image("Background 4")
+                .resizable()
+                .ignoresSafeArea()
+                .opacity(0.7)
+            
+            Image("Gliter")
+                .resizable()
+                .ignoresSafeArea()
+            
+            VStack(spacing: 20) {
+                Image(systemName: "person.2.fill")
+                    .font(.system(size: 60))
+                    .foregroundColor(.white.opacity(0.3))
+                
+                Text("Friends")
+                    .font(.title.bold())
+                    .foregroundColor(.white)
+                
+                Text("Coming Soon...")
+                    .font(.subheadline)
+                    .foregroundColor(.white.opacity(0.5))
             }
         }
-    }
-
-    // MARK: - Pending Requests Section
-    struct PendingRequestsSection: View {
-        @ObservedObject var friendRequestVM: FriendRequestViewModel
-        let cancelAction: (FriendRequest) async -> Void
-
-        private func username(for userID: String) -> String {
-            return friendRequestVM.allUsers.first(where: { $0.id == userID })?.username ?? "Unknown"
-        }
-
-        var body: some View {
-            VStack(alignment: .leading, spacing: 10) {
-                if !friendRequestVM.pendingRequests.isEmpty {
-                    Text("Pending Requests")
-                        .foregroundColor(.white)
-                        .font(.headline)
-                        .padding(.leading, 10)
-
-                    ForEach(friendRequestVM.pendingRequests) { request in
-                        HStack {
-                            Text(username(for: request.to))
-                                .foregroundColor(.white)
-                                .bold()
-                            Spacer()
-
-                            Button {
-                                Task { await cancelAction(request) }
-                            } label: {
-                                Image(systemName: "person.badge.clock")
-                                    .foregroundColor(.white)
-                                    .padding(8)
-                            }
-                            .buttonStyle(.plain)
-                            .glassEffect(.clear.tint(.accent.opacity(0.5)), in: .circle)
-                        }
-                        .padding()
-                        .glassEffect(.clear.tint(.darkBlu.opacity(0.1)), in: .rect(cornerRadius: 20))
-                    }
-                }
-            }
-        }
+        .colorScheme(.dark)
     }
 }
 
 #Preview {
     FriendsV()
-        .environmentObject(OrbGoalStore())
 }

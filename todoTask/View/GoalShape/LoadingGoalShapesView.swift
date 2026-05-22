@@ -1,10 +1,10 @@
 //
-//  Untitled.swift
+//  LoadingGoalShapesView.swift
 //  todoTask
 //
-//  Created by saja khalid on 13/09/1447 AH.
-//
+
 import SwiftUI
+
 struct LoadingGoalShapesView: View {
     
     let goalText: String
@@ -22,11 +22,11 @@ struct LoadingGoalShapesView: View {
         .finishByMilestones,
         .reduceSomething
     ]
+    
     let columns = [
         GridItem(.flexible()),
         GridItem(.flexible())
     ]
-    
     
     var body: some View {
         ZStack {
@@ -37,18 +37,15 @@ struct LoadingGoalShapesView: View {
                 .resizable()
                 .ignoresSafeArea()
                 .opacity(0.7)
-            
             Image("Gliter")
                 .resizable()
                 .ignoresSafeArea()
             
             VStack(spacing: 30) {
-                
                 Text("Finding Best Orb Shape...")
                     .foregroundColor(.white)
                     .font(.title3.bold())
                 
-//                HStack(spacing: 22) {
                 LazyVGrid(columns: columns, spacing: 16) {
                     ForEach(selectedShapes.indices, id: \.self) { index in
                         GoalShapeLoadingCard(
@@ -56,7 +53,6 @@ struct LoadingGoalShapesView: View {
                             isActive: index == currentIndex
                         )
                     }
-                 
                 }
                 .padding(.horizontal, 28)
             }
@@ -67,22 +63,18 @@ struct LoadingGoalShapesView: View {
         }
     }
     
-    // MARK: - Random Selection
-    
     private func generateRandomShapes() {
-        selectedShapes = Array(
-            allShapes.shuffled()
-        )
+        selectedShapes = Array(allShapes.shuffled())
     }
     
-    // MARK: - Animation Cycle
-    
     private func startAnimationCycle() {
+        var count = 0
         Timer.scheduledTimer(withTimeInterval: 0.3, repeats: true) { timer in
-            
-            currentIndex += 1
-            
-            if currentIndex >= selectedShapes.count {
+            count += 1
+            // ✅ تأكد إن currentIndex ما يتجاوز الحدود
+            if count < selectedShapes.count {
+                currentIndex = count
+            } else {
                 timer.invalidate()
             }
         }
@@ -92,15 +84,14 @@ struct LoadingGoalShapesView: View {
         }
     }
 }
+
 struct GoalShapeLoadingCard: View {
     
     let shape: GoalShape
     let isActive: Bool
     
     var body: some View {
-        
         VStack(spacing: 12) {
-            
             Image(systemName: icon(for: shape))
                 .font(.system(size: 32, weight: .medium))
                 .foregroundColor(.white)
@@ -125,8 +116,6 @@ struct GoalShapeLoadingCard: View {
         .scaleEffect(isActive ? 1.03 : 1)
         .animation(.easeInOut(duration: 0.35), value: isActive)
     }
-    
-    // MARK: Mapping
     
     func icon(for shape: GoalShape) -> String {
         switch shape {
