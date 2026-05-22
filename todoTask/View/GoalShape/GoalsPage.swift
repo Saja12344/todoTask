@@ -7,8 +7,6 @@ import SwiftUI
 
 private enum CreationStep: Hashable {
     case write
-    case loading(shape: GoalShape, text: String)
-    case suggested(shape: GoalShape, text: String)
     case manual(typePrefill: GoalType?)
     case design
 }
@@ -24,74 +22,86 @@ struct GoalsPage: View {
     @State private var chosenSettings:    GoalSettings?  = nil
 
     @StateObject private var energyVM = DailyEnergyViewModel()
-    @State private var selectedTab = 0
-    
-    private let columns: [GridItem] = [GridItem(.adaptive(minimum: 170), spacing: 16)]
 
     var body: some View {
         NavigationStack(path: $path) {
-            ZStack {
-                Rectangle()
-                    .fill(LinearGradient(colors: [.darkBlu, .dark], startPoint: .bottom, endPoint: .top))
+            GeometryReader { geo in
+                ZStack {
+                    LinearGradient(
+                        colors: [Color(hex: "0a0a1a"), Color(hex: "0d1b3e"), Color(hex: "0a0a1a")],
+                        startPoint: .top,
+                        endPoint: .bottom
+                    )
                     .ignoresSafeArea()
-                Image("Background 4")
-                    .resizable()
-                    .ignoresSafeArea()
-                    .opacity(0.7)
-                Image("Gliter")
-                    .resizable()
-                    .ignoresSafeArea()
-                
-                VStack(spacing: 16) {
-                    Picker("", selection: $selectedTab) {
-                        Text("Your Orbs").tag(0)
-                        Text("Shared Orbs").tag(1)
-                    }
-                    .pickerStyle(.segmented)
-                    .padding(.horizontal, 16)
-                    .padding(.top, 8)
-                    
-                    if selectedTab == 0 {
-                        ScrollView(showsIndicators: false) {
-                            VStack(alignment: .leading, spacing: 14) {
-                                Text("Your Orbs")
-                                    .font(.system(size: 22, weight: .semibold))
-                                    .foregroundStyle(.white)
-                                    .padding(.horizontal, 16).padding(.top, 8)
-                                
-                                LazyVGrid(columns: columns, spacing: 16) {
-                                    ForEach(store.goals) { goal in
-                                        NavigationLink {
-                                            GoalTasksView(goalID: goal.id)
-                                        } label: {
-                                            GoalGridCard(goal: goal)
-                                        }
-                                        .buttonStyle(.plain)
-                                        .contextMenu {
-                                            Button(role: .destructive) {
-                                                goalPendingDelete = goal
-                                                showDeleteConfirm = true
-                                            } label: { Label("Delete Orb", systemImage: "trash") }
-                                        }
-                                        .onLongPressGesture(minimumDuration: 0.6) {
-                                            goalPendingDelete = goal
-                                            showDeleteConfirm = true
-                                        }
-                                    }
+
+                    ScrollView(showsIndicators: false) {
+                        ZStack(alignment: .top) {
+
+                            ForEach(0..<3, id: \.self) { i in
+                                Image("Star")
+                                    .resizable()
+                                    .scaledToFill()
+                                    .frame(width: geo.size.width, height: geo.size.height * 1.2)
+                                    .opacity(0.85 - Double(i) * 0.2)
+                                    .offset(y: CGFloat(i) * geo.size.height * 0.9)
+                                    .overlay(
+                                        LinearGradient(
+                                            colors: [
+                                                .clear,
+                                                Color(hex: "0a0a1a").opacity(Double(i + 1) * 0.4)
+                                            ],
+                                            startPoint: .top,
+                                            endPoint: .bottom
+                                        )
+                                    )
+                            }
+
+                            if store.goals.isEmpty {
+                                VStack(spacing: 16) {
+                                    Spacer().frame(height: geo.size.height * 0.3)
+                                    Image(systemName: "moon.stars")
+                                        .font(.system(size: 60))
+                                        .foregroundColor(.white.opacity(0.2))
+                                    Text("No Orbs Yet")
+                                        .font(.title2.bold())
+                                        .foregroundColor(.white.opacity(0.4))
+                                    Text("Tap + to create your first goal")
+                                        .font(.subheadline)
+                                        .foregroundColor(.white.opacity(0.3))
                                 }
-                                .padding(.horizontal, 16)
-                                Spacer().frame(height: 30)
+                                .frame(width: geo.size.width)
+                            } else {
+                                SpaceOrbsLayout(
+                                    goals: store.goals,
+                                    screenWidth: geo.size.width,
+                                    onDelete: { goal in
+                                        goalPendingDelete = goal
+                                        showDeleteConfirm = true
+                                    }
+                                )
+                                .padding(.bottom, 120)
                             }
                         }
-                    } else {
-                        ScrollView {
-                            Text("Shared Orbs")
-                                .font(.title2)
-                                .foregroundColor(.white)
-                                .padding()
-                            Text("Coming soon...")
-                                .foregroundColor(.white.opacity(0.6))
-                                .padding()
+                    }
+
+                    VStack {
+                        Spacer()
+                        HStack {
+                            Spacer()
+                            Button { startCreation() } label: {
+                                Image(systemName: "plus")
+                                    .font(.system(size: 24, weight: .bold))
+                                    .foregroundColor(.white)
+                                    .frame(width: 60, height: 60)
+                                    .background(
+                                        Circle()
+                                            .fill(Color.blue.opacity(0.3))
+                                            .overlay(Circle().stroke(Color.white.opacity(0.3), lineWidth: 1))
+                                    )
+                                    .shadow(color: .blue.opacity(0.5), radius: 20)
+                            }
+                            .padding(.trailing, 24)
+                            .padding(.bottom, 24)
                         }
                     }
                 }
@@ -111,36 +121,15 @@ struct GoalsPage: View {
                 case .write:
                     WriteGoalView(onDone: { title, suggestion in
                         draftTitle = title
-                        if let shape = suggestion {
-                            path.append(.loading(shape: shape, text: title))
-                        } else {
-                            path.append(.manual(typePrefill: nil))
-                        }
+                        // ✅ مباشرة للـ manual بدون loading أو suggested
+                        path.append(.manual(typePrefill: nil))
                     }, onCancel: { _ = path.popLast() })
                     .navigationBarBackButtonHidden(true)
 
-                case let .loading(shape, text):
-                    LoadingGoalShapesView(goalText: text, suggestedShape: shape) {
-                        path.append(.suggested(shape: shape, text: text))
-                    }
-
-                case let .suggested(shape, text):
-                    SuggestedGoalShapeView(
-                        goalText: text, suggestedShape: shape,
-                        onFinish: { type in
-                            chosenType = type
-                            path.append(.manual(typePrefill: type)) // ✅ يروح للـ GoalShapeView مع النوع محدد
-                        },
-                        onChangeShape: { path.append(.manual(typePrefill: nil)) },
-                        onBack: { _ = path.removeLast(2) }
-                    )
-                    .navigationBarBackButtonHidden(true)
-
                 case let .manual(typePrefill):
-                    // ✅ صفحة وحدة تختار النوع وتحشي البيانات
                     GoalShapeView(
                         selectedGoal: typePrefill,
-                        showSettings: typePrefill != nil, // لو في نوع محدد يفتح البيانات مباشرة
+                        showSettings: typePrefill != nil,
                         onFinished: { type, settings in
                             chosenType = type
                             chosenSettings = settings
@@ -173,70 +162,98 @@ struct GoalsPage: View {
             }
         }
     }
+
+    private func startCreation() {
+        draftTitle = ""; chosenType = nil; chosenSettings = nil
+        path = [.write]
+    }
 }
 
-// MARK: - GoalGridCard
-struct GoalGridCard: View {
-    let goal: OrbGoal
-    @State private var anim: Double = 0
+// MARK: - Space Orbs Layout
+struct SpaceOrbsLayout: View {
+    let goals: [OrbGoal]
+    let screenWidth: CGFloat
+    let onDelete: (OrbGoal) -> Void
+
+    private func orbSize(for index: Int) -> CGFloat {
+        let fractions: [CGFloat] = [0.32, 0.22, 0.28, 0.20, 0.30, 0.24, 0.26, 0.21]
+        return screenWidth * fractions[index % fractions.count]
+    }
+
+    private func xFraction(for index: Int) -> CGFloat {
+        let positions: [CGFloat] = [0.25, 0.72, 0.42, 0.78, 0.20, 0.62, 0.80, 0.38]
+        return positions[index % positions.count]
+    }
 
     var body: some View {
-        let float = CGFloat(sin(anim) * 1.4)
-        ZStack(alignment: .topTrailing) {
-            VStack(spacing: 4) {
+        let rowHeight = screenWidth * 0.55
+        let totalHeight = CGFloat(goals.count) * rowHeight + 160
+
+        ZStack(alignment: .topLeading) {
+            ForEach(Array(goals.enumerated()), id: \.element.id) { index, goal in
+                let size = orbSize(for: index)
+                let xPos = screenWidth * xFraction(for: index)
+                let yPos = CGFloat(index) * rowHeight + rowHeight / 2
+
+                SpaceOrbCard(goal: goal, size: size)
+                    .position(x: xPos, y: yPos)
+                    .contextMenu {
+                        Button(role: .destructive) {
+                            onDelete(goal)
+                        } label: {
+                            Label("Delete Orb", systemImage: "trash")
+                        }
+                    }
+            }
+        }
+        .frame(width: screenWidth, height: totalHeight)
+    }
+}
+
+// MARK: - Space Orb Card
+struct SpaceOrbCard: View {
+    let goal: OrbGoal
+    let size: CGFloat
+
+    @State private var floatY: CGFloat = 0
+    @State private var floatX: CGFloat = 0
+    @State private var rotation: Double = 0
+
+    var body: some View {
+        NavigationLink(destination: GoalTasksView(goalID: goal.id)) {
+            VStack(spacing: 0) {
                 PlanetOrbView(
-                    size: 72,
+                    size: size,
                     gradientColors: goal.design.gradientStops.map { $0.swiftUIColor },
-                    glow: min(goal.design.glow, 0.12),
+                    glow: goal.design.glow,
                     textureAssetName: goal.design.textureAssetName,
                     textureOpacity: goal.design.textureOpacity
                 )
-                .offset(y: float - 2)
-                .onAppear {
-                    withAnimation(.easeInOut(duration: 3).repeatForever(autoreverses: true)) {
-                        anim = 2 * .pi
-                    }
-                }
-                .overlay(
-                    Group {
-                        if goal.isChallenge, let info = goal.challengeInfo {
-                            MiniDualRing(myProgress: goal.progress, friendProgress: info.friendProgress)
-                                .frame(width: 88, height: 88)
-                        }
-                    }
-                )
+                .offset(x: floatX, y: floatY)
+                .rotationEffect(.degrees(rotation))
 
-                VStack(alignment: .leading, spacing: 8) {
+                VStack(spacing: 2) {
                     Text(goal.title)
-                        .font(.system(size: 15, weight: .semibold)).foregroundStyle(.white).lineLimit(1)
-                    HStack(spacing: 8) {
-                        ProgressView(value: goal.progress)
-                            .tint(.white).frame(maxWidth: .infinity).scaleEffect(x: 1, y: 0.9, anchor: .center)
-                        Text("\(Int(goal.progress * 100))%")
-                            .font(.system(size: 12, weight: .semibold)).foregroundStyle(.white.opacity(0.9))
-                            .frame(minWidth: 34, alignment: .trailing)
-                    }
-                    Text("\(goal.doneTasks)/\(goal.totalTasks) tasks")
-                        .font(.system(size: 12, weight: .medium)).foregroundStyle(.white.opacity(0.75))
-                }
-                .padding(10)
-                .background(RoundedRectangle(cornerRadius: 14).fill(.black.opacity(0.28)))
-                .offset(y: -65)
-            }
-            .padding(12).frame(width: 180, height: 208)
-            .background(
-                RoundedRectangle(cornerRadius: 18).fill(.white.opacity(0.06))
-                    .overlay(RoundedRectangle(cornerRadius: 18).stroke(.white.opacity(0.12), lineWidth: 1))
-            )
-            .contentShape(RoundedRectangle(cornerRadius: 18))
-            .shadow(color: .black.opacity(0.22), radius: 8, x: 0, y: 5)
+                        .font(.system(size: min(size * 0.13, 15), weight: .semibold))
+                        .foregroundColor(.white)
+                        .lineLimit(1)
+                        .shadow(color: .black.opacity(0.8), radius: 4)
 
-            if goal.isChallenge {
-                Text("⚡️")
-                    .font(.caption)
-                    .padding(6)
-                    .background(Circle().fill(Color.yellow.opacity(0.25)))
-                    .padding(8)
+                    Text("\(Int(goal.progress * 100))%")
+                        .font(.system(size: min(size * 0.11, 13), weight: .bold))
+                        .foregroundColor(.white.opacity(0.7))
+                        .shadow(color: .black.opacity(0.8), radius: 4)
+                }
+                .padding(.top, -size * 0.45)
+            }
+        }
+        .buttonStyle(.plain)
+        .onAppear {
+            let duration = Double.random(in: 3...5)
+            withAnimation(.easeInOut(duration: duration).repeatForever(autoreverses: true)) {
+                floatY = CGFloat.random(in: -10...10)
+                floatX = CGFloat.random(in: -8...8)
+                rotation = Double.random(in: -4...4)
             }
         }
     }
@@ -262,5 +279,26 @@ struct MiniDualRing: View {
                 .rotationEffect(.degrees(-90))
                 .animation(.easeInOut(duration: 0.4), value: myProgress)
         }
+    }
+}
+
+// MARK: - Color Hex Extension
+extension Color {
+    init(hex: String) {
+        let hex = hex.trimmingCharacters(in: CharacterSet.alphanumerics.inverted)
+        var int: UInt64 = 0
+        Scanner(string: hex).scanHexInt64(&int)
+        let a, r, g, b: UInt64
+        switch hex.count {
+        case 3:
+            (a, r, g, b) = (255, (int >> 8) * 17, (int >> 4 & 0xF) * 17, (int & 0xF) * 17)
+        case 6:
+            (a, r, g, b) = (255, int >> 16, int >> 8 & 0xFF, int & 0xFF)
+        case 8:
+            (a, r, g, b) = (int >> 24, int >> 16 & 0xFF, int >> 8 & 0xFF, int & 0xFF)
+        default:
+            (a, r, g, b) = (255, 0, 0, 0)
+        }
+        self.init(.sRGB, red: Double(r)/255, green: Double(g)/255, blue: Double(b)/255, opacity: Double(a)/255)
     }
 }

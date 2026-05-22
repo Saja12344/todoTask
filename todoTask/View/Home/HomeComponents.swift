@@ -37,10 +37,10 @@ struct CheckBoxView: View {
     }
 }
 
+// ✅ شيلت .suggested من الـ enum
 private enum CreationStep: Hashable {
     case write
     case loading(shape: GoalShape, text: String)
-    case suggested(shape: GoalShape, text: String)
     case manual(typePrefill: GoalType?)
     case design
 }
@@ -240,22 +240,17 @@ struct today: View {
                     }, onCancel: { _ = path.popLast() })
                     .navigationBarBackButtonHidden(true)
 
-                case let .loading(shape, text):
-                    LoadingGoalShapesView(goalText: text, suggestedShape: shape) {
-                        path.append(.suggested(shape: shape, text: text))
-                    }
-
-                case let .suggested(shape, text):
-                    SuggestedGoalShapeView(
-                        goalText: text, suggestedShape: shape,
-                        onFinish: { type in
-                            chosenType = type
-                            path.append(.manual(typePrefill: type))
-                        },
-                        onChangeShape: { path.append(.manual(typePrefill: nil)) },
-                        onBack: { _ = path.removeLast(2) }
-                    )
-                    .navigationBarBackButtonHidden(true)
+                case let .loading(shape: shape, text: text):
+                    // Show a lightweight loading view, then advance automatically
+                    ProgressView()
+                        .progressViewStyle(.circular)
+                        .onAppear {
+                            // Directly proceed to manual without suggested
+                            // If you later add a Loading view, replace this with navigation to it
+                            DispatchQueue.main.async {
+                                path.append(.manual(typePrefill: nil))
+                            }
+                        }
 
                 case let .manual(typePrefill):
                     GoalShapeView(
@@ -289,6 +284,10 @@ struct today: View {
                     }
                     .environmentObject(store)
                     .navigationBarBackButtonHidden(true)
+//                case .loading(shape: let shape, text: let text):
+                    
+             
+                    
                 }
             }
         }
@@ -561,3 +560,4 @@ func notificationDenied(_ completion: @escaping (Bool) -> Void) {
     GoalsPage()
         .environmentObject(UserViewModel())
 }
+

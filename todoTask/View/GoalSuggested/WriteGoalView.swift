@@ -1,7 +1,11 @@
+//
+//  WriteGoalView.swift
+//  todoTask
+//
+
 import SwiftUI
 
 struct WriteGoalView: View {
-    // Output to parent: typed text and optional suggestion
     let onDone: (String, GoalShape?) -> Void
     let onCancel: (() -> Void)?
 
@@ -24,13 +28,11 @@ struct WriteGoalView: View {
                 .resizable()
                 .ignoresSafeArea()
                 .opacity(0.7)
-            
             Image("Gliter")
                 .resizable()
                 .ignoresSafeArea()
 
             VStack(spacing: 0) {
-                // Top bar
                 HStack {
                     Button(action: { onCancel?() }) {
                         Image(systemName: "chevron.left")
@@ -39,9 +41,7 @@ struct WriteGoalView: View {
                             .frame(width: 50, height: 50)
                             .glassEffect(.clear.tint(Color.black.opacity(0.4)), in: Circle())
                     }
-
                     Spacer()
-
                     Button(action: submit) {
                         Image(systemName: "checkmark")
                             .font(.title2)
@@ -52,10 +52,9 @@ struct WriteGoalView: View {
                     .disabled(goalText.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty)
                     .opacity(goalText.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty ? 0.5 : 1)
                 }
-                .padding(.top,-10)
-                .padding(.bottom,-100)
-                .padding(.horizontal,20)
-
+                .padding(.top, -10)
+                .padding(.bottom, -100)
+                .padding(.horizontal, 20)
 
                 Spacer()
 
@@ -75,14 +74,8 @@ struct WriteGoalView: View {
                     .multilineTextAlignment(.center)
                     .padding(.horizontal, 30)
                     .padding(.vertical, 16)
-                    .background(
-                        RoundedRectangle(cornerRadius: 20)
-                            .fill(Color.black.opacity(0.3))
-                    )
-                    .overlay(
-                        RoundedRectangle(cornerRadius: 20)
-                            .stroke(Color.white.opacity(0.2), lineWidth: 1)
-                    )
+                    .background(RoundedRectangle(cornerRadius: 20).fill(Color.black.opacity(0.3)))
+                    .overlay(RoundedRectangle(cornerRadius: 20).stroke(Color.white.opacity(0.2), lineWidth: 1))
                     .padding(.horizontal, 30)
                 }
 
