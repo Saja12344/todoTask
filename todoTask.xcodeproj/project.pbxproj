@@ -6,6 +6,12 @@
 	objectVersion = 77;
 	objects = {
 
+/* Begin PBXBuildFile section */
+		8A9FCBA12FCF7D93002D85F3 /* FirebaseAuth in Frameworks */ = {isa = PBXBuildFile; productRef = 8A9FCBA02FCF7D93002D85F3 /* FirebaseAuth */; };
+		8A9FCBA32FCF7D93002D85F3 /* FirebaseFirestore in Frameworks */ = {isa = PBXBuildFile; productRef = 8A9FCBA22FCF7D93002D85F3 /* FirebaseFirestore */; };
+		8A9FCC572FCF85F2002D85F3 /* GoogleService-Info.plist in Resources */ = {isa = PBXBuildFile; fileRef = 8A9FCC562FCF85F2002D85F3 /* GoogleService-Info.plist */; };
+/* End PBXBuildFile section */
+
 /* Begin PBXContainerItemProxy section */
 		8A619DE22F37A00200C49093 /* PBXContainerItemProxy */ = {
 			isa = PBXContainerItemProxy;
@@ -27,6 +33,7 @@
 		8A619DD42F37A00000C49093 /* todoTask.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = todoTask.app; sourceTree = BUILT_PRODUCTS_DIR; };
 		8A619DE12F37A00200C49093 /* todoTaskTests.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = todoTaskTests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
 		8A619DEB2F37A00200C49093 /* todoTaskUITests.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = todoTaskUITests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
+		8A9FCC562FCF85F2002D85F3 /* GoogleService-Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist.xml; path = "GoogleService-Info.plist"; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXFileSystemSynchronizedBuildFileExceptionSet section */
@@ -83,6 +90,8 @@
 			isa = PBXFrameworksBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
+				8A9FCBA12FCF7D93002D85F3 /* FirebaseAuth in Frameworks */,
+				8A9FCBA32FCF7D93002D85F3 /* FirebaseFirestore in Frameworks */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -106,6 +115,7 @@
 		8A619DCB2F37A00000C49093 = {
 			isa = PBXGroup;
 			children = (
+				8A9FCC562FCF85F2002D85F3 /* GoogleService-Info.plist */,
 				8A619DD62F37A00000C49093 /* todoTask */,
 				8A619DE42F37A00200C49093 /* todoTaskTests */,
 				8A619DEE2F37A00200C49093 /* todoTaskUITests */,
@@ -143,6 +153,8 @@
 			);
 			name = todoTask;
 			packageProductDependencies = (
+				8A9FCBA02FCF7D93002D85F3 /* FirebaseAuth */,
+				8A9FCBA22FCF7D93002D85F3 /* FirebaseFirestore */,
 			);
 			productName = todoTask;
 			productReference = 8A619DD42F37A00000C49093 /* todoTask.app */;
@@ -226,6 +238,9 @@
 			);
 			mainGroup = 8A619DCB2F37A00000C49093;
 			minimizedProjectReferenceProxies = 1;
+			packageReferences = (
+				8A9FCB9F2FCF7D93002D85F3 /* XCRemoteSwiftPackageReference "firebase-ios-sdk" */,
+			);
 			preferredProjectObjectVersion = 77;
 			productRefGroup = 8A619DD52F37A00000C49093 /* Products */;
 			projectDirPath = "";
@@ -243,6 +258,7 @@
 			isa = PBXResourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
+				8A9FCC572FCF85F2002D85F3 /* GoogleService-Info.plist in Resources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -617,6 +633,30 @@
 			defaultConfigurationName = Release;
 		};
 /* End XCConfigurationList section */
+
+/* Begin XCRemoteSwiftPackageReference section */
+		8A9FCB9F2FCF7D93002D85F3 /* XCRemoteSwiftPackageReference "firebase-ios-sdk" */ = {
+			isa = XCRemoteSwiftPackageReference;
+			repositoryURL = "https://github.com/firebase/firebase-ios-sdk";
+			requirement = {
+				kind = upToNextMajorVersion;
+				minimumVersion = 12.14.0;
+			};
+		};
+/* End XCRemoteSwiftPackageReference section */
+
+/* Begin XCSwiftPackageProductDependency section */
+		8A9FCBA02FCF7D93002D85F3 /* FirebaseAuth */ = {
+			isa = XCSwiftPackageProductDependency;
+			package = 8A9FCB9F2FCF7D93002D85F3 /* XCRemoteSwiftPackageReference "firebase-ios-sdk" */;
+			productName = FirebaseAuth;
+		};
+		8A9FCBA22FCF7D93002D85F3 /* FirebaseFirestore */ = {
+			isa = XCSwiftPackageProductDependency;
+			package = 8A9FCB9F2FCF7D93002D85F3 /* XCRemoteSwiftPackageReference "firebase-ios-sdk" */;
+			productName = FirebaseFirestore;
+		};
+/* End XCSwiftPackageProductDependency section */
 	};
 	rootObject = 8A619DCC2F37A00000C49093 /* Project object */;
 }
