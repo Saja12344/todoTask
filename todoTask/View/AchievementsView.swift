@@ -139,8 +139,6 @@ struct AchievementsView: View {
                     .font(.caption)
                     .foregroundStyle(.white.opacity(0.45))
             }
-            Spacer()
-            Text("🏆")
         }
         .padding(14)
         .background {

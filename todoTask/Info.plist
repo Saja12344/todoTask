@@ -6,7 +6,11 @@
 	<array>
 		<dict>
 			<key>CFBundleURLName</key>
-			<string></string>
+			<string>com.shahad.todoTask</string>
+			<key>CFBundleURLSchemes</key>
+			<array>
+				<string>todoTask</string>
+			</array>
 		</dict>
 	</array>
 	<key>Identifier</key>

@@ -86,6 +86,7 @@ struct GoalsPage: View {
             .onAppear {
                 energyVM.refreshToday()
                 challengeOrbs.attach(store: store)
+                store.reconcileOrbDuplicates()
             }
             .sheet(item: $challengeGoalOpen) { goal in
                 ChallengeOrbDetailView(goal: goal, onClose: { challengeGoalOpen = nil })

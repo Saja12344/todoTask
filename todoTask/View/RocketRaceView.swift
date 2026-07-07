@@ -347,80 +347,21 @@ struct FunMissionsPanel: View {
     let onComplete: (String) -> Void
 
     private var accent: Color { Color("accent") }
-    private var myDone: [ChallengeTask] { tasks.filter { $0.completedBy == myId } }
-    private var openTasks: [ChallengeTask] { tasks.filter { $0.completedBy == nil } }
-    private var nextTask: ChallengeTask? { openTasks.first }
-    private var queuedTasks: [ChallengeTask] { Array(openTasks.dropFirst()) }
-    private var lostTasks: [ChallengeTask] { tasks.filter { $0.completedBy != nil && $0.completedBy != myId } }
+    private var myDone: Int { tasks.filter { $0.completedBy == myId }.count }
 
     var body: some View {
-        VStack(alignment: .leading, spacing: 14) {
-            HStack(alignment: .center) {
+        VStack(alignment: .leading, spacing: 12) {
+            HStack {
                 Text(lang.t(.raceMissionsTitle))
-                    .font(.headline.bold())
+                    .font(.headline.weight(.bold))
                     .foregroundStyle(.white)
                 Spacer()
-                Text(lang.challengeTasksProgress(done: myDone.count, total: tasks.count))
+                Text(lang.challengeTasksProgress(done: myDone, total: tasks.count))
                     .font(.caption.weight(.semibold))
                     .foregroundStyle(accent)
                     .padding(.horizontal, 10)
                     .padding(.vertical, 5)
-                    .background(Capsule().fill(accent.opacity(0.14)))
-            }
-
-            if let nextTask {
-                VStack(alignment: .leading, spacing: 6) {
-                    Text(lang.t(.challengeNextMission))
-                        .font(.caption.weight(.semibold))
-                        .foregroundStyle(.white.opacity(0.45))
-
-                    FunChallengeMissionRow(
-                        task: nextTask,
-                        myId: myId,
-                        lang: lang,
-                        style: .featured,
-                        onTap: { onComplete(nextTask.id) }
-                    )
-                }
-            }
-
-            if !queuedTasks.isEmpty {
-                VStack(spacing: 8) {
-                    ForEach(queuedTasks) { task in
-                        FunChallengeMissionRow(
-                            task: task,
-                            myId: myId,
-                            lang: lang,
-                            style: .compact,
-                            onTap: { onComplete(task.id) }
-                        )
-                    }
-                }
-            }
-
-            if !myDone.isEmpty {
-                HStack(spacing: 8) {
-                    Image(systemName: "checkmark.circle.fill")
-                        .foregroundStyle(accent)
-                    Text(lang.challengeCompletedCount(myDone.count))
-                        .font(.caption.weight(.medium))
-                        .foregroundStyle(.white.opacity(0.5))
-                }
-                .padding(.top, 4)
-            }
-
-            if !lostTasks.isEmpty {
-                VStack(spacing: 8) {
-                    ForEach(lostTasks) { task in
-                        FunChallengeMissionRow(
-                            task: task,
-                            myId: myId,
-                            lang: lang,
-                            style: .compact,
-                            onTap: {}
-                        )
-                    }
-                }
+                    .glassEffect(.clear.tint(accent.opacity(0.2)), in: .capsule)
             }
 
             if tasks.isEmpty {
@@ -429,29 +370,29 @@ struct FunMissionsPanel: View {
                     .foregroundStyle(.white.opacity(0.4))
                     .frame(maxWidth: .infinity)
                     .padding(.vertical, 12)
+            } else {
+                VStack(spacing: 8) {
+                    ForEach(tasks) { task in
+                        FunChallengeMissionRow(
+                            task: task,
+                            myId: myId,
+                            lang: lang,
+                            onTap: { onComplete(task.id) }
+                        )
+                    }
+                }
             }
         }
         .padding(16)
         .frame(maxWidth: .infinity, alignment: .leading)
-        .background {
-            RoundedRectangle(cornerRadius: 20, style: .continuous)
-                .fill(.clear)
-                .glassEffect(.clear.tint(Color.black.opacity(0.32)), in: .rect(cornerRadius: 20))
-        }
-        .overlay {
-            RoundedRectangle(cornerRadius: 20, style: .continuous)
-                .stroke(.white.opacity(0.14), lineWidth: 1)
-        }
+        .glassPanel()
     }
 }
 
 struct FunChallengeMissionRow: View {
-    enum Style { case featured, compact }
-
     let task: ChallengeTask
     let myId: String
     let lang: LanguageManager
-    var style: Style = .compact
     let onTap: () -> Void
 
     private var accent: Color { Color("accent") }
@@ -460,16 +401,11 @@ struct FunChallengeMissionRow: View {
     private var isOpen: Bool { task.completedBy == nil }
 
     var body: some View {
-        HStack(alignment: .center, spacing: style == .featured ? 14 : 10) {
-            RoundedRectangle(cornerRadius: 2, style: .continuous)
-                .fill(accent.opacity(isOpen ? 0.9 : 0.3))
-                .frame(width: 3, height: style == .featured ? 36 : 24)
-
-            VStack(alignment: .leading, spacing: 3) {
+        HStack(alignment: .center, spacing: 12) {
+            VStack(alignment: .leading, spacing: 4) {
                 Text(task.title)
-                    .font(.system(size: style == .featured ? 16 : 14, weight: style == .featured ? .semibold : .medium))
-                    .foregroundStyle(.white)
-                    .opacity(isOpen ? 0.95 : 0.42)
+                    .font(.system(size: 15, weight: .medium))
+                    .foregroundStyle(.white.opacity(isOpen ? 0.92 : 0.4))
                     .lineLimit(2)
                     .strikethrough(!isOpen, color: .white.opacity(0.3))
 
@@ -478,60 +414,40 @@ struct FunChallengeMissionRow: View {
                     .foregroundStyle(.white.opacity(0.42))
             }
 
-            Spacer(minLength: 6)
+            Spacer(minLength: 8)
 
             if isOpen {
                 Button(action: onTap) {
-                    if style == .featured {
-                        HStack(spacing: 6) {
-                            Image(systemName: "checkmark")
-                                .font(.system(size: 14, weight: .bold))
-                            Text(lang.t(.raceTapLaunch))
-                                .font(.system(size: 15, weight: .bold))
+                    Image(systemName: "checkmark")
+                        .font(.system(size: 15, weight: .bold))
+                        .foregroundStyle(accent)
+                        .frame(width: 44, height: 44)
+                        .glassEffect(.clear.tint(accent.opacity(0.22)).interactive(), in: .circle)
+                        .overlay {
+                            Circle().stroke(accent.opacity(0.42), lineWidth: 1)
                         }
-                        .foregroundStyle(Color.black.opacity(0.85))
-                        .padding(.horizontal, 16)
-                        .frame(minWidth: 44, minHeight: 44)
-                        .background(Capsule().fill(accent))
-                    } else {
-                        ZStack {
-                            Circle()
-                                .fill(accent.opacity(0.18))
-                                .frame(width: 44, height: 44)
-                            Circle()
-                                .stroke(accent.opacity(0.8), lineWidth: 2)
-                                .frame(width: 44, height: 44)
-                            Image(systemName: "checkmark")
-                                .font(.system(size: 14, weight: .bold))
-                                .foregroundStyle(accent)
-                        }
-                    }
                 }
                 .buttonStyle(.plain)
-                .contentShape(Rectangle())
             } else if isDoneByMe {
                 Image(systemName: "checkmark.circle.fill")
-                    .font(.system(size: style == .featured ? 30 : 26))
-                    .foregroundStyle(accent)
-            } else {
-                Image(systemName: "person.circle.fill")
                     .font(.system(size: 26))
-                    .foregroundStyle(.white.opacity(0.32))
+                    .foregroundStyle(accent)
+                    .frame(width: 44, height: 44)
+            } else {
+                Image(systemName: "minus.circle")
+                    .font(.system(size: 24))
+                    .foregroundStyle(.white.opacity(0.28))
+                    .frame(width: 44, height: 44)
             }
         }
-        .padding(.horizontal, style == .featured ? 14 : 10)
-        .padding(.vertical, style == .featured ? 12 : 7)
-        .background {
-            RoundedRectangle(cornerRadius: style == .featured ? 16 : 12, style: .continuous)
-                .fill(.white.opacity(isOpen ? (style == .featured ? 0.08 : 0.04) : 0.025))
-        }
+        .padding(.horizontal, 12)
+        .padding(.vertical, 10)
+        .glassEffect(.clear.tint(Color.white.opacity(isOpen ? 0.06 : 0.03)), in: .rect(cornerRadius: 14))
         .overlay {
-            if style == .featured && isOpen {
-                RoundedRectangle(cornerRadius: 16, style: .continuous)
-                    .stroke(accent.opacity(0.45), lineWidth: 1)
-            }
+            RoundedRectangle(cornerRadius: 14, style: .continuous)
+                .stroke(.white.opacity(isOpen ? 0.1 : 0.06), lineWidth: 1)
         }
-        .contentShape(RoundedRectangle(cornerRadius: style == .featured ? 16 : 12, style: .continuous))
+        .contentShape(RoundedRectangle(cornerRadius: 14, style: .continuous))
         .onTapGesture {
             if isOpen { onTap() }
         }
@@ -544,13 +460,26 @@ struct FunChallengeMissionRow: View {
     }
 }
 
+private extension View {
+    func glassPanel(cornerRadius: CGFloat = 20) -> some View {
+        self
+            .background {
+                RoundedRectangle(cornerRadius: cornerRadius, style: .continuous)
+                    .fill(.clear)
+                    .glassEffect(.clear.tint(Color.black.opacity(0.34)), in: .rect(cornerRadius: cornerRadius))
+            }
+            .overlay {
+                RoundedRectangle(cornerRadius: cornerRadius, style: .continuous)
+                    .stroke(.white.opacity(0.12), lineWidth: 1)
+            }
+    }
+}
+
 // MARK: - Waiting room
 private struct FunWaitingRoomView: View {
     @EnvironmentObject private var lang: LanguageManager
     let roomId: String
     let room: ChallengeRoom?
-    @State private var copied = false
-    @State private var pulse = false
 
     var body: some View {
         VStack(spacing: 20) {
@@ -575,24 +504,11 @@ private struct FunWaitingRoomView: View {
             Text(lang.t(.challengeSendCode))
                 .font(.subheadline)
                 .foregroundStyle(.white.opacity(0.5))
+                .multilineTextAlignment(.center)
 
-            Text(roomId)
-                .font(.system(size: 22, weight: .bold, design: .monospaced))
-                .foregroundStyle(Color("accent"))
-                .padding(.horizontal, 22)
-                .padding(.vertical, 12)
-                .background(Capsule().fill(.white.opacity(0.08)))
-                .scaleEffect(pulse ? 1.02 : 1)
-                .onTapGesture {
-                    UIPasteboard.general.string = roomId
-                    copied = true
-                }
-
-            if copied {
-                Text(lang.t(.challengeCopied))
-                    .font(.caption.weight(.semibold))
-                    .foregroundStyle(.green)
-            }
+            ChallengeCodeCard(roomId: roomId)
+                .environmentObject(lang)
+                .padding(.horizontal, 8)
 
             Text(lang.t(.friendsStep3))
                 .font(.caption)
@@ -601,11 +517,6 @@ private struct FunWaitingRoomView: View {
                 .padding(.horizontal, 32)
         }
         .padding(.horizontal, 24)
-        .onAppear {
-            withAnimation(.easeInOut(duration: 1.4).repeatForever(autoreverses: true)) {
-                pulse = true
-            }
-        }
     }
 }
 

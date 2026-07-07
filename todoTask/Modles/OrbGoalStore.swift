@@ -43,7 +43,8 @@ final class OrbGoalStore: ObservableObject {
         persistence.migrateLegacyGlobalStore(to: userId)
 
         let local = persistence.load(userId: userId)
-        goals = local
+        goals = Self.deduplicateGoals(local)
+        if goals != local { persistence.save(goals, userId: userId) }
         migratePartialTaskAmounts()
         GoalTaskNotificationScheduler.reschedule(goals: goals)
         reattachChallengeListeners(myId: myId ?? userId)
@@ -75,7 +76,46 @@ final class OrbGoalStore: ObservableObject {
     private static func mergeGoals(local: [OrbGoal], cloud: [OrbGoal]) -> [OrbGoal] {
         var merged = Dictionary(uniqueKeysWithValues: cloud.map { ($0.id, $0) })
         for goal in local { merged[goal.id] = goal }
-        return merged.values.sorted { $0.createdAt < $1.createdAt }
+        return deduplicateGoals(merged.values.sorted { $0.createdAt < $1.createdAt })
+    }
+
+    /// One orb per challenge room; no duplicate planet when a goal becomes a challenge.
+    private static func deduplicateGoals(_ input: [OrbGoal]) -> [OrbGoal] {
+        var seenRoomIds = Set<String>()
+        var kept: [OrbGoal] = []
+
+        for goal in input.sorted(by: { $0.createdAt < $1.createdAt }) {
+            if let roomId = goal.challengeInfo?.challengeID {
+                guard seenRoomIds.insert(roomId).inserted else { continue }
+            }
+            kept.append(goal)
+        }
+
+        let challengeBaseTitles = Set(
+            kept.filter(\.isChallenge).map { Self.challengeBaseTitle($0.title) }
+        )
+        return kept.filter { goal in
+            guard !goal.isChallenge else { return true }
+            return !challengeBaseTitles.contains(Self.challengeBaseTitle(goal.title))
+        }
+    }
+
+    private static func challengeBaseTitle(_ title: String) -> String {
+        title
+            .replacingOccurrences(of: "⚡", with: "")
+            .trimmingCharacters(in: .whitespacesAndNewlines)
+    }
+
+    private func applyDeduplicatedGoals() {
+        let unique = Self.deduplicateGoals(goals)
+        guard unique != goals else { return }
+        goals = unique
+        save()
+    }
+
+    /// Cleans duplicate planets (e.g. personal orb + challenge copy). Safe to call on appear.
+    func reconcileOrbDuplicates() {
+        applyDeduplicatedGoals()
     }
 
     // MARK: - Load / Save
@@ -140,7 +180,42 @@ final class OrbGoalStore: ObservableObject {
     // MARK: - Add Goal
     func add(_ goal: OrbGoal) {
         goals.append(goal)
+        applyDeduplicatedGoals()
         save()
+    }
+
+    /// Turns an existing personal orb into the challenge planet — same orb in space, not a copy.
+    func convertGoalToChallenge(goalID: UUID, roomId: String, myId: String) {
+        guard let index = goals.firstIndex(where: { $0.id == goalID }) else { return }
+
+        var goal = goals[index]
+        let baseTitle = Self.challengeBaseTitle(goal.title)
+
+        // Drop any old duplicate challenge copy for this room or same planet name.
+        goals.removeAll { other in
+            guard other.id != goalID else { return false }
+            if other.challengeInfo?.challengeID == roomId { return true }
+            return !other.isChallenge && Self.challengeBaseTitle(other.title) == baseTitle
+        }
+
+        guard let refreshedIndex = goals.firstIndex(where: { $0.id == goalID }) else { return }
+        goal = goals[refreshedIndex]
+
+        if !goal.title.contains("⚡") {
+            goal.title = "\(goal.title) ⚡"
+        }
+        goal.challengeInfo = ChallengeInfo(
+            challengeID: roomId,
+            opponentID: "",
+            opponentName: "Friend",
+            friendProgress: 0,
+            isWinner: false,
+            winnerID: nil
+        )
+        goals[refreshedIndex] = goal
+        applyDeduplicatedGoals()
+        save()
+        ChallengeOrbsManager.shared.track(roomId: roomId, goalId: goal.id, myId: myId, store: self)
     }
 
     func addChallengeOrb(_ goal: OrbGoal, myId: String) {
@@ -148,14 +223,24 @@ final class OrbGoalStore: ObservableObject {
             add(goal)
             return
         }
-        let goalId: UUID
+
         if let existing = goals.first(where: { $0.challengeInfo?.challengeID == roomId }) {
-            goalId = existing.id
-        } else {
-            goals.append(goal)
-            save()
-            goalId = goal.id
+            ChallengeOrbsManager.shared.track(roomId: roomId, goalId: existing.id, myId: myId, store: self)
+            return
         }
+
+        let baseTitle = Self.challengeBaseTitle(goal.title)
+        if let personal = goals.first(where: {
+            !$0.isChallenge && Self.challengeBaseTitle($0.title) == baseTitle
+        }) {
+            convertGoalToChallenge(goalID: personal.id, roomId: roomId, myId: myId)
+            return
+        }
+
+        goals.append(goal)
+        applyDeduplicatedGoals()
+        let goalId = goals.first(where: { $0.challengeInfo?.challengeID == roomId })?.id ?? goal.id
+        save()
         ChallengeOrbsManager.shared.track(roomId: roomId, goalId: goalId, myId: myId, store: self)
     }
 
@@ -174,11 +259,27 @@ final class OrbGoalStore: ObservableObject {
     }
 
     func reflectionContext(goalID: UUID, taskID: UUID) -> TaskReflectionContext? {
-        guard let goal = goal(with: goalID),
-              let task = goal.tasks.first(where: { $0.id == taskID }) else { return nil }
+        orbReflectionContext(goalID: goalID, preferredTaskID: taskID)
+    }
+
+    /// Reflection unlocks only after every task on the orb is complete.
+    func orbReflectionContext(goalID: UUID, preferredTaskID: UUID? = nil) -> TaskReflectionContext? {
+        guard let goal = goal(with: goalID), goal.isOrbFullyComplete else { return nil }
+
+        let task: GoalTask?
+        if let preferredTaskID,
+           let preferred = goal.tasks.first(where: { $0.id == preferredTaskID }) {
+            task = preferred
+        } else if let withoutNote = goal.tasks.last(where: { ($0.reflectionNote ?? "").isEmpty }) {
+            task = withoutNote
+        } else {
+            task = goal.tasks.last
+        }
+
+        guard let task else { return nil }
         return TaskReflectionContext(
             goalID: goalID,
-            taskID: taskID,
+            taskID: task.id,
             taskTitle: task.title,
             goalTitle: goal.title,
             accent: goal.accentColor

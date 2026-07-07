@@ -77,48 +77,32 @@ struct ChallengeOrbitView: View {
                         .transition(.move(edge: .bottom).combined(with: .opacity))
                 }
 
-                VStack(spacing: 12) {
-                    if isMyWin && !saved {
-                        Button {
-                            Task { await saveWin() }
-                        } label: {
-                            Label(lang.t(.challengeKeepPlanet), systemImage: "star.fill")
-                                .font(.system(size: 16, weight: .semibold))
-                                .foregroundColor(.white)
-                                .frame(maxWidth: .infinity)
-                                .frame(height: 52)
-                        }
-                        .background(
-                            LinearGradient(colors: [.yellow.opacity(0.85), .orange.opacity(0.75)], startPoint: .leading, endPoint: .trailing)
-                        )
-                        .clipShape(RoundedRectangle(cornerRadius: 16))
-                        .padding(.horizontal, 28)
+                if isMyWin && !saved {
+                    Button {
+                        Task { await saveWin() }
+                    } label: {
+                        Label(lang.t(.challengeKeepPlanet), systemImage: "star.fill")
+                            .font(.system(size: 16, weight: .semibold))
+                            .foregroundColor(.white)
+                            .frame(maxWidth: .infinity)
+                            .frame(height: 52)
                     }
-
-                    Button(lang.t(.challengeBackHome), action: onDismiss)
-                        .foregroundColor(.white.opacity(0.5))
-                        .font(.subheadline)
+                    .background(
+                        LinearGradient(colors: [.yellow.opacity(0.85), .orange.opacity(0.75)], startPoint: .leading, endPoint: .trailing)
+                    )
+                    .clipShape(RoundedRectangle(cornerRadius: 16))
+                    .padding(.horizontal, 28)
+                    .padding(.bottom, 44)
+                } else {
+                    Spacer()
+                        .frame(height: 44)
                 }
-                .padding(.bottom, 44)
             }
         }
         .overlay(alignment: .topLeading) {
-            Button(action: onDismiss) {
-                HStack(spacing: 6) {
-                    Image(systemName: "chevron.left")
-                        .font(.system(size: 14, weight: .bold))
-                    Text(lang.t(.challengeBackHome))
-                        .font(.system(size: 14, weight: .semibold))
-                }
-                .foregroundStyle(.white)
-                .padding(.horizontal, 14)
-                .padding(.vertical, 9)
-                .background(Capsule().fill(.white.opacity(0.12)))
-                .overlay(Capsule().stroke(.white.opacity(0.18), lineWidth: 1))
-            }
-            .buttonStyle(.plain)
-            .padding(.leading, 16)
-            .padding(.top, 14)
+            GoalFlowBackButton(action: onDismiss)
+                .padding(.leading, GoalFlowLayout.horizontalPadding)
+                .padding(.top, 8)
         }
         .orbitForcedDark()
         .onAppear {

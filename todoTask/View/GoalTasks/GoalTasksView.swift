@@ -184,17 +184,24 @@ struct GoalTasksView: View {
                         goal: goal,
                         lang: lang,
                         interactive: true,
-                        onReflect: task.isFullyComplete ? {
-                            reflectionContext = store.reflectionContext(goalID: goalID, taskID: task.id)
+                        onReflect: (goal?.isOrbFullyComplete == true) ? {
+                            reflectionContext = store.orbReflectionContext(
+                                goalID: goalID,
+                                preferredTaskID: task.id
+                            )
                         } : nil
                     ) { newAmount in
+                        let wasOrbComplete = goal?.isOrbFullyComplete ?? false
                         let wasComplete = task.isFullyComplete
                         if let newAmount {
                             store.setTaskCompletedAmount(goalID: goalID, taskID: task.id, amount: newAmount)
                         } else {
                             store.toggleTodayTask(goalID: goalID, taskID: task.id)
                         }
-                        maybeOpenReflection(taskID: task.id, wasComplete: wasComplete)
+                        maybeOpenReflection(
+                            taskID: task.id,
+                            wasOrbComplete: wasOrbComplete
+                        )
                     }
                     .contextMenu {
                         Button(role: .destructive) {
@@ -263,12 +270,12 @@ struct GoalTasksView: View {
         }
     }
 
-    private func maybeOpenReflection(taskID: UUID, wasComplete: Bool) {
-        guard let updated = store.goal(with: goalID)?.tasks.first(where: { $0.id == taskID }),
-              updated.isFullyComplete else { return }
-        guard !wasComplete else { return }
+    private func maybeOpenReflection(taskID: UUID, wasOrbComplete: Bool) {
+        guard let goal = store.goal(with: goalID), goal.isOrbFullyComplete else { return }
+        guard !wasOrbComplete else { return }
+        guard !goal.hasOrbReflection else { return }
         DispatchQueue.main.asyncAfter(deadline: .now() + 0.35) {
-            reflectionContext = store.reflectionContext(goalID: goalID, taskID: taskID)
+            reflectionContext = store.orbReflectionContext(goalID: goalID, preferredTaskID: taskID)
         }
     }
 }
@@ -348,7 +355,7 @@ struct TaskTrackRow: View {
                 }
                 .foregroundStyle(.white.opacity(0.42))
 
-                if task.isFullyComplete, task.reflectionNote != nil {
+                if goal?.isOrbFullyComplete == true, task.reflectionNote != nil {
                     Text(lang.t(.reflectionTitle))
                         .font(.caption2.weight(.medium))
                         .foregroundStyle(accent.opacity(0.75))
@@ -356,7 +363,7 @@ struct TaskTrackRow: View {
             }
             .contentShape(Rectangle())
             .onTapGesture {
-                if task.isFullyComplete { onReflect?() }
+                if goal?.isOrbFullyComplete == true { onReflect?() }
             }
 
             Spacer(minLength: 8)

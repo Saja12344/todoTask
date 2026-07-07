@@ -124,6 +124,16 @@ struct OrbGoal: Identifiable, Codable, Equatable {
     var doneTasks:  Int { tasks.filter(\.isDone).count }
     var totalTasks: Int { tasks.count }
 
+    /// Every scheduled task on this orb is fully done.
+    var isOrbFullyComplete: Bool {
+        guard !tasks.isEmpty else { return false }
+        return tasks.allSatisfy(\.isFullyComplete)
+    }
+
+    var hasOrbReflection: Bool {
+        tasks.contains { !($0.reflectionNote ?? "").isEmpty }
+    }
+
     /// Units completed toward the goal (e.g. 7 books when 3+4 on two days).
     var completedUnits: Int {
         tasks.reduce(0) { $0 + min($1.completedAmount, max(1, $1.targetAmount)) }

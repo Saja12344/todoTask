@@ -45,9 +45,9 @@ struct TaskReflectionSheet: View {
                             .font(.caption.weight(.semibold))
                             .foregroundStyle(.white.opacity(0.45))
 
-                        Text(context.taskTitle)
+                        Text(context.goalTitle)
                             .font(.subheadline.weight(.semibold))
-                            .foregroundStyle(.white.opacity(0.75))
+                            .foregroundStyle(.white.opacity(0.85))
                             .lineLimit(2)
                     }
 

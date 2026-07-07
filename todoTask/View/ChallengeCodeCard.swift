@@ -5,61 +5,93 @@
 
 import SwiftUI
 
+/// Compact glass invite row — used while waiting for opponent on an active challenge.
 struct ChallengeCodeCard: View {
     @EnvironmentObject private var lang: LanguageManager
     let roomId: String
     var subtitle: String? = nil
+    var fromUsername: String = ""
 
     @State private var copied = false
+    private var accent: Color { Color("accent") }
 
     var body: some View {
-        VStack(spacing: 12) {
-            Text(subtitle ?? lang.t(.challengeSendCode))
-                .font(.subheadline.weight(.medium))
-                .foregroundStyle(.white.opacity(0.55))
-                .multilineTextAlignment(.center)
-
-            Text(roomId)
-                .font(.system(size: 24, weight: .bold, design: .monospaced))
-                .foregroundStyle(Color("accent"))
-                .lineLimit(1)
-                .minimumScaleFactor(0.5)
-                .kerning(2)
-                .padding(.horizontal, 20)
-                .padding(.vertical, 14)
-                .frame(maxWidth: .infinity)
-                .background {
-                    RoundedRectangle(cornerRadius: 16, style: .continuous)
-                        .fill(.white.opacity(0.08))
-                        .overlay {
-                            RoundedRectangle(cornerRadius: 16, style: .continuous)
-                                .stroke(Color("accent").opacity(0.35), lineWidth: 1)
-                        }
-                }
-                .onTapGesture {
-                    UIPasteboard.general.string = roomId
-                    copied = true
-                }
-
-            Button {
-                UIPasteboard.general.string = roomId
-                copied = true
-            } label: {
-                Label(copied ? lang.t(.challengeCopied) : lang.t(.challengeCopyCode), systemImage: copied ? "checkmark" : "doc.on.doc")
-                    .font(.subheadline.weight(.semibold))
-                    .foregroundStyle(copied ? .green : Color("accent"))
+        VStack(alignment: .leading, spacing: 12) {
+            if let subtitle {
+                Text(subtitle)
+                    .font(.caption.weight(.medium))
+                    .foregroundStyle(.white.opacity(0.48))
             }
-            .buttonStyle(.plain)
+
+            HStack(spacing: 10) {
+                Button { presentShare() } label: {
+                    HStack(spacing: 8) {
+                        Image(systemName: "square.and.arrow.up")
+                        Text(lang.t(.challengeShareInvite))
+                    }
+                    .font(.system(size: 15, weight: .semibold))
+                    .foregroundStyle(.white)
+                    .frame(maxWidth: .infinity)
+                    .frame(height: 46)
+                }
+                .background {
+                    RoundedRectangle(cornerRadius: 14, style: .continuous)
+                        .fill(accent.opacity(0.20))
+                        .glassEffect(.clear.tint(accent.opacity(0.16)).interactive(), in: .rect(cornerRadius: 14))
+                }
+                .overlay {
+                    RoundedRectangle(cornerRadius: 14, style: .continuous)
+                        .stroke(accent.opacity(0.30), lineWidth: 1)
+                }
+                .buttonStyle(.plain)
+
+                Button { copyInvite() } label: {
+                    Text(copied ? "✓" : lang.t(.challengeCopyInvite))
+                        .font(.system(size: 13, weight: .semibold))
+                        .foregroundStyle(copied ? .green : .white.opacity(0.85))
+                        .frame(width: 64, height: 46)
+                }
+                .background {
+                    RoundedRectangle(cornerRadius: 14, style: .continuous)
+                        .fill(.white.opacity(0.05))
+                        .glassEffect(.clear.interactive(), in: .rect(cornerRadius: 14))
+                }
+                .overlay {
+                    RoundedRectangle(cornerRadius: 14, style: .continuous)
+                        .stroke(.white.opacity(0.12), lineWidth: 1)
+                }
+                .buttonStyle(.plain)
+            }
         }
-        .padding(20)
+        .padding(14)
         .background {
-            RoundedRectangle(cornerRadius: 20, style: .continuous)
-                .fill(.clear)
-                .glassEffect(.clear.tint(.black.opacity(0.25)), in: .rect(cornerRadius: 20))
+            RoundedRectangle(cornerRadius: 18, style: .continuous)
+                .fill(.black.opacity(0.18))
+                .glassEffect(.clear.tint(Color.black.opacity(0.22)), in: .rect(cornerRadius: 18))
         }
         .overlay {
-            RoundedRectangle(cornerRadius: 20, style: .continuous)
-                .stroke(.white.opacity(0.12), lineWidth: 1)
+            RoundedRectangle(cornerRadius: 18, style: .continuous)
+                .stroke(.white.opacity(0.10), lineWidth: 1)
         }
+    }
+
+    private func copyInvite() {
+        UIPasteboard.general.string = DeepLinkManager.shared.inviteMessage(
+            roomId: roomId,
+            fromUsername: fromUsername,
+            lang: lang
+        )
+        withAnimation(.easeInOut(duration: 0.2)) { copied = true }
+        DispatchQueue.main.asyncAfter(deadline: .now() + 2) {
+            withAnimation { copied = false }
+        }
+    }
+
+    private func presentShare() {
+        SharePresenter.present(items: DeepLinkManager.shared.shareItems(
+            roomId: roomId,
+            fromUsername: fromUsername,
+            lang: lang
+        ))
     }
 }

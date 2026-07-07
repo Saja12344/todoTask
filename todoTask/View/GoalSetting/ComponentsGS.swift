@@ -7,6 +7,35 @@ struct AppBackground: View {
     }
 }
 
+/// Friends challenge tab — gradient + Background 3 + glitter
+struct FriendsChallengeBackground: View {
+    var body: some View {
+        ZStack {
+            Rectangle()
+                .fill(LinearGradient(colors: [.darkBlu, .dark], startPoint: .bottom, endPoint: .top))
+                .ignoresSafeArea()
+
+            GeometryReader { geo in
+                Image("Background 3")
+                    .resizable()
+                    .scaledToFill()
+                    .frame(width: geo.size.width, height: geo.size.height)
+                    .clipped()
+                    .opacity(0.32)
+                    .blendMode(.screen)
+            }
+            .ignoresSafeArea()
+
+            Image("Gliter")
+                .resizable()
+                .ignoresSafeArea()
+                .opacity(0.16)
+                .blendMode(.screen)
+        }
+        .allowsHitTesting(false)
+    }
+}
+
 /// Original ORBIT gradient + Background 4 + glitter (Friends & Challenge)
 struct ClassicOrbitBackground: View {
     var includeBackgroundImage: Bool = true

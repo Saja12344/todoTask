@@ -26,12 +26,12 @@ struct ChallengeOrbDetailView: View {
     private func fireOpponentBanterNotification(name: String) {
         let ar = lang.language == .arabic
         let lines = ar
-            ? ["🔥 \(name) خلّصت مهمة! لا تتأخرين وراها!",
-               "😳 \(name) بدأت تسبقك… تحركي!",
-               "🚀 \(name) قطعت شوط جديد، دورك الحين!"]
-            : ["🔥 \(name) just finished a task! Don't fall behind!",
-               "😳 \(name) is pulling ahead… move it!",
-               "🚀 \(name) made progress — your turn now!"]
+            ? ["\(name) خلّصت مهمة! لا تتأخرين وراها!",
+               "\(name) بدأت تسبقك… تحركي!",
+               "\(name) قطعت شوط جديد، دورك الحين!"]
+            : ["\(name) just finished a task! Don't fall behind!",
+               "\(name) is pulling ahead… move it!",
+               "\(name) made progress — your turn now!"]
 
         let content = UNMutableNotificationContent()
         content.title = ar ? "تحدّي الأصدقاء" : "Friend Challenge"
@@ -55,48 +55,45 @@ struct ChallengeOrbDetailView: View {
 
     var body: some View {
         ZStack {
-            ClassicOrbitBackground()
+            ClassicOrbitBackground(includeBackgroundImage: false)
 
-            VStack(spacing: 0) {
-                ScrollView(showsIndicators: false) {
-                    VStack(spacing: 14) {
-                        heroCard
+            ScrollView(showsIndicators: false) {
+                VStack(spacing: 16) {
+                    heroCard
 
-                        if isWaiting, let roomId {
-                            ChallengeCodeCard(
-                                roomId: roomId,
-                                subtitle: lang.t(.challengeShareActive)
-                            )
-                        }
-
-                        if let service, roomId != nil {
-                            FunMissionsPanel(
-                                tasks: service.tasks,
-                                myId: myId,
-                                lang: lang,
-                                onComplete: { taskId in
-                                    Task {
-                                        try? await service.completeTask(
-                                            roomId: roomId!,
-                                            taskId: taskId,
-                                            userId: myId
-                                        )
-                                    }
-                                }
-                            )
-                        }
+                    if isWaiting, let roomId {
+                        ChallengeCodeCard(
+                            roomId: roomId,
+                            fromUsername: userVM.currentUser?.username ?? ""
+                        )
                     }
-                    .padding(.horizontal, 16)
-                    .padding(.top, 4)
-                    .padding(.bottom, 28)
+
+                    if let service, roomId != nil {
+                        FunMissionsPanel(
+                            tasks: service.tasks,
+                            myId: myId,
+                            lang: lang,
+                            onComplete: { taskId in
+                                Task {
+                                    try? await service.completeTask(
+                                        roomId: roomId!,
+                                        taskId: taskId,
+                                        userId: myId
+                                    )
+                                }
+                            }
+                        )
+                    }
                 }
+                .padding(.horizontal, 16)
+                .padding(.top, 8)
+                .padding(.bottom, 28)
             }
         }
         .orbitForcedDark()
         .onReceive(challengeOrbs.$liveStates) { states in
             guard let roomId, let live = states[roomId] else { return }
 
-            // Fire a fun competitive notification when the friend completes a task.
             if lastOpponentProgress >= 0,
                live.opponentProgress > lastOpponentProgress + 0.001,
                !live.isFinished {
@@ -125,38 +122,17 @@ struct ChallengeOrbDetailView: View {
 
     @ViewBuilder
     private var heroCard: some View {
-        VStack(spacing: 14) {
+        VStack(spacing: 16) {
             Text(goal.title)
-                .font(.system(size: 20, weight: .bold, design: .rounded))
+                .font(.system(size: 18, weight: .bold, design: .rounded))
                 .foregroundStyle(.white)
                 .multilineTextAlignment(.center)
                 .lineLimit(2)
 
-            ChallengeOrbGalaxyView(goal: goal, live: live, size: 138)
-                .frame(height: 168)
+            ChallengeOrbGalaxyView(goal: goal, live: live, size: 112)
+                .frame(height: 140)
 
-            if let live {
-                Text(lang.raceBanter(
-                    myProgress: live.myProgress,
-                    opponentProgress: live.opponentProgress,
-                    opponentName: live.opponentName
-                ))
-                .font(.system(size: 15, weight: .semibold))
-                .foregroundStyle(.white)
-                .multilineTextAlignment(.center)
-                .fixedSize(horizontal: false, vertical: true)
-                .padding(.horizontal, 14)
-                .padding(.vertical, 10)
-                .frame(maxWidth: .infinity)
-                .background {
-                    RoundedRectangle(cornerRadius: 14, style: .continuous)
-                        .fill(accent.opacity(0.16))
-                }
-                .overlay {
-                    RoundedRectangle(cornerRadius: 14, style: .continuous)
-                        .stroke(accent.opacity(0.35), lineWidth: 1)
-                }
-
+            if let live, !live.waitingForOpponent {
                 GoalChallengeProgressBars(
                     myProgress: live.myProgress,
                     friendProgress: live.opponentProgress,
@@ -165,21 +141,28 @@ struct ChallengeOrbDetailView: View {
                 )
             } else if isWaiting {
                 Text(lang.t(.challengeWaiting))
-                    .font(.caption.weight(.medium))
-                    .foregroundStyle(.white.opacity(0.45))
+                    .font(.subheadline.weight(.medium))
+                    .foregroundStyle(.white.opacity(0.5))
                     .multilineTextAlignment(.center)
             }
         }
-        .padding(18)
+        .padding(16)
         .frame(maxWidth: .infinity)
-        .background {
-            RoundedRectangle(cornerRadius: 22, style: .continuous)
-                .fill(.clear)
-                .glassEffect(.clear.tint(Color.black.opacity(0.32)), in: .rect(cornerRadius: 22))
-        }
-        .overlay {
-            RoundedRectangle(cornerRadius: 22, style: .continuous)
-                .stroke(.white.opacity(0.14), lineWidth: 1)
-        }
+        .glassPanel()
+    }
+}
+
+private extension View {
+    func glassPanel(cornerRadius: CGFloat = 20) -> some View {
+        self
+            .background {
+                RoundedRectangle(cornerRadius: cornerRadius, style: .continuous)
+                    .fill(.clear)
+                    .glassEffect(.clear.tint(Color.black.opacity(0.34)), in: .rect(cornerRadius: cornerRadius))
+            }
+            .overlay {
+                RoundedRectangle(cornerRadius: cornerRadius, style: .continuous)
+                    .stroke(.white.opacity(0.12), lineWidth: 1)
+            }
     }
 }

@@ -604,9 +604,6 @@ struct GalaxyOrbNode: View {
     private func challengeSubtitle(_ live: ChallengeLiveState?) -> String {
         if let live {
             if live.waitingForOpponent {
-                if let code = goal.challengeInfo?.challengeID {
-                    return code
-                }
                 return lang.t(.challengeWaiting)
             }
             if live.isFinished {
@@ -614,7 +611,7 @@ struct GalaxyOrbNode: View {
             }
             return "\(Int(live.myProgress * 100))% \(lang.t(.raceVS)) \(Int(live.opponentProgress * 100))%"
         }
-        return goal.challengeInfo?.challengeID ?? lang.t(.challengeWaiting)
+        return lang.t(.challengeWaiting)
     }
 }
 

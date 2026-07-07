@@ -182,10 +182,10 @@ struct today: View {
                                             primaryText: lines.primary,
                                             secondaryText: lines.secondary,
                                             isLate: item.isLate,
-                                            onReflect: item.isChallengeMission ? nil : (item.task.isFullyComplete ? {
-                                                reflectionContext = store.reflectionContext(
+                                            onReflect: item.isChallengeMission ? nil : (item.goal.isOrbFullyComplete ? {
+                                                reflectionContext = store.orbReflectionContext(
                                                     goalID: item.goal.id,
-                                                    taskID: item.task.id
+                                                    preferredTaskID: item.task.id
                                                 )
                                             } : nil)
                                         ) { newAmount in
@@ -203,6 +203,7 @@ struct today: View {
                                                 return
                                             }
 
+                                            let wasOrbComplete = item.goal.isOrbFullyComplete
                                             let wasComplete = item.task.isFullyComplete
                                             if let newAmount {
                                                 store.setTaskCompletedAmount(
@@ -216,7 +217,7 @@ struct today: View {
                                             maybeOpenReflection(
                                                 goalID: item.goal.id,
                                                 taskID: item.task.id,
-                                                wasComplete: wasComplete
+                                                wasOrbComplete: wasOrbComplete
                                             )
                                         }
                                     }
@@ -344,13 +345,12 @@ struct today: View {
         path = [.write]
     }
 
-    private func maybeOpenReflection(goalID: UUID, taskID: UUID, wasComplete: Bool) {
-        guard let updated = store.goal(with: goalID)?.tasks.first(where: { $0.id == taskID }),
-              updated.isFullyComplete else { return }
-        guard !wasComplete else { return }
-        // Present after the list finishes refreshing so the sheet isn't dismissed by state churn.
+    private func maybeOpenReflection(goalID: UUID, taskID: UUID, wasOrbComplete: Bool) {
+        guard let goal = store.goal(with: goalID), goal.isOrbFullyComplete else { return }
+        guard !wasOrbComplete else { return }
+        guard !goal.hasOrbReflection else { return }
         DispatchQueue.main.asyncAfter(deadline: .now() + 0.35) {
-            reflectionContext = store.reflectionContext(goalID: goalID, taskID: taskID)
+            reflectionContext = store.orbReflectionContext(goalID: goalID, preferredTaskID: taskID)
         }
     }
 
@@ -434,7 +434,7 @@ struct TodayTaskRow: View {
                             .foregroundColor(accent.opacity(0.75))
                             .lineLimit(1)
                     }
-                    if task.isFullyComplete, task.reflectionNote != nil {
+                    if goal.isOrbFullyComplete, task.reflectionNote != nil {
                         Text(lang.t(.reflectionTitle))
                             .font(.caption2.weight(.medium))
                             .foregroundColor(accent.opacity(0.7))
@@ -442,7 +442,7 @@ struct TodayTaskRow: View {
                 }
                 .contentShape(Rectangle())
                 .onTapGesture {
-                    if task.isFullyComplete { onReflect?() }
+                    if goal.isOrbFullyComplete { onReflect?() }
                 }
                 Spacer(minLength: 8)
                 TaskCompletionControl(task: task, accent: accent, onChange: onChange)

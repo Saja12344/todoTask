@@ -98,14 +98,14 @@ enum L10nKey: String, CaseIterable {
     case challengeCreateSend, challengeCompetingFor, challengeWaiting, challengeSendCode
     case challengeCopied, challengeBackHome, challengeKeepPlanet, challengeYouWon
     case challengeFriendWon, challengeTryAgain, challengePoints, raceYou, raceOpponent
-    case challengeCodePlaceholder, challengeLoginRequired, challengeNeedGoal
+    case challengeCodePlaceholder, challengeCodeLabel, challengeLoginRequired, challengeNeedGoal, challengeAlreadyActive
     case challengeErrorGeneric, challengeInvalidCode, challengePlanetYours
     case friendsPrizeLabel, friendsRacePreview
     case racePrizeLabel, raceMissionsTitle, raceTapLaunch, raceDoneYou, raceDoneFriend
     case raceBannerAhead, raceBannerBehind, raceBannerTied, raceVS
     case challengeTasksProgress, challengeNextMission, challengeCompletedCount
     case challengeOrbAdded
-    case challengeCopyCode, challengeCreatedTitle, challengeCreatedHint, challengeGoToOrbs, challengeShareActive, challengeRoomCode
+    case challengeCopyCode, challengeCopyInvite, challengeShareInvite, challengeCreatedTitle, challengeCreatedHint, challengeGoToOrbs, challengeShareActive, challengeRoomCode
 
     // Weekdays
     case daySun, dayMon, dayTue, dayWed, dayThu, dayFri, daySat
@@ -238,6 +238,49 @@ final class LanguageManager: ObservableObject {
 
     func challengeCompletedCount(_ count: Int) -> String {
         String(format: t(.challengeCompletedCount), count)
+    }
+
+    func challengeShareMessage(roomId: String, from: String, link: String) -> String {
+        switch language {
+        case .english:
+            if from.isEmpty {
+                return """
+                ⚡ Join my ORBIT challenge!
+                Race for my planet 🪐
+
+                \(link)
+
+                Code: \(roomId)
+                """
+            }
+            return """
+            ⚡ \(from) challenged you on ORBIT!
+            Race for their planet 🪐
+
+            \(link)
+
+            Code: \(roomId)
+            """
+        case .arabic:
+            if from.isEmpty {
+                return """
+                ⚡ انضم لتحدي ORBIT!
+                تنافس على كوكبي 🪐
+
+                \(link)
+
+                الرمز: \(roomId)
+                """
+            }
+            return """
+            ⚡ \(from) تحداك على ORBIT!
+            تنافس على كوكبهم 🪐
+
+            \(link)
+
+            الرمز: \(roomId)
+            """
+        }
     }
 
     func stepLabel(_ step: Int) -> String {
@@ -452,19 +495,21 @@ final class LanguageManager: ObservableObject {
         .friendsHeroSubtitle: "Race to complete tasks — whoever finishes more wins the orb.",
         .friendsCreate: "Create Challenge", .friendsJoin: "Join with Code",
         .friendsHowItWorks: "How it works", .friendsStep1: "Pick an orb to compete for",
-        .friendsStep2: "Share the room code with your friend",
+        .friendsStep2: "Share the invite link with your friend",
         .friendsStep3: "Complete missions — rockets orbit the planet on Orbs",
         .challengeNew: "New Challenge", .challengeJoin: "Join Challenge",
         .challengeJoinHint: "Enter the code your friend sent you",
-        .challengeJoinNow: "Join Now", .challengeCreateSend: "Create & Share Code",
+        .challengeJoinNow: "Join with Code", .challengeCreateSend: "Create Challenge",
         .challengeCompetingFor: "Competing for this orb", .challengeWaiting: "Waiting for your friend…",
         .challengeSendCode: "Send them this code:", .challengeCopied: "Copied!",
         .challengeBackHome: "Back to Home", .challengeKeepPlanet: "Keep the Planet",
         .challengeYouWon: "You won the planet!", .challengeFriendWon: "%@ won the planet",
         .challengeTryAgain: "Better luck next time", .challengePoints: "%d pts",
         .raceYou: "You", .raceOpponent: "Friend",
-        .challengeCodePlaceholder: "Room code", .challengeLoginRequired: "Please sign in first",
-        .challengeNeedGoal: "Create at least one orb first", .challengeErrorGeneric: "Something went wrong — try again",
+        .challengeCodeLabel: "Invite code",
+        .challengeCodePlaceholder: "Paste code from friend", .challengeLoginRequired: "Please sign in first",
+        .challengeNeedGoal: "Create at least one orb first", .challengeAlreadyActive: "This orb is already a challenge",
+        .challengeErrorGeneric: "Something went wrong — try again",
         .challengeInvalidCode: "Invalid or expired code", .challengePlanetYours: "The planet is yours now",
         .racePrizeLabel: "Prize orb", .raceMissionsTitle: "Tasks",
         .raceTapLaunch: "Complete", .raceDoneYou: "Completed", .raceDoneFriend: "Friend completed",
@@ -474,10 +519,12 @@ final class LanguageManager: ObservableObject {
         .challengeCompletedCount: "%d completed",
         .challengeOrbAdded: "Challenge planet added to Orbs — watch the rockets race!",
         .challengeCopyCode: "Copy code",
-        .challengeCreatedTitle: "Challenge created!",
-        .challengeCreatedHint: "Send this code to your friend. They join from Friends → Join with Code.",
-        .challengeGoToOrbs: "See it on Orbs",
-        .challengeShareActive: "Your challenge code — share with friend",
+        .challengeCopyInvite: "Copy",
+        .challengeShareInvite: "Share Friend",
+        .challengeCreatedTitle: "Ready!",
+        .challengeCreatedHint: "Share the invite — your friend taps the link to join ORBIT.",
+        .challengeGoToOrbs: "Orbs",
+        .challengeShareActive: "Invite your friend to join",
         .challengeRoomCode: "Room code",
         .friendsPrizeLabel: "Prize Planet", .friendsRacePreview: "Rocket Race",
         .deleteOrbQuestion: "Delete this orb?", .deleteOrbMessage: "This will remove the orb and its progress.",
@@ -607,21 +654,23 @@ final class LanguageManager: ObservableObject {
         .deleteOrbLabel: "حذف الأوربت",
         .friendsHeroTitle: "تحدّ صديقك",
         .friendsHeroSubtitle: "تنافسا على إكمال المهام — من يُنجز أكثر يفوز بالكوكب.",
-        .friendsCreate: "إنشاء تحدي", .friendsJoin: "الانضمام برمز",
+        .friendsCreate: "إنشاء تحدي", .friendsJoin: "انضم بالرمز",
         .friendsHowItWorks: "كيف يعمل", .friendsStep1: "اختر أوربت للتنافس عليه",
-        .friendsStep2: "شاركي رمز الغرفة مع صديقك",
+        .friendsStep2: "شاركي رابط الدعوة مع صديقك",
         .friendsStep3: "أكمل المهمات — الصواريخ تدور حول الكوكب في Orbs",
         .challengeNew: "تحدي جديد", .challengeJoin: "انضم لتحدي",
         .challengeJoinHint: "أدخلي الرمز اللي أرسله لك صديقك",
-        .challengeJoinNow: "انضم الآن", .challengeCreateSend: "إنشاء ومشاركة الرمز",
+        .challengeJoinNow: "انضم بالرمز", .challengeCreateSend: "إنشاء التحدي",
         .challengeCompetingFor: "التنافس على هذا الأوربت", .challengeWaiting: "في انتظار صديقك…",
         .challengeSendCode: "أرسلي له هذا الرمز:", .challengeCopied: "تم النسخ!",
         .challengeBackHome: "العودة للرئيسية", .challengeKeepPlanet: "احتفظي بالكوكب",
         .challengeYouWon: "فزتِ بالكوكب!", .challengeFriendWon: "%@ فاز بالكوكب",
         .challengeTryAgain: "حظ أوفر المرة القادمة", .challengePoints: "%d نقطة",
         .raceYou: "أنت", .raceOpponent: "صديق",
-        .challengeCodePlaceholder: "رمز الغرفة", .challengeLoginRequired: "سجّلي الدخول أولاً",
-        .challengeNeedGoal: "أنشئي أوربت واحد على الأقل", .challengeErrorGeneric: "حدث خطأ — حاولي مجدداً",
+        .challengeCodeLabel: "رمز الدعوة",
+        .challengeCodePlaceholder: "الصق الرمز من صديقك", .challengeLoginRequired: "سجّلي الدخول أولاً",
+        .challengeNeedGoal: "أنشئي أوربت واحد على الأقل", .challengeAlreadyActive: "هذا الكوكب صار تحدي مسبقاً",
+        .challengeErrorGeneric: "حدث خطأ — حاولي مجدداً",
         .challengeInvalidCode: "الرمز غير صحيح أو منتهي", .challengePlanetYours: "الكوكب ملكك الآن",
         .friendsPrizeLabel: "كوكب الجائزة", .friendsRacePreview: "سباق الصواريخ",
         .racePrizeLabel: "كوكب الجائزة", .raceMissionsTitle: "المهام",
@@ -632,10 +681,12 @@ final class LanguageManager: ObservableObject {
         .challengeCompletedCount: "%d مكتملة",
         .challengeOrbAdded: "انضاف كوكب التحدي في Orbs — شوف الصواريخ تتسابق!",
         .challengeCopyCode: "نسخ الرمز",
-        .challengeCreatedTitle: "تم إنشاء التحدي!",
-        .challengeCreatedHint: "أرسلي هذا الرمز لصديقك. ينضم من الأصدقاء ← الانضمام برمز.",
-        .challengeGoToOrbs: "شوفه في Orbs",
-        .challengeShareActive: "رمز تحديك — شاركيه مع صديقك",
+        .challengeCopyInvite: "نسخ",
+        .challengeShareInvite: "Share Friend",
+        .challengeCreatedTitle: "جاهز!",
+        .challengeCreatedHint: "شاركي الدعوة — صديقك يضغط الرابط وينضم لـ ORBIT.",
+        .challengeGoToOrbs: "Orbs",
+        .challengeShareActive: "ادعي صديقك للانضمام",
         .challengeRoomCode: "رمز الغرفة",
         .deleteOrbQuestion: "حذف هذا الأوربت؟", .deleteOrbMessage: "سيُحذف الأوربت وكل التقدم.",
         .daySun: "أحد", .dayMon: "إثن", .dayTue: "ثلا", .dayWed: "أرب",
