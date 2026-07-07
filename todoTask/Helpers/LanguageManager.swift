@@ -88,7 +88,7 @@ enum L10nKey: String, CaseIterable {
     case colorStudio, orbitHue, nebulaBlend
 
     // Orbs page
-    case noOrbsYet, tapCreateFirst, deleteOrbQuestion, deleteOrbMessage
+    case noOrbsYet, orbsNewWorld, orbsTapToBegin, deleteOrbQuestion, deleteOrbMessage
     case orbsGalaxySubtitle, orbsEmptyPoem, deleteOrbLabel
 
     // Friends & challenge arena
@@ -444,7 +444,7 @@ final class LanguageManager: ObservableObject {
         .colorStudio: "Color Studio",
         .orbitHue: "Orbit Hue", .nebulaBlend: "Nebula Blend",
         .glow: "Glow", .effect: "Effect", .texture: "Texture", .intensity: "Intensity",
-        .noOrbsYet: "No Orbs Yet", .tapCreateFirst: "Tap + to create your first goal",
+        .noOrbsYet: "No Orbs Yet", .orbsNewWorld: "New World", .orbsTapToBegin: "Tap the orb to begin",
         .orbsGalaxySubtitle: "Your goals orbit here as living worlds",
         .orbsEmptyPoem: "Every great journey starts with a single orb waiting to be born.",
         .deleteOrbLabel: "Delete Orb",
@@ -601,7 +601,7 @@ final class LanguageManager: ObservableObject {
         .colorStudio: "استوديو اللون",
         .orbitHue: "حلقة اللون", .nebulaBlend: "مزيج السديم",
         .glow: "التوهج", .effect: "التأثير", .texture: "الملمس", .intensity: "الشدة",
-        .noOrbsYet: "لا أوربت بعد", .tapCreateFirst: "اضغط + لإنشاء أول هدف",
+        .noOrbsYet: "لا أوربت بعد", .orbsNewWorld: "عالم جديد", .orbsTapToBegin: "اضغط الكوكب للبدء",
         .orbsGalaxySubtitle: "أهدافك تدور هنا كعوالم حيّة",
         .orbsEmptyPoem: "كل رحلة عظيمة تبدأ بأوربت واحد ينتظر أن يولد.",
         .deleteOrbLabel: "حذف الأوربت",

@@ -34,7 +34,7 @@ struct ChallengeOrbitView: View {
                     .foregroundStyle(isMyWin ? .yellow : .white.opacity(0.75))
                     .padding(.top, 56)
 
-                Text(isMyWin ? winner.planetName : lang.t(.challengeTryAgain))
+                Text(isMyWin ? winner.localizedPlanetName(language: lang.language) : lang.t(.challengeTryAgain))
                     .font(.subheadline)
                     .foregroundStyle(.white.opacity(0.5))
                     .padding(.top, 6)
@@ -201,7 +201,7 @@ struct PlanetWinCard: View {
                     .font(.system(size: 15, weight: .semibold))
                     .foregroundStyle(.white)
                 if isMyWin {
-                    Text(saved ? lang.t(.save) + " ✓" : winner.planetName)
+                    Text(saved ? lang.t(.save) + " ✓" : winner.localizedPlanetName(language: lang.language))
                         .font(.caption)
                         .foregroundStyle(.white.opacity(0.5))
                 }

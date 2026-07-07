@@ -132,7 +132,7 @@ struct AchievementsView: View {
             )
 
             VStack(alignment: .leading, spacing: 4) {
-                Text(planet.planetName)
+                Text(planet.displayName(language: lang.language))
                     .font(.subheadline.weight(.semibold))
                     .foregroundStyle(.white)
                 Text(lang.achievementsWonOn(planet.wonAt))

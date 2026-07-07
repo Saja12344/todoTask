@@ -29,12 +29,14 @@ class ChallengeService: ObservableObject {
         userId: String,
         userName: String,
         orbDesign: OrbDesign,
-        orbTasks: [OrbGoal]   // مهام اليوم من الـ store
+        orbTasks: [OrbGoal],
+        language: AppLanguage
     ) async throws -> String {
 
         let ref = db.collection("challenges").document()
 
         let gradients = orbDesign.gradientStops.map { $0.toHex() }
+        let planet = PlanetNameCatalog.random()
 
         let room = ChallengeRoom(
             id: ref.documentID,
@@ -49,7 +51,9 @@ class ChallengeService: ObservableObject {
             winnerName: nil,
             planetGradient: gradients,
             planetGlow: orbDesign.glow,
-            planetName: randomPlanetName(),
+            planetName: language == .arabic ? planet.ar : planet.en,
+            planetNameEn: planet.en,
+            planetNameAr: planet.ar,
             planetTextureAsset: orbDesign.textureAssetName ?? "",
             planetTextureOpacity: orbDesign.textureOpacity
         )
@@ -94,6 +98,8 @@ class ChallengeService: ObservableObject {
                     planetGradient: room.planetGradient,
                     planetGlow: room.planetGlow,
                     planetName: room.planetName,
+                    planetNameEn: room.planetNameEn,
+                    planetNameAr: room.planetNameAr,
                     planetTextureAsset: room.planetTextureAsset,
                     planetTextureOpacity: room.planetTextureOpacity
                 )
@@ -156,6 +162,8 @@ class ChallengeService: ObservableObject {
     func savePlanetToWinner(winner: ChallengeWinner) async throws {
         let design = [
             "planetName":           winner.planetName,
+            "planetNameEn":         winner.planetNameEn as Any,
+            "planetNameAr":         winner.planetNameAr as Any,
             "planetGradient":       winner.planetGradient,
             "planetGlow":           winner.planetGlow,
             "planetTextureAsset":   winner.planetTextureAsset,
@@ -221,9 +229,6 @@ class ChallengeService: ObservableObject {
         }
     }
 
-    private func randomPlanetName() -> String {
-        ["زيفيريا","نيبتارا","كروناس","فيلاكس","أزوريا","ثيميرا"].randomElement()!
-    }
 }
 
 // Helper: RGBAColor → hex string

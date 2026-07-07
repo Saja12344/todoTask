@@ -34,6 +34,8 @@ struct ChallengeRoom: Codable, Identifiable {
     var planetGradient: [String]   // hex strings
     var planetGlow: Double
     var planetName: String
+    var planetNameEn: String?
+    var planetNameAr: String?
     var planetTextureAsset: String
     var planetTextureOpacity: Double
 }
@@ -54,6 +56,8 @@ struct ChallengeWinner: Identifiable {
     var planetGradient: [String]
     var planetGlow: Double
     var planetName: String
+    var planetNameEn: String?
+    var planetNameAr: String?
     var planetTextureAsset: String
     var planetTextureOpacity: Double
 }

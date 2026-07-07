@@ -37,12 +37,12 @@ struct GoalsPage: View {
                     ScrollView(showsIndicators: false) {
                         VStack(spacing: 0) {
                             if !store.goals.isEmpty {
-                                GalaxyHeaderView(goals: sortedGoals)
+                                GalaxyHeaderView(goals: sortedGoals, onCreate: startCreation)
                                     .padding(.bottom, 8)
                             }
 
                             if store.goals.isEmpty {
-                                GalaxyEmptyStateView()
+                                GalaxyEmptyStateView(onLaunch: startCreation)
                                     .frame(minHeight: geo.size.height * 0.72)
                             } else {
                                 Color.clear
@@ -65,12 +65,6 @@ struct GoalsPage: View {
                             }
                         }
                     }
-                }
-                .overlay(alignment: .bottomTrailing) {
-                    GoalFlowAddButton(size: 58, action: startCreation)
-                        .shadow(color: Color("accent").opacity(0.38), radius: 16, y: 6)
-                        .padding(.trailing, 22)
-                        .padding(.bottom, 22)
                 }
             }
             .navigationTitle(lang.t(.tabOrbs))
@@ -99,7 +93,7 @@ struct GoalsPage: View {
                     .environmentObject(lang)
                     .environmentObject(challengeOrbs)
                     .environmentObject(userVM)
-                    .presentationDragIndicator(.visible)
+                    .presentationDragIndicator(.hidden)
                     .presentationDetents([.large])
             }
             .navigationDestination(for: GoalCreationStep.self) { step in

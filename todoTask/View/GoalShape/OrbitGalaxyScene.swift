@@ -296,6 +296,7 @@ private struct LoopingMeteor: View {
 struct GalaxyHeaderView: View {
     @EnvironmentObject private var lang: LanguageManager
     let goals: [OrbGoal]
+    var onCreate: (() -> Void)? = nil
 
     private var themeAccent: Color { Color("accent") }
 
@@ -321,6 +322,19 @@ struct GalaxyHeaderView: View {
                     text: "\(Int(averageProgress * 100))%",
                     tint: themeAccent
                 )
+
+                Spacer(minLength: 0)
+
+                if let onCreate {
+                    Button(action: onCreate) {
+                        galaxyStatChip(
+                            icon: "moon.stars.fill",
+                            text: lang.t(.orbsNewWorld),
+                            tint: themeAccent
+                        )
+                    }
+                    .buttonStyle(.plain)
+                }
             }
         }
         .frame(maxWidth: .infinity, alignment: .leading)
@@ -347,6 +361,7 @@ struct GalaxyHeaderView: View {
 // MARK: - Empty state
 struct GalaxyEmptyStateView: View {
     @EnvironmentObject private var lang: LanguageManager
+    let onLaunch: () -> Void
     @State private var breathe = false
 
     private var themeAccent: Color { Color("accent") }
@@ -356,21 +371,25 @@ struct GalaxyEmptyStateView: View {
 
     var body: some View {
         VStack(spacing: 28) {
-            ZStack {
-                Circle()
-                    .stroke(themeAccent.opacity(0.18), style: StrokeStyle(lineWidth: 1, dash: [6, 8]))
-                    .frame(width: 168, height: 168)
-                    .scaleEffect(breathe ? 1.04 : 0.96)
+            Button(action: onLaunch) {
+                ZStack {
+                    Circle()
+                        .stroke(themeAccent.opacity(0.18), style: StrokeStyle(lineWidth: 1, dash: [6, 8]))
+                        .frame(width: 168, height: 168)
+                        .scaleEffect(breathe ? 1.04 : 0.96)
 
-                PlanetOrbView(
-                    size: breathe ? 88 : 80,
-                    gradientColors: themeOrbColors,
-                    glow: breathe ? 0.13 : 0.09,
-                    textureAssetName: "effect2",
-                    textureOpacity: 0.55
-                )
+                    PlanetOrbView(
+                        size: breathe ? 88 : 80,
+                        gradientColors: themeOrbColors,
+                        glow: breathe ? 0.13 : 0.09,
+                        textureAssetName: "effect2",
+                        textureOpacity: 0.55
+                    )
+                }
+                .frame(height: 200)
+                .contentShape(Circle())
             }
-            .frame(height: 200)
+            .buttonStyle(.plain)
 
             VStack(spacing: 10) {
                 Text(lang.t(.noOrbsYet))
@@ -383,7 +402,7 @@ struct GalaxyEmptyStateView: View {
                     .multilineTextAlignment(.center)
                     .padding(.horizontal, 32)
 
-                Text(lang.t(.tapCreateFirst))
+                Text(lang.t(.orbsTapToBegin))
                     .font(.caption.weight(.semibold))
                     .foregroundStyle(themeAccent.opacity(0.9))
                     .padding(.top, 4)

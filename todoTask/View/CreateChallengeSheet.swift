@@ -240,7 +240,8 @@ struct CreateChallengeSheet: View {
                 userId: user.id,
                 userName: user.username,
                 orbDesign: goal.design,
-                orbTasks: [goal]
+                orbTasks: [goal],
+                language: lang.language
             )
             let challengeGoal = ChallengeOrbFactory.fromSourceGoal(goal, roomId: roomId, myId: user.id)
             store.addChallengeOrb(challengeGoal, myId: user.id)

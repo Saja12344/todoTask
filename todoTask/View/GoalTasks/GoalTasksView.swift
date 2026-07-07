@@ -8,7 +8,6 @@ import SwiftUI
 struct GoalTasksView: View {
     @EnvironmentObject private var store: OrbGoalStore
     @EnvironmentObject private var lang: LanguageManager
-    @State private var showAddSheet      = false
     @State private var showDeleteConfirm = false
     @State private var taskPendingDelete: GoalTask?
     @State private var showAllTasks = false
@@ -57,19 +56,6 @@ struct GoalTasksView: View {
         .navigationTitle(goal?.title ?? "")
         .navigationBarTitleDisplayMode(.inline)
         .orbitForcedDark()
-        .sheet(isPresented: $showAddSheet) {
-            AddTaskSheet(
-                goalTitle: goal?.title ?? "",
-                defaultUnit: goal?.settings?.unit ?? ""
-            ) { title, quantity in
-                store.addTask(
-                    goalID: goalID,
-                    title: title,
-                    scheduledDate: Date(),
-                    targetAmount: max(1, quantity)
-                )
-            }
-        }
         .confirmationDialog(lang.t(.deleteTaskQuestion), isPresented: $showDeleteConfirm, titleVisibility: .visible) {
             Button(lang.t(.deleteTask), role: .destructive) {
                 if let task = taskPendingDelete { store.deleteTask(goalID: goalID, taskID: task.id) }
@@ -137,7 +123,6 @@ struct GoalTasksView: View {
                         .padding(.vertical, 4)
                         .background(Capsule().fill(Color.yellow.opacity(0.15)))
                 }
-                GoalFlowAddButton(size: 44) { showAddSheet = true }
             }
 
             if let info = goal?.challengeInfo {

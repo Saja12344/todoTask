@@ -33,17 +33,6 @@ struct RocketRaceView: View {
                 activeRaceContent
             }
         }
-        .overlay(alignment: .topLeading) {
-            Button { dismiss() } label: {
-                Image(systemName: "xmark")
-                    .font(.system(size: 14, weight: .bold))
-                    .foregroundStyle(.white.opacity(0.7))
-                    .padding(10)
-                    .background(Circle().fill(.white.opacity(0.10)))
-            }
-            .padding(.leading, 16)
-            .padding(.top, 54)
-        }
         .orbitForcedDark()
         .onAppear { service.listen(roomId: roomId, myId: myId) }
         .onDisappear { service.stopListening() }
