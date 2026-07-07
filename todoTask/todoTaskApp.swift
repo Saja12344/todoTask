@@ -40,6 +40,12 @@ struct todoTaskApp: App {
                     .environment(\.layoutDirection, language.language.layoutDirection)
                     .preferredColorScheme(.dark)
                     .orbitForcedDark()
+                    .onAppear {
+                        goalStore.switchUser(to: userVM.currentUser?.id, myId: userVM.currentUser?.id)
+                    }
+                    .onChange(of: userVM.currentUser?.id) { _, newId in
+                        goalStore.switchUser(to: newId, myId: newId)
+                    }
                     .onOpenURL { url in
                         DeepLinkManager.shared.handle(url: url)
                     }

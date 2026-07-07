@@ -638,8 +638,10 @@ struct Settings: View {
         }
         .confirmationDialog(lang.t(.deleteAccountQuestion), isPresented: $showDeleteConfirmation, titleVisibility: .visible) {
             Button(lang.t(.deletePermanently), role: .destructive) {
-                store.clearAll()
-                Task { await userVM.deleteAccount() }
+                Task {
+                    await store.clearAllForCurrentUser()
+                    await userVM.deleteAccount()
+                }
             }
             Button(lang.t(.cancel), role: .cancel) {}
         } message: {
@@ -654,7 +656,6 @@ struct Settings: View {
         .alert(lang.t(.logOutQuestion), isPresented: $showLogoutAlert) {
             Button(lang.t(.cancel), role: .cancel) {}
             Button(lang.t(.logOut), role: .destructive) {
-                store.clearAll()
                 userVM.logOut()
             }
         } message: {

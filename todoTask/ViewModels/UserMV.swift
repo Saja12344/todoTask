@@ -132,7 +132,7 @@ class UserViewModel: ObservableObject {
     func loginAsGuest() {
         authError = nil
         currentUser = User(
-            id: UUID().uuidString,
+            id: "guest_\(UUID().uuidString)",
             username: "Player",
             email: "",
             authMode: .guest

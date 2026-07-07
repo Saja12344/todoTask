@@ -12,16 +12,74 @@ final class OrbGoalStore: ObservableObject {
     @Published private(set) var goals: [OrbGoal] = []
 
     private let persistence = OrbGoalPersistence()
+    private var activeUserId = "logged_out"
+    private var cloudSyncTask: Task<Void, Never>?
 
     init() {
-        load()
+        goals = []
+        GoalTaskNotificationScheduler.reschedule(goals: goals)
+    }
+
+    // MARK: - Account binding
+
+    /// Load/save goals for the signed-in user. Call on login, logout, and app launch.
+    @MainActor
+    func switchUser(to userId: String?, myId: String? = nil) {
+        cloudSyncTask?.cancel()
+
+        if activeUserId != "logged_out" {
+            persistence.save(goals, userId: activeUserId)
+            scheduleCloudSave()
+        }
+
+        guard let userId, !userId.isEmpty else {
+            activeUserId = "logged_out"
+            goals = []
+            GoalTaskNotificationScheduler.reschedule(goals: [])
+            return
+        }
+
+        activeUserId = userId
+        persistence.migrateLegacyGlobalStore(to: userId)
+
+        let local = persistence.load(userId: userId)
+        goals = local
         migratePartialTaskAmounts()
         GoalTaskNotificationScheduler.reschedule(goals: goals)
-        debugPrintGoalsAndTasks()
+        reattachChallengeListeners(myId: myId ?? userId)
+
+        guard OrbGoalsCloudSync.isSyncable(userId) else { return }
+
+        cloudSyncTask = Task { @MainActor in
+            guard let cloud = await OrbGoalsCloudSync.shared.load(userId: userId) else { return }
+            guard !Task.isCancelled else { return }
+            let merged = Self.mergeGoals(local: persistence.load(userId: userId), cloud: cloud)
+            guard merged != goals else { return }
+            goals = merged
+            migratePartialTaskAmounts()
+            persistence.save(goals, userId: userId)
+            GoalTaskNotificationScheduler.reschedule(goals: goals)
+            reattachChallengeListeners(myId: myId ?? userId)
+            await OrbGoalsCloudSync.shared.save(userId: userId, goals: goals)
+        }
+    }
+
+    private func reattachChallengeListeners(myId: String) {
+        ChallengeOrbsManager.shared.attach(store: self)
+        for goal in goals where goal.isChallenge {
+            guard let roomId = goal.challengeInfo?.challengeID else { continue }
+            ChallengeOrbsManager.shared.track(roomId: roomId, goalId: goal.id, myId: myId, store: self)
+        }
+    }
+
+    private static func mergeGoals(local: [OrbGoal], cloud: [OrbGoal]) -> [OrbGoal] {
+        var merged = Dictionary(uniqueKeysWithValues: cloud.map { ($0.id, $0) })
+        for goal in local { merged[goal.id] = goal }
+        return merged.values.sorted { $0.createdAt < $1.createdAt }
     }
 
     // MARK: - Load / Save
-    func load() { goals = persistence.load() }
+    private func load() { goals = persistence.load(userId: activeUserId) }
 
     /// Backfill targetAmount from titles; sync completedAmount with legacy isDone.
     private func migratePartialTaskAmounts() {
@@ -64,8 +122,19 @@ final class OrbGoalStore: ObservableObject {
         return Int(digits)
     }
     private func save() {
-        persistence.save(goals)
+        guard activeUserId != "logged_out" else { return }
+        persistence.save(goals, userId: activeUserId)
         GoalTaskNotificationScheduler.reschedule(goals: goals)
+        scheduleCloudSave()
+    }
+
+    private func scheduleCloudSave() {
+        guard OrbGoalsCloudSync.isSyncable(activeUserId) else { return }
+        let userId = activeUserId
+        let snapshot = goals
+        Task {
+            await OrbGoalsCloudSync.shared.save(userId: userId, goals: snapshot)
+        }
     }
 
     // MARK: - Add Goal
@@ -353,7 +422,22 @@ final class OrbGoalStore: ObservableObject {
         goals.removeAll()
         UserProgressStore.resetAll()
         GoalTaskNotificationScheduler.reschedule(goals: [])
-        save()
+        if activeUserId != "logged_out" {
+            persistence.save(goals, userId: activeUserId)
+            if OrbGoalsCloudSync.isSyncable(activeUserId) {
+                let userId = activeUserId
+                Task { await OrbGoalsCloudSync.shared.save(userId: userId, goals: []) }
+            }
+        }
+    }
+
+    /// Removes all orb data for the current account (delete account).
+    func clearAllForCurrentUser() async {
+        let userId = activeUserId
+        clearAll()
+        guard userId != "logged_out" else { return }
+        persistence.delete(userId: userId)
+        await OrbGoalsCloudSync.shared.delete(userId: userId)
     }
 
     func updateProgress(goalID: UUID, done: Int, total: Int) {

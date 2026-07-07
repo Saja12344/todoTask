@@ -19,8 +19,6 @@ struct FriendsV: View {
         ZStack {
             ClassicOrbitBackground()
 
-            FriendsChallengeBackdrop()
-
             VStack(spacing: 32) {
                 Spacer()
 
@@ -125,34 +123,3 @@ struct FriendsV: View {
 }
 
 struct RoomID: Identifiable { let id: String }
-
-/// Subtle "Background 2" artwork for the Challenge Friend screen.
-/// Faded toward the edges so the hero and buttons stay perfectly readable.
-private struct FriendsChallengeBackdrop: View {
-    var body: some View {
-        GeometryReader { geo in
-            Image("Background 2")
-                .resizable()
-                .scaledToFill()
-                .frame(width: geo.size.width, height: geo.size.height)
-                .clipped()
-                .opacity(0.22)
-                .blendMode(.screen)
-                .mask(
-                    LinearGradient(
-                        stops: [
-                            .init(color: .clear, location: 0.0),
-                            .init(color: .white.opacity(0.5), location: 0.32),
-                            .init(color: .white, location: 0.55),
-                            .init(color: .white.opacity(0.4), location: 0.8),
-                            .init(color: .clear, location: 1.0)
-                        ],
-                        startPoint: .top,
-                        endPoint: .bottom
-                    )
-                )
-        }
-        .ignoresSafeArea()
-        .allowsHitTesting(false)
-    }
-}

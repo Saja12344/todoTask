@@ -93,12 +93,14 @@ struct GoalsPage: View {
                 energyVM.refreshToday()
                 challengeOrbs.attach(store: store)
             }
-            .fullScreenCover(item: $challengeGoalOpen) { goal in
+            .sheet(item: $challengeGoalOpen) { goal in
                 ChallengeOrbDetailView(goal: goal, onClose: { challengeGoalOpen = nil })
                     .environmentObject(store)
                     .environmentObject(lang)
                     .environmentObject(challengeOrbs)
                     .environmentObject(userVM)
+                    .presentationDragIndicator(.visible)
+                    .presentationDetents([.large])
             }
             .navigationDestination(for: GoalCreationStep.self) { step in
                 switch step {

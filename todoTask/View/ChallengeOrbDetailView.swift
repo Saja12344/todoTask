@@ -58,9 +58,6 @@ struct ChallengeOrbDetailView: View {
             ClassicOrbitBackground()
 
             VStack(spacing: 0) {
-                Color.clear
-                    .frame(height: GoalFlowLayout.topBarHeight + 8)
-
                 ScrollView(showsIndicators: false) {
                     VStack(spacing: 14) {
                         heroCard
@@ -94,23 +91,6 @@ struct ChallengeOrbDetailView: View {
                     .padding(.bottom, 28)
                 }
             }
-        }
-        .overlay(alignment: .topLeading) {
-            Button(action: close) {
-                Image(systemName: "xmark")
-                    .font(.system(size: 16, weight: .bold))
-                    .foregroundStyle(.white)
-                    .frame(width: 56, height: 56)
-                    .background {
-                        Circle()
-                            .fill(Color.black.opacity(0.5))
-                            .glassEffect(.clear, in: .circle)
-                    }
-                    .contentShape(Circle())
-            }
-            .buttonStyle(.plain)
-            .padding(.leading, 12)
-            .padding(.top, 8)
         }
         .orbitForcedDark()
         .onReceive(challengeOrbs.$liveStates) { states in
