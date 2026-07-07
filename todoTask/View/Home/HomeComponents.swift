@@ -79,7 +79,7 @@ struct today: View {
         NavigationStack(path: $path) {
             ZStack {
                 Rectangle()
-                    .fill(LinearGradient(colors: [.darkBlu, .dark], startPoint: .bottom, endPoint: .top))
+                    .fill(LinearGradient(colors: [.darkBlu, .orbitDark], startPoint: .bottom, endPoint: .top))
                     .ignoresSafeArea()
                 Image("Background 4")
                     .resizable()
@@ -521,7 +521,7 @@ struct Settings: View {
     var body: some View {
         ZStack {
             Rectangle()
-                .fill(LinearGradient(colors: [.darkBlu, .dark], startPoint: .bottom, endPoint: .top))
+                .fill(LinearGradient(colors: [.darkBlu, .orbitDark], startPoint: .bottom, endPoint: .top))
                 .ignoresSafeArea()
             Image("Background")
                 .resizable()
@@ -613,21 +613,21 @@ struct Settings: View {
                         .padding(.top, 4)
 
                     settingsCard {
-                        SettingsRow(icon: "target", title: lang.t(.clearGoals), tint: Color(.lightRed)) {
+                        SettingsRow(icon: "target", title: lang.t(.clearGoals), tint: Color.lightRed) {
                             EmptyView()
                         }
                         .onTapGesture { showClearGoalsConfirm = true }
 
                         settingsDivider
 
-                        SettingsRow(icon: "rectangle.portrait.and.arrow.right", title: lang.t(.logOut), tint: Color(.lightRed)) {
+                        SettingsRow(icon: "rectangle.portrait.and.arrow.right", title: lang.t(.logOut), tint: Color.lightRed) {
                             EmptyView()
                         }
                         .onTapGesture { showLogoutAlert = true }
 
                         settingsDivider
 
-                        SettingsRow(icon: "trash", title: lang.t(.deleteAccount), tint: Color(.lightRed)) {
+                        SettingsRow(icon: "trash", title: lang.t(.deleteAccount), tint: Color.lightRed) {
                             EmptyView()
                         }
                         .onTapGesture { showDeleteConfirmation = true }
@@ -771,7 +771,7 @@ struct DayView: View {
             isToday    ? Color.accent.opacity(0.35) :
             Color.darkBlu.opacity(0.8)
         )
-        .foregroundColor(isSelected ? Color(.darkBlu) : .white)
+        .foregroundColor(isSelected ? Color.darkBlu : .white)
         .clipShape(RoundedRectangle(cornerRadius: 12))
         .glassEffect(.clear.interactive(), in: .rect(cornerRadius: 12))
     }

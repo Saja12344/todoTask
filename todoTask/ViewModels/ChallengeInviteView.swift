@@ -28,7 +28,7 @@ struct ChallengeInviteView: View {
 
     var body: some View {
         ZStack {
-            LinearGradient(colors: [.darkBlu, .dark], startPoint: .bottom, endPoint: .top)
+            LinearGradient(colors: [.darkBlu, .orbitDark], startPoint: .bottom, endPoint: .top)
                 .ignoresSafeArea()
             Image("Gliter").resizable().ignoresSafeArea()
 

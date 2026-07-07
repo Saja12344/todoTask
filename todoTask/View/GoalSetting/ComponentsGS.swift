@@ -12,7 +12,7 @@ struct FriendsChallengeBackground: View {
     var body: some View {
         ZStack {
             Rectangle()
-                .fill(LinearGradient(colors: [.darkBlu, .dark], startPoint: .bottom, endPoint: .top))
+                .fill(LinearGradient(colors: [.darkBlu, .orbitDark], startPoint: .bottom, endPoint: .top))
                 .ignoresSafeArea()
 
             GeometryReader { geo in
@@ -43,7 +43,7 @@ struct ClassicOrbitBackground: View {
     var body: some View {
         ZStack {
             Rectangle()
-                .fill(LinearGradient(colors: [.darkBlu, .dark], startPoint: .bottom, endPoint: .top))
+                .fill(LinearGradient(colors: [.darkBlu, .orbitDark], startPoint: .bottom, endPoint: .top))
                 .ignoresSafeArea()
 
             if includeBackgroundImage {

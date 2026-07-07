@@ -17,7 +17,7 @@ struct OrbsSpaceBackground: View {
                 colors: [
                     Color(red: 0.01, green: 0.02, blue: 0.08),
                     Color.darkBlu,
-                    Color.dark,
+                    Color.orbitDark,
                     Color(red: 0.02, green: 0.03, blue: 0.10)
                 ],
                 startPoint: .top,
@@ -121,7 +121,7 @@ struct SoftStarfieldBackground: View {
     var body: some View {
         ZStack {
             Rectangle()
-                .fill(LinearGradient(colors: [.darkBlu, .dark], startPoint: .bottom, endPoint: .top))
+                .fill(LinearGradient(colors: [.darkBlu, .orbitDark], startPoint: .bottom, endPoint: .top))
                 .ignoresSafeArea()
             StarFieldLayer(count: 65, sizeRange: 0.5...1.3, opacity: 0.18...0.48, drift: false, seed: 11)
             StarFieldLayer(count: 24, sizeRange: 1.0...2.1, opacity: 0.28...0.62, drift: false, seed: 29)

@@ -71,7 +71,7 @@ struct Report: View {
         NavigationStack {
             ZStack {
                 Rectangle()
-                    .fill(LinearGradient(colors: [.darkBlu, .dark], startPoint: .bottom, endPoint: .top))
+                    .fill(LinearGradient(colors: [.darkBlu, .orbitDark], startPoint: .bottom, endPoint: .top))
                     .ignoresSafeArea()
                 Image("Background 4")
                     .resizable()

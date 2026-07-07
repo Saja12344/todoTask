@@ -22,7 +22,7 @@ struct GoalTasksView: View {
     var body: some View {
         ZStack {
             Rectangle()
-                .fill(LinearGradient(colors: [.darkBlu, .dark], startPoint: .bottom, endPoint: .top))
+                .fill(LinearGradient(colors: [.darkBlu, .orbitDark], startPoint: .bottom, endPoint: .top))
                 .ignoresSafeArea()
             Image("Background 4")
                 .resizable()
