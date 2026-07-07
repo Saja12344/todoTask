@@ -74,8 +74,27 @@ final class OrbGoalStore: ObservableObject {
         save()
     }
 
+    func addChallengeOrb(_ goal: OrbGoal, myId: String) {
+        guard let roomId = goal.challengeInfo?.challengeID else {
+            add(goal)
+            return
+        }
+        let goalId: UUID
+        if let existing = goals.first(where: { $0.challengeInfo?.challengeID == roomId }) {
+            goalId = existing.id
+        } else {
+            goals.append(goal)
+            save()
+            goalId = goal.id
+        }
+        ChallengeOrbsManager.shared.track(roomId: roomId, goalId: goalId, myId: myId, store: self)
+    }
+
     // MARK: - Delete Goal
     func delete(goalID: UUID) {
+        if let roomId = goals.first(where: { $0.id == goalID })?.challengeInfo?.challengeID {
+            ChallengeOrbsManager.shared.untrack(roomId: roomId)
+        }
         goals.removeAll { $0.id == goalID }
         save()
     }
@@ -83,6 +102,18 @@ final class OrbGoalStore: ObservableObject {
     // MARK: - Lookup
     func goal(with id: UUID) -> OrbGoal? {
         goals.first { $0.id == id }
+    }
+
+    func reflectionContext(goalID: UUID, taskID: UUID) -> TaskReflectionContext? {
+        guard let goal = goal(with: goalID),
+              let task = goal.tasks.first(where: { $0.id == taskID }) else { return nil }
+        return TaskReflectionContext(
+            goalID: goalID,
+            taskID: taskID,
+            taskTitle: task.title,
+            goalTitle: goal.title,
+            accent: goal.accentColor
+        )
     }
 
     // MARK: - Task CRUD
@@ -124,6 +155,7 @@ final class OrbGoalStore: ObservableObject {
         guard let i = goals.firstIndex(where: { $0.id == goalID }) else { return }
         guard let j = goals[i].tasks.firstIndex(where: { $0.id == taskID }) else { return }
         var task = goals[i].tasks[j]
+        let wasComplete = task.isFullyComplete
         if task.targetAmount > 1 {
             let cap = task.targetAmount
             task.completedAmount = (task.completedAmount + 1) % (cap + 1)
@@ -132,6 +164,13 @@ final class OrbGoalStore: ObservableObject {
             task.completedAmount = task.isDone ? 1 : 0
         }
         task.syncDoneFlag()
+        if task.isFullyComplete, !wasComplete {
+            task.completedAt = Date()
+        } else if !task.isFullyComplete {
+            task.completedAt = nil
+            task.reflectionNote = nil
+            task.reflectionPromptKey = nil
+        }
         goals[i].tasks[j] = task
         save()
     }
@@ -140,9 +179,28 @@ final class OrbGoalStore: ObservableObject {
         guard let i = goals.firstIndex(where: { $0.id == goalID }) else { return }
         guard let j = goals[i].tasks.firstIndex(where: { $0.id == taskID }) else { return }
         var task = goals[i].tasks[j]
+        let wasComplete = task.isFullyComplete
         let cap = max(1, task.targetAmount)
         task.completedAmount = min(max(0, amount), cap)
         task.syncDoneFlag()
+        if task.isFullyComplete, !wasComplete {
+            task.completedAt = Date()
+        } else if !task.isFullyComplete {
+            task.completedAt = nil
+        }
+        goals[i].tasks[j] = task
+        save()
+    }
+
+    func saveTaskReflection(goalID: UUID, taskID: UUID, note: String, promptKey: String) {
+        guard let i = goals.firstIndex(where: { $0.id == goalID }) else { return }
+        guard let j = goals[i].tasks.firstIndex(where: { $0.id == taskID }) else { return }
+        var task = goals[i].tasks[j]
+        task.reflectionNote = note
+        task.reflectionPromptKey = promptKey
+        if task.completedAt == nil, task.isFullyComplete {
+            task.completedAt = Date()
+        }
         goals[i].tasks[j] = task
         save()
     }

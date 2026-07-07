@@ -10,11 +10,10 @@ struct GoalDesign: View {
     @EnvironmentObject private var lang: LanguageManager
     @Environment(\.dismiss) private var dismiss
     @State private var goalTitle: String = ""
-    @State private var totalTasks: Int = 10
     @State private var vm = GoalDesignViewModel()
-    @State private var showAddColorPicker = false
+    @State private var showCustomColorPicker = false
     @State private var pickerColor = Color.cyan
-    @State private var commitPickerColor = false
+    @State private var addingNewStop = false
 
     let onSaveDesign: ((OrbDesign) -> Void)?
 
@@ -26,115 +25,76 @@ struct GoalDesign: View {
         GoalFlowScreen(
             background: { AppBackground() },
             topBar: {
-                GoalFlowTitleBar(
-                    title: lang.t(.designYourOrb),
-                    onBack: { dismiss() },
-                    onNext: { saveGoal() }
-                )
+                HStack {
+                    GoalFlowBackButton(action: { dismiss() })
+                    Spacer()
+                    GoalFlowCheckButton(isEnabled: true, action: saveGoal)
+                }
             },
             content: {
-                ScrollView(showsIndicators: false) {
-                    GoalCreationStepIndicator(current: 4)
-                        .padding(.horizontal, 20)
-                        .padding(.top, 4)
-                        .padding(.bottom, 8)
+                GeometryReader { geo in
+                    VStack(spacing: 0) {
+                        Spacer(minLength: max(8, geo.size.height * 0.04))
 
-                    GeometryReader { proxy in
-                        Color.clear
-                            .preference(
-                                key: ScrollOffsetKey.self,
-                                value: proxy.frame(in: .named("scroll")).minY
-                            )
+                        OrbPreviewStage(
+                            size: min(200, geo.size.width * 0.48),
+                            gradientColors: vm.gradientStops,
+                            glow: vm.glow,
+                            textureAssetName: vm.selectedEffectAsset,
+                            textureOpacity: vm.textureOpacity
+                        )
+                        .frame(maxWidth: .infinity)
+
+                        Spacer(minLength: 12)
+
+                        OrbDesignControlPanel(
+                            stops: vm.gradientStops,
+                            selectedStopIndex: vm.selectedStopIndex,
+                            canAddStop: vm.canAddStop,
+                            glow: $vm.glow,
+                            effects: vm.effects,
+                            selectedEffectIndex: vm.selectedEffectIndex,
+                            textureOpacity: vm.textureOpacity,
+                            onSelectStop: { vm.selectStop(at: $0) },
+                            onEditStop: {
+                                pickerColor = vm.selectedStopColor
+                                addingNewStop = false
+                                showCustomColorPicker = true
+                            },
+                            onDeleteStop: { vm.deleteStop(at: $0) },
+                            onAddStop: {
+                                pickerColor = vm.selectedStopColor
+                                addingNewStop = true
+                                showCustomColorPicker = true
+                            },
+                            onSelectEffect: { vm.selectEffect($0) }
+                        )
+                        .padding(.horizontal, GoalFlowLayout.horizontalPadding)
+                        .padding(.bottom, 12)
                     }
-                    .frame(height: 0)
-
-                    PlanetOrbView(
-                        size: 180,
-                        gradientColors: vm.gradientStops,
-                        glow: vm.glow,
-                        textureAssetName: vm.selectedEffectAsset,
-                        textureOpacity: vm.textureOpacity
-                    )
-                    .padding(.top, 0)
-                    .padding(.bottom, 10)
-
-                    GlassCard {
-                        VStack(alignment: .leading, spacing: 18) {
-                            SectionHeader(title: lang.t(.planetColors))
-                                .padding(.top, -20)
-
-                            ScrollView(.horizontal, showsIndicators: false) {
-                                HStack(spacing: 12) {
-                                    ForEach(vm.gradientStops.indices, id: \.self) { i in
-                                        ColorStopSwatch(color: vm.gradientStops[i]) {
-                                            vm.deleteStop(at: i)
-                                        }
-                                    }
-                                    Button {
-                                        pickerColor = vm.gradientStops.last ?? .cyan
-                                        showAddColorPicker = true
-                                    } label: {
-                                        ZStack {
-                                            Circle().fill(Color.white.opacity(0.08))
-                                            Image(systemName: "plus")
-                                                .font(.system(size: 18, weight: .semibold))
-                                                .foregroundStyle(.white.opacity(0.9))
-                                        }
-                                        .frame(width: 44, height: 44)
-                                    }
-                                }
-                            }
-
-                            SectionHeader(title: lang.t(.glow))
-                            HStack {
-                                Image(systemName: "sun.min").foregroundStyle(.white.opacity(0.7))
-                                Slider(value: $vm.glow, in: 0...0.15)
-                                Image(systemName: "sun.max.fill").foregroundStyle(.white.opacity(0.85))
-                            }
-
-                            SectionHeader(title: lang.t(.effect))
-                            ScrollView(.horizontal, showsIndicators: false) {
-                                HStack(spacing: 10) {
-                                    ForEach(Array(vm.effects.enumerated()), id: \.offset) { i, asset in
-                                        EffectThumb(assetName: asset, isSelected: i == vm.selectedEffectIndex)
-                                            .onTapGesture { vm.selectEffect(i) }
-                                    }
-                                }
-                                .padding(.vertical, 2)
-                            }
-
-                            HStack {
-                                Text(lang.t(.intensity))
-                                    .foregroundStyle(.white.opacity(0.75))
-                                    .font(.system(size: 14, weight: .medium))
-                                Slider(value: $vm.textureOpacity, in: 0...1)
-                            }
-                            .padding(.top, 6)
-                        }
-                        .padding(.vertical, 6)
-                        .padding(.horizontal, 6)
-                    }
-                    .padding(.horizontal, 16)
-                    .padding(.bottom, 40)
-                }
-                .coordinateSpace(name: "scroll")
-                .onPreferenceChange(ScrollOffsetKey.self) { value in
-                    vm.scrollY = value
+                    .frame(width: geo.size.width, height: geo.size.height, alignment: .top)
                 }
             }
         )
-        .sheet(isPresented: $showAddColorPicker) {
+        .sheet(isPresented: $showCustomColorPicker) {
             PlanetColorPickerSheet(
                 color: $pickerColor,
-                title: lang.t(.planetColors),
+                previewColors: vm.gradientStops,
+                title: lang.t(.customColor),
                 addTitle: lang.t(.save),
                 cancelTitle: lang.t(.cancel),
                 onAdd: {
-                    vm.appendStop(pickerColor)
-                    showAddColorPicker = false
+                    if addingNewStop {
+                        vm.appendStop(pickerColor)
+                    } else {
+                        vm.selectedStopColor = pickerColor
+                    }
+                    addingNewStop = false
+                    showCustomColorPicker = false
                 },
                 onCancel: {
-                    showAddColorPicker = false
+                    addingNewStop = false
+                    showCustomColorPicker = false
                 }
             )
         }
@@ -162,6 +122,45 @@ struct GoalDesign: View {
     }
 }
 
+// MARK: - Hero orb preview
+private struct OrbPreviewStage: View {
+    let size: CGFloat
+    let gradientColors: [Color]
+    let glow: Double
+    let textureAssetName: String?
+    let textureOpacity: Double
+
+    private var accent: Color { gradientColors.first ?? Color("accent") }
+
+    var body: some View {
+        ZStack {
+            Circle()
+                .fill(
+                    RadialGradient(
+                        colors: [accent.opacity(0.30), accent.opacity(0.06), .clear],
+                        center: .center,
+                        startRadius: size * 0.12,
+                        endRadius: size * 0.95
+                    )
+                )
+                .frame(width: size * 1.8, height: size * 1.8)
+                .blur(radius: 10)
+
+            PlanetOrbView(
+                size: size,
+                gradientColors: gradientColors,
+                glow: max(glow, 0.13),
+                textureAssetName: textureAssetName,
+                textureOpacity: textureOpacity,
+                autoSpin: true
+            )
+            .shadow(color: accent.opacity(0.5), radius: 36, y: 16)
+        }
+        .frame(width: size * 1.85, height: size * 1.85)
+    }
+}
+
 #Preview {
     GoalDesign()
+        .environmentObject(LanguageManager())
 }

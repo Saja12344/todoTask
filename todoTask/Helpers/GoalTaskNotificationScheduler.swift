@@ -39,9 +39,10 @@ enum GoalTaskNotificationScheduler {
 
         guard let fireDate = cal.date(from: components), fireDate > Date() else { return }
 
+        let copy = motivationalCopy(for: task, goal: goal)
         let content = UNMutableNotificationContent()
-        content.title = notificationTitle()
-        content.body = notificationBody(goalTitle: goal.title, taskTitle: task.title)
+        content.title = copy.title
+        content.body = copy.body
         content.sound = .default
 
         let triggerComponents = cal.dateComponents([.year, .month, .day, .hour, .minute], from: fireDate)
@@ -58,14 +59,44 @@ enum GoalTaskNotificationScheduler {
         UserDefaults.standard.string(forKey: "app_language") == "ar"
     }
 
-    private static func notificationTitle() -> String {
-        isArabic ? "لديك مهمة" : "You have a task"
+    private struct MotivationalCopy {
+        let title: String
+        let body: String
     }
 
-    private static func notificationBody(goalTitle: String, taskTitle: String) -> String {
+    private static func motivationalCopy(for task: GoalTask, goal: OrbGoal) -> MotivationalCopy {
+        let index = abs(task.id.hashValue) % 5
         if isArabic {
-            return "على كوكب «\(goalTitle)»: \(taskTitle)"
+            let titles = [
+                "كوكبك ينتظرك ✨",
+                "خطوة صغيرة، أوربت أكبر 🪐",
+                "أنت قريبة!",
+                "وقت إنجازك",
+                "يلا نكملها ⚡"
+            ]
+            let bodies = [
+                "«\(task.title)» على \(goal.title)",
+                "خلّص «\(task.title)» وشوف كوكبك ينمو",
+                "مهمة اليوم: \(task.title)",
+                "خطوة وحدة تقربك — \(task.title)",
+                "\(task.title) · \(goal.title)"
+            ]
+            return MotivationalCopy(title: titles[index], body: bodies[index])
         }
-        return "On planet «\(goalTitle)»: \(taskTitle)"
+        let titles = [
+            "Your orb is waiting ✨",
+            "Small step, bigger orbit 🪐",
+            "You're closer than you think",
+            "Time to shine",
+            "Let's finish this ⚡"
+        ]
+        let bodies = [
+            "«\(task.title)» on \(goal.title)",
+            "Complete «\(task.title)» and grow your planet",
+            "Today's move: \(task.title)",
+            "One step closer — \(task.title)",
+            "\(task.title) · \(goal.title)"
+        ]
+        return MotivationalCopy(title: titles[index], body: bodies[index])
     }
 }

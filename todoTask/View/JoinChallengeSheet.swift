@@ -1,10 +1,14 @@
+//
 //  JoinChallengeSheet.swift
 //  todoTask
+//
 
 import SwiftUI
 
 struct JoinChallengeSheet: View {
     @EnvironmentObject private var userVM: UserViewModel
+    @EnvironmentObject private var lang: LanguageManager
+    @ObservedObject var store: OrbGoalStore
     let onJoined: (String) -> Void
 
     @State private var code = ""
@@ -16,24 +20,33 @@ struct JoinChallengeSheet: View {
 
     var body: some View {
         ZStack {
-            Color(.darkBlu).ignoresSafeArea()
-            Image("Gliter").resizable().ignoresSafeArea()
+            ClassicOrbitBackground(includeBackgroundImage: false)
 
-            VStack(spacing: 28) {
-                Capsule().fill(Color.white.opacity(0.2))
-                    .frame(width: 44, height: 4).padding(.top, 16)
+            VStack(spacing: 24) {
+                Capsule()
+                    .fill(Color.white.opacity(0.2))
+                    .frame(width: 44, height: 4)
+                    .padding(.top, 16)
 
-                Text("انضم لتحدي")
-                    .font(.title2.bold()).foregroundColor(.white)
+                Image(systemName: "link.circle.fill")
+                    .font(.system(size: 44))
+                    .foregroundStyle(.cyan)
 
-                Text("أدخل الرمز اللي أرسله لك صديقك")
-                    .font(.subheadline).foregroundColor(.white.opacity(0.55))
+                Text(lang.t(.challengeJoin))
+                    .font(.title2.bold())
+                    .foregroundStyle(.white)
 
-                TextField("رمز التحدي", text: $code)
+                Text(lang.t(.challengeJoinHint))
+                    .font(.subheadline)
+                    .foregroundStyle(.white.opacity(0.55))
+                    .multilineTextAlignment(.center)
+                    .padding(.horizontal, 20)
+
+                TextField(lang.t(.challengeCodePlaceholder), text: $code)
                     .textFieldStyle(.plain)
                     .font(.system(size: 20, weight: .semibold, design: .monospaced))
                     .multilineTextAlignment(.center)
-                    .foregroundColor(.white)
+                    .foregroundStyle(.white)
                     .padding()
                     .glassEffect(.clear, in: .rect(cornerRadius: 16))
                     .padding(.horizontal, 28)
@@ -41,48 +54,57 @@ struct JoinChallengeSheet: View {
                     .textInputAutocapitalization(.characters)
 
                 if let error {
-                    Text(error).foregroundColor(.red).font(.caption)
+                    Text(error).foregroundStyle(.red).font(.caption)
                 }
 
                 Button {
                     Task { await join() }
                 } label: {
-                    if isLoading {
-                        ProgressView().tint(.white)
-                            .frame(maxWidth: .infinity).frame(height: 54)
-                    } else {
-                        Text("انضم الآن")
-                            .font(.system(size: 17, weight: .semibold))
-                            .foregroundColor(.white)
-                            .frame(maxWidth: .infinity).frame(height: 54)
+                    Group {
+                        if isLoading {
+                            ProgressView().tint(.white)
+                        } else {
+                            Text(lang.t(.challengeJoinNow))
+                                .font(.system(size: 17, weight: .semibold))
+                        }
                     }
+                    .foregroundStyle(.white)
+                    .frame(maxWidth: .infinity)
+                    .frame(height: 54)
                 }
-                .background(Color.accent)
+                .background(Color("accent"))
                 .clipShape(RoundedRectangle(cornerRadius: 16))
                 .disabled(code.trimmingCharacters(in: .whitespaces).isEmpty || isLoading)
                 .padding(.horizontal, 28)
 
-                Button("إلغاء") { dismiss() }
-                    .foregroundColor(.white.opacity(0.5))
+                Button(lang.t(.cancel)) { dismiss() }
+                    .foregroundStyle(.white.opacity(0.5))
 
                 Spacer()
             }
         }
-        .colorScheme(.dark)
+        .orbitForcedDark()
+        .presentationDetents([.medium, .large])
+        .presentationDragIndicator(.visible)
     }
 
     private func join() async {
-        guard let user = userVM.currentUser else { return }
+        guard let user = userVM.currentUser else {
+            error = lang.t(.challengeLoginRequired)
+            return
+        }
+        let trimmed = code.trimmingCharacters(in: .whitespaces)
+        guard !trimmed.isEmpty else { return }
         isLoading = true
+        error = nil
         do {
-            try await service.joinRoom(
-                roomId: code.trimmingCharacters(in: .whitespaces),
-                userId: user.id,
-                userName: user.username
-            )
-            onJoined(code.trimmingCharacters(in: .whitespaces))
+            try await service.joinRoom(roomId: trimmed, userId: user.id, userName: user.username)
+            let room = try await service.fetchRoom(roomId: trimmed)
+            let challengeGoal = ChallengeOrbFactory.fromRoom(room, roomId: trimmed, myId: user.id)
+            store.addChallengeOrb(challengeGoal, myId: user.id)
+            onJoined(trimmed)
         } catch {
-            self.error = "الرمز غير صحيح أو منتهي"
+            self.error = lang.t(.challengeInvalidCode)
         }
         isLoading = false
     }

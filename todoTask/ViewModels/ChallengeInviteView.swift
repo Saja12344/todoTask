@@ -19,6 +19,7 @@ struct ChallengeInviteView: View {
     let fromUsername: String
 
     @EnvironmentObject private var store: OrbGoalStore
+    @EnvironmentObject private var userVM: UserViewModel
     @StateObject private var challengeVM = ChallengeViewModel()
     @Environment(\.dismiss) private var dismiss
 
@@ -104,29 +105,19 @@ struct ChallengeInviteView: View {
     private func acceptChallenge() async {
         isLoading = true
 
-        let newGoal = OrbGoal(
-            id: UUID(),
-            title: "Challenge from \(fromUsername)",
-            design: OrbDesign(
-                glow: 0.12,
-                textureOpacity: 0.85,
-                textureAssetName: "effect1",
-                gradientStops: [
-                    RGBAColor(r: 0.6, g: 0.2, b: 0.9, a: 1),
-                    RGBAColor(r: 0.3, g: 0.1, b: 0.8, a: 1)
-                ]
-            ),
-            challengeInfo: ChallengeInfo(
-                challengeID: challengeID,
-                opponentID: "opponent",
-                opponentName: fromUsername,
-                friendProgress: 0,
-                isWinner: false,
-                winnerID: nil
-            )
+        let myId = userVM.currentUser?.id ?? "guest"
+        let design = OrbDesign(
+            glow: 0.12,
+            textureOpacity: 0.85,
+            textureAssetName: "effect1",
+            gradientStops: [
+                RGBAColor(r: 0.6, g: 0.2, b: 0.9, a: 1),
+                RGBAColor(r: 0.3, g: 0.1, b: 0.8, a: 1)
+            ]
         )
-
-        store.add(newGoal)
+        let source = OrbGoal(id: UUID(), title: "Challenge from \(fromUsername)", design: design)
+        let newGoal = ChallengeOrbFactory.fromSourceGoal(source, roomId: challengeID, myId: myId)
+        store.addChallengeOrb(newGoal, myId: myId)
 
         await MainActor.run {
             isLoading = false

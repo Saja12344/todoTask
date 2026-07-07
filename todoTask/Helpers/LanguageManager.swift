@@ -51,6 +51,7 @@ enum L10nKey: String, CaseIterable {
 
     // Suggested goal
     case yourGoal, weSuggest, hideTypes, chooseDifferentType
+    case suggestTypeScanning, suggestTypeMatched, suggestTypeLabel, suggestShapeIntro
     case suggestNextHint, noMatchTitle, noMatchBody, goalTypes
 
     // Goal shape / setup
@@ -59,6 +60,12 @@ enum L10nKey: String, CaseIterable {
     case buildHabitTitle, buildHabitDesc
     case levelUpTitle, levelUpDesc
     case reduceTitle, reduceDesc
+    case shapeFinishTotalTitle, shapeFinishTotalDesc
+    case shapeRepeatScheduleTitle, shapeRepeatScheduleDesc
+    case shapeBuildStreakTitle, shapeBuildStreakDesc
+    case shapeLevelUpGradualTitle, shapeLevelUpGradualDesc
+    case shapeFinishMilestonesTitle, shapeFinishMilestonesDesc
+    case shapeReduceTitle, shapeReduceDesc
 
     // Form fields
     case targetNumber, deadline, deadlineHint, chooseDeadline
@@ -76,10 +83,29 @@ enum L10nKey: String, CaseIterable {
     case milestoneExplainEmpty, milestoneExplainGoal
 
     // Design orb
-    case designYourOrb, planetColors, glow, effect, intensity
+    case designYourOrb, planetColors, glow, effect, texture, intensity
+    case colorPalettes, tapColorToEdit, quickHues, customColor, deleteColor
+    case colorStudio, orbitHue, nebulaBlend
 
     // Orbs page
     case noOrbsYet, tapCreateFirst, deleteOrbQuestion, deleteOrbMessage
+    case orbsGalaxySubtitle, orbsEmptyPoem, deleteOrbLabel
+
+    // Friends & challenge arena
+    case friendsHeroTitle, friendsHeroSubtitle, friendsCreate, friendsJoin
+    case friendsHowItWorks, friendsStep1, friendsStep2, friendsStep3
+    case challengeNew, challengeJoin, challengeJoinHint, challengeJoinNow
+    case challengeCreateSend, challengeCompetingFor, challengeWaiting, challengeSendCode
+    case challengeCopied, challengeBackHome, challengeKeepPlanet, challengeYouWon
+    case challengeFriendWon, challengeTryAgain, challengePoints, raceYou, raceOpponent
+    case challengeCodePlaceholder, challengeLoginRequired, challengeNeedGoal
+    case challengeErrorGeneric, challengeInvalidCode, challengePlanetYours
+    case friendsPrizeLabel, friendsRacePreview
+    case racePrizeLabel, raceMissionsTitle, raceTapLaunch, raceDoneYou, raceDoneFriend
+    case raceBannerAhead, raceBannerBehind, raceBannerTied, raceVS
+    case challengeTasksProgress, challengeNextMission, challengeCompletedCount
+    case challengeOrbAdded
+    case challengeCopyCode, challengeCreatedTitle, challengeCreatedHint, challengeGoToOrbs, challengeShareActive, challengeRoomCode
 
     // Weekdays
     case daySun, dayMon, dayTue, dayWed, dayThu, dayFri, daySat
@@ -94,7 +120,8 @@ enum L10nKey: String, CaseIterable {
 
     // Settings & account
     case accountManagement, clearGoals, clearGoalsQuestion, clearGoalsMessage
-    case logOut, logOutQuestion, guestLogoutMessage
+    case logOut, logOutQuestion, logOutMessage, guestLogoutMessage
+    case continueAsGuest, invalidCredentials
     case deleteAccount, deleteAccountQuestion, deleteAccountMessage, deletePermanently
     case guest, guestIDLabel, guestIDNA
 
@@ -104,6 +131,14 @@ enum L10nKey: String, CaseIterable {
 
     // Today & tasks
     case todayShortcut, late
+
+    // Reflection & achievements
+    case reflectionTitle, reflectionPlaceholder, reflectionHint
+    case reflectionPromptWhat, reflectionPromptLearned, reflectionPromptNext
+    case reflectionPromptCloser, reflectionPromptFeel
+    case achievementsTitle, achievementsWonPlanets, achievementsCompleted
+    case achievementsReflections, achievementsNoTasks, achievementsNoReflections
+    case achievementsStatOrbs, achievementsStatDone, achievementsStatWon
 
     // Progress report
     case reportTitle, reportTotalGoals, reportGoalsCompleted, reportAvgProgress, reportOverdue
@@ -134,6 +169,35 @@ final class LanguageManager: ObservableObject {
         case .english: return en[key] ?? key.rawValue
         case .arabic:  return ar[key] ?? en[key] ?? key.rawValue
         }
+    }
+
+    func orbsWorldsCount(_ count: Int) -> String {
+        switch language {
+        case .english: return count == 1 ? "1 world" : "\(count) worlds"
+        case .arabic:  return count == 1 ? "عالم واحد" : "\(count) عوالم"
+        }
+    }
+
+    func challengeFriendWon(_ name: String) -> String {
+        String(format: t(.challengeFriendWon), name)
+    }
+
+    func challengePoints(_ points: Int) -> String {
+        String(format: t(.challengePoints), points)
+    }
+
+    func raceHype(myProgress: Double, opponentProgress: Double) -> String {
+        let diff = myProgress - opponentProgress
+        if abs(diff) < 0.04 { return t(.raceBannerTied) }
+        return diff > 0 ? t(.raceBannerAhead) : t(.raceBannerBehind)
+    }
+
+    func challengeTasksProgress(done: Int, total: Int) -> String {
+        String(format: t(.challengeTasksProgress), done, total)
+    }
+
+    func challengeCompletedCount(_ count: Int) -> String {
+        String(format: t(.challengeCompletedCount), count)
     }
 
     func stepLabel(_ step: Int) -> String {
@@ -178,6 +242,24 @@ final class LanguageManager: ObservableObject {
         switch language {
         case .english: return "\(done) / \(total) \(t(.tasksWord))"
         case .arabic:  return "\(done) / \(total) \(t(.tasksWord))"
+        }
+    }
+
+    func achievementsCompletedCount(_ count: Int) -> String {
+        switch language {
+        case .english: return count == 1 ? "1 task completed" : "\(count) tasks completed"
+        case .arabic:  return count == 1 ? "مهمة واحدة مكتملة" : "\(count) مهام مكتملة"
+        }
+    }
+
+    func achievementsWonOn(_ date: Date) -> String {
+        let fmt = DateFormatter()
+        fmt.dateStyle = .medium
+        fmt.timeStyle = .none
+        fmt.locale = language.locale
+        switch language {
+        case .english: return "Won on \(fmt.string(from: date))"
+        case .arabic:  return "فوز في \(fmt.string(from: date))"
         }
     }
 
@@ -267,19 +349,23 @@ final class LanguageManager: ObservableObject {
         .energySettings: "Energy Settings", .enterCompletedAmount: "How many did you complete today?",
         .stepWrite: "Write", .stepSuggest: "Suggest", .stepSetup: "Setup", .stepDesign: "Design",
         .stepNOfM: "Step %d of %d",
-        .writeGoalTitle: "Write a goal",
-        .writeGoalSubtitle: "One sentence is enough. We'll suggest a goal type—you can change it next.",
+        .writeGoalTitle: "Write a Goal",
+        .writeGoalSubtitle: "One sentence is enough.",
         .tryIncluding: "Try including:", .whatLabel: "What", .howMuchLabel: "How much / how often",
-        .writePlaceholder: "e.g. Learn Spanish or read 20 books",
-        .examples: "Examples", .skipManual: "Skip — choose goal type manually",
+        .writePlaceholder: "Write Goal Title Here",
+        .examples: "Ideas", .skipManual: "Set up manually",
         .hintLooksLike: "Looks like %@ — %@",
         .hintNumberDetected: "A number detected — try Reach a Target (e.g. 10 books, 30 kg).",
         .hintTip: "Tip: mention what you want + how much or how often (e.g. gym 3× per week).",
-        .yourGoal: "Your goal", .weSuggest: "We suggest",
-        .hideTypes: "Hide types", .chooseDifferentType: "Choose a different type",
-        .suggestNextHint: "Tap Next to open goal setup (dates, target, total vs milestones).",
-        .noMatchTitle: "We couldn't match a type yet",
-        .noMatchBody: "Choose one of the four goal types below.",
+        .yourGoal: "Your goal", .weSuggest: "Best fit",
+        .suggestTypeScanning: "Reading your goal…",
+        .suggestTypeMatched: "Your goal type",
+        .suggestTypeLabel: "We matched it to this shape",
+        .suggestShapeIntro: "Your suggested goal shape is to",
+        .hideTypes: "Back", .chooseDifferentType: "Change",
+        .suggestNextHint: "Next → setup",
+        .noMatchTitle: "Pick a type",
+        .noMatchBody: "Choose below.",
         .goalTypes: "Goal types",
         .selectGoalShape: "Select Your Goal Shape", .goalSetup: "Goal setup",
         .yourGoalLabel: "Your goal", .draftPrefillHint: "Fields below are pre-filled from your sentence—you can edit them.",
@@ -287,6 +373,12 @@ final class LanguageManager: ObservableObject {
         .buildHabitTitle: "Build a Habit", .buildHabitDesc: "Repeat on schedule or build a streak",
         .levelUpTitle: "Level Up", .levelUpDesc: "Start small and slowly do more",
         .reduceTitle: "Reduce", .reduceDesc: "Do less or stay under a limit",
+        .shapeFinishTotalTitle: "Finish a Total", .shapeFinishTotalDesc: "Reach a set number.",
+        .shapeRepeatScheduleTitle: "Repeat on Schedule", .shapeRepeatScheduleDesc: "Do something on certain days each week.",
+        .shapeBuildStreakTitle: "Build a Streak", .shapeBuildStreakDesc: "Do it every day without stopping.",
+        .shapeLevelUpGradualTitle: "Level Up Gradually", .shapeLevelUpGradualDesc: "Increase difficulty over time.",
+        .shapeFinishMilestonesTitle: "Finish by Milestones", .shapeFinishMilestonesDesc: "Complete a goal step by step.",
+        .shapeReduceTitle: "Reduce Something", .shapeReduceDesc: "Do less of something or stay under a limit.",
         .targetNumber: "Target number", .deadline: "Deadline",
         .deadlineHint: "Optional. Tasks spread until this date; leave unset to keep calendar tasks without an end cap.",
         .chooseDeadline: "Choose deadline",
@@ -307,8 +399,47 @@ final class LanguageManager: ObservableObject {
         .milestoneExplainEmpty: "Check-points toward finishing something big (project, course, launch)—not one daily number.",
         .milestoneExplainGoal: "For “%@”: progress in stages (milestones), good for projects—not “%d %@ every day.”",
         .designYourOrb: "Design Your Orb", .planetColors: "Planet Colors",
-        .glow: "Glow", .effect: "Effect", .intensity: "Intensity",
+        .colorPalettes: "Palette Studio", .tapColorToEdit: "Tap a stop to edit its hue",
+        .quickHues: "Quick Hues", .customColor: "Custom Color", .deleteColor: "Delete Color",
+        .colorStudio: "Color Studio",
+        .orbitHue: "Orbit Hue", .nebulaBlend: "Nebula Blend",
+        .glow: "Glow", .effect: "Effect", .texture: "Texture", .intensity: "Intensity",
         .noOrbsYet: "No Orbs Yet", .tapCreateFirst: "Tap + to create your first goal",
+        .orbsGalaxySubtitle: "Your goals orbit here as living worlds",
+        .orbsEmptyPoem: "Every great journey starts with a single orb waiting to be born.",
+        .deleteOrbLabel: "Delete Orb",
+        .friendsHeroTitle: "Challenge a Friend",
+        .friendsHeroSubtitle: "Race to complete tasks — whoever finishes more wins the orb.",
+        .friendsCreate: "Create Challenge", .friendsJoin: "Join with Code",
+        .friendsHowItWorks: "How it works", .friendsStep1: "Pick an orb to compete for",
+        .friendsStep2: "Share the room code with your friend",
+        .friendsStep3: "Complete missions — rockets orbit the planet on Orbs",
+        .challengeNew: "New Challenge", .challengeJoin: "Join Challenge",
+        .challengeJoinHint: "Enter the code your friend sent you",
+        .challengeJoinNow: "Join Now", .challengeCreateSend: "Create & Share Code",
+        .challengeCompetingFor: "Competing for this orb", .challengeWaiting: "Waiting for your friend…",
+        .challengeSendCode: "Send them this code:", .challengeCopied: "Copied!",
+        .challengeBackHome: "Back to Home", .challengeKeepPlanet: "Keep the Planet",
+        .challengeYouWon: "You won the planet!", .challengeFriendWon: "%@ won the planet",
+        .challengeTryAgain: "Better luck next time", .challengePoints: "%d pts",
+        .raceYou: "You", .raceOpponent: "Friend",
+        .challengeCodePlaceholder: "Room code", .challengeLoginRequired: "Please sign in first",
+        .challengeNeedGoal: "Create at least one orb first", .challengeErrorGeneric: "Something went wrong — try again",
+        .challengeInvalidCode: "Invalid or expired code", .challengePlanetYours: "The planet is yours now",
+        .racePrizeLabel: "Prize orb", .raceMissionsTitle: "Tasks",
+        .raceTapLaunch: "Complete", .raceDoneYou: "Completed", .raceDoneFriend: "Friend completed",
+        .raceBannerAhead: "You're ahead — keep going", .raceBannerBehind: "Close the gap",
+        .raceBannerTied: "Neck and neck", .raceVS: "VS",
+        .challengeTasksProgress: "%d / %d done", .challengeNextMission: "Next up",
+        .challengeCompletedCount: "%d completed",
+        .challengeOrbAdded: "Challenge planet added to Orbs — watch the rockets race!",
+        .challengeCopyCode: "Copy code",
+        .challengeCreatedTitle: "Challenge created!",
+        .challengeCreatedHint: "Send this code to your friend. They join from Friends → Join with Code.",
+        .challengeGoToOrbs: "See it on Orbs",
+        .challengeShareActive: "Your challenge code — share with friend",
+        .challengeRoomCode: "Room code",
+        .friendsPrizeLabel: "Prize Planet", .friendsRacePreview: "Rocket Race",
         .deleteOrbQuestion: "Delete this orb?", .deleteOrbMessage: "This will remove the orb and its progress.",
         .daySun: "Sun", .dayMon: "Mon", .dayTue: "Tue", .dayWed: "Wed",
         .dayThu: "Thu", .dayFri: "Fri", .daySat: "Sat",
@@ -323,7 +454,10 @@ final class LanguageManager: ObservableObject {
         .clearGoals: "Clear Goals", .clearGoalsQuestion: "Clear all goals?",
         .clearGoalsMessage: "This removes every orb and task on this device.",
         .logOut: "Log Out", .logOutQuestion: "Log Out?",
+        .logOutMessage: "You will return to the login screen. Local goals on this device will be cleared.",
         .guestLogoutMessage: "You are continuing as a guest. Logging out will erase all local data.",
+        .continueAsGuest: "Continue as Guest",
+        .invalidCredentials: "Invalid username or password.",
         .deleteAccount: "Delete Account", .deleteAccountQuestion: "Delete Account?",
         .deleteAccountMessage: "This will permanently delete your account and all your goals. This cannot be undone.",
         .deletePermanently: "Delete Permanently",
@@ -332,6 +466,21 @@ final class LanguageManager: ObservableObject {
         .energyTakeBreak: "Take Break", .energyAverage: "Average", .energyHardcore: "Hardcore",
         .energySelectedFormat: "Selected: %@", .energyChangeLater: "You can change it later in Settings.",
         .todayShortcut: "Today", .late: "Late",
+        .reflectionTitle: "Quick reflection",
+        .reflectionPlaceholder: "Write a few words…",
+        .reflectionHint: "Short notes help you learn from each win.",
+        .reflectionPromptWhat: "What did you actually do to finish this?",
+        .reflectionPromptLearned: "What did you notice or learn?",
+        .reflectionPromptNext: "What will you do differently next time?",
+        .reflectionPromptCloser: "What moved you closer to your goal?",
+        .reflectionPromptFeel: "How did completing this feel?",
+        .achievementsTitle: "Achievements",
+        .achievementsWonPlanets: "Won planets",
+        .achievementsCompleted: "Completed tasks",
+        .achievementsReflections: "Reflections",
+        .achievementsNoTasks: "Complete tasks to fill this gallery.",
+        .achievementsNoReflections: "Tap a finished task to write a reflection.",
+        .achievementsStatOrbs: "Orbs", .achievementsStatDone: "Done", .achievementsStatWon: "Won",
         .reportTitle: "Progress Report",
         .reportTotalGoals: "Total Goals", .reportGoalsCompleted: "Goals Completed",
         .reportAvgProgress: "Average Progress", .reportOverdue: "Past Deadline",
@@ -356,18 +505,22 @@ final class LanguageManager: ObservableObject {
         .stepWrite: "اكتب", .stepSuggest: "اقتراح", .stepSetup: "إعداد", .stepDesign: "تصميم",
         .stepNOfM: "الخطوة %d من %d",
         .writeGoalTitle: "اكتب هدفك",
-        .writeGoalSubtitle: "جملة واحدة تكفي. سنقترح نوع الهدف ويمكنك تغييره في الخطوة التالية.",
+        .writeGoalSubtitle: "جملة واحدة تكفي.",
         .tryIncluding: "حاول أن تذكر:", .whatLabel: "ماذا", .howMuchLabel: "كم / كم مرة",
-        .writePlaceholder: "مثال: أتعلم الإسبانية أو أقرأ 20 كتاباً",
-        .examples: "أمثلة", .skipManual: "تخطي — اختر نوع الهدف يدوياً",
+        .writePlaceholder: "اكتب عنوان الهدف هنا",
+        .examples: "أفكار", .skipManual: "إعداد يدوي",
         .hintLooksLike: "يبدو أنه %@ — %@",
         .hintNumberDetected: "رقم ظاهر في النص — جرّب «وصول لهدف» (مثال: 10 كتب، 30 كجم).",
         .hintTip: "نصيحة: اذكر ماذا تريد + الكمية أو التكرار (مثال: نادي 3 مرات بالأسبوع).",
-        .yourGoal: "هدفك", .weSuggest: "نقترح",
-        .hideTypes: "إخفاء الأنواع", .chooseDifferentType: "اختر نوعاً آخر",
-        .suggestNextHint: "اضغط التالي لفتح إعداد الهدف (الموعد، الرقم، إجمالي أو مراحل).",
-        .noMatchTitle: "لم نحدد النوع بعد",
-        .noMatchBody: "اختر أحد أنواع الأهداف الأربعة أدناه.",
+        .yourGoal: "هدفك", .weSuggest: "الأنسب",
+        .suggestTypeScanning: "جاري قراءة هدفك…",
+        .suggestTypeMatched: "نوع هدفك",
+        .suggestTypeLabel: "طابقناه مع هذا الشكل",
+        .suggestShapeIntro: "شكل هدفك المقترح هو",
+        .hideTypes: "رجوع", .chooseDifferentType: "تغيير",
+        .suggestNextHint: "التالي ← الإعداد",
+        .noMatchTitle: "اختر النوع",
+        .noMatchBody: "من القائمة تحت.",
         .goalTypes: "أنواع الأهداف",
         .selectGoalShape: "اختر شكل الهدف", .goalSetup: "إعداد الهدف",
         .yourGoalLabel: "هدفك", .draftPrefillHint: "الحقول مملوءة من جملتك — يمكنك تعديلها.",
@@ -375,6 +528,12 @@ final class LanguageManager: ObservableObject {
         .buildHabitTitle: "بناء عادة", .buildHabitDesc: "جدول متكرر أو سلسلة أيام",
         .levelUpTitle: "تطوير مستوى", .levelUpDesc: "ابدأ صغيراً وزد تدريجياً",
         .reduceTitle: "تقليل", .reduceDesc: "قل شيئاً أو التزم بحد أقصى",
+        .shapeFinishTotalTitle: "إنجاز إجمالي", .shapeFinishTotalDesc: "وصولي لرقم محدد.",
+        .shapeRepeatScheduleTitle: "تكرار بجدول", .shapeRepeatScheduleDesc: "شيء معيّن في أيام محددة كل أسبوع.",
+        .shapeBuildStreakTitle: "بناء سلسلة", .shapeBuildStreakDesc: "كل يوم بدون انقطاع.",
+        .shapeLevelUpGradualTitle: "ترقية تدريجية", .shapeLevelUpGradualDesc: "تبدأين صغير وتزيدين شوي شوي.",
+        .shapeFinishMilestonesTitle: "إنجاز بمراحل", .shapeFinishMilestonesDesc: "هدف كبير خطوة خطوة.",
+        .shapeReduceTitle: "تقليل شيء", .shapeReduceDesc: "تقليل شيء أو البقاء تحت حد.",
         .targetNumber: "الرقم المستهدف", .deadline: "الموعد النهائي",
         .deadlineHint: "اختياري. نوزّع المهام حتى هذا التاريخ؛ بدون موعد يبقى التقويم يعرض المهام.",
         .chooseDeadline: "اختر الموعد النهائي",
@@ -395,8 +554,47 @@ final class LanguageManager: ObservableObject {
         .milestoneExplainEmpty: "محطات لمشروع كبير (مشروع، دورة، إطلاق) — ليس رقماً يومياً واحداً.",
         .milestoneExplainGoal: "لـ «%@»: تقدم على مراحل — مناسب للمشاريع وليس «%d %@ كل يوم».",
         .designYourOrb: "صمّم كوكبك", .planetColors: "ألوان الكوكب",
-        .glow: "التوهج", .effect: "التأثير", .intensity: "الشدة",
+        .colorPalettes: "استوديو الألوان", .tapColorToEdit: "اضغطي على لون لتعديله",
+        .quickHues: "درجات سريعة", .customColor: "لون مخصص", .deleteColor: "حذف اللون",
+        .colorStudio: "استوديو اللون",
+        .orbitHue: "حلقة اللون", .nebulaBlend: "مزيج السديم",
+        .glow: "التوهج", .effect: "التأثير", .texture: "الملمس", .intensity: "الشدة",
         .noOrbsYet: "لا أوربت بعد", .tapCreateFirst: "اضغط + لإنشاء أول هدف",
+        .orbsGalaxySubtitle: "أهدافك تدور هنا كعوالم حيّة",
+        .orbsEmptyPoem: "كل رحلة عظيمة تبدأ بأوربت واحد ينتظر أن يولد.",
+        .deleteOrbLabel: "حذف الأوربت",
+        .friendsHeroTitle: "تحدّ صديقك",
+        .friendsHeroSubtitle: "تنافسا على إكمال المهام — من يُنجز أكثر يفوز بالكوكب.",
+        .friendsCreate: "إنشاء تحدي", .friendsJoin: "الانضمام برمز",
+        .friendsHowItWorks: "كيف يعمل", .friendsStep1: "اختر أوربت للتنافس عليه",
+        .friendsStep2: "شاركي رمز الغرفة مع صديقك",
+        .friendsStep3: "أكمل المهمات — الصواريخ تدور حول الكوكب في Orbs",
+        .challengeNew: "تحدي جديد", .challengeJoin: "انضم لتحدي",
+        .challengeJoinHint: "أدخلي الرمز اللي أرسله لك صديقك",
+        .challengeJoinNow: "انضم الآن", .challengeCreateSend: "إنشاء ومشاركة الرمز",
+        .challengeCompetingFor: "التنافس على هذا الأوربت", .challengeWaiting: "في انتظار صديقك…",
+        .challengeSendCode: "أرسلي له هذا الرمز:", .challengeCopied: "تم النسخ!",
+        .challengeBackHome: "العودة للرئيسية", .challengeKeepPlanet: "احتفظي بالكوكب",
+        .challengeYouWon: "فزتِ بالكوكب!", .challengeFriendWon: "%@ فاز بالكوكب",
+        .challengeTryAgain: "حظ أوفر المرة القادمة", .challengePoints: "%d نقطة",
+        .raceYou: "أنت", .raceOpponent: "صديق",
+        .challengeCodePlaceholder: "رمز الغرفة", .challengeLoginRequired: "سجّلي الدخول أولاً",
+        .challengeNeedGoal: "أنشئي أوربت واحد على الأقل", .challengeErrorGeneric: "حدث خطأ — حاولي مجدداً",
+        .challengeInvalidCode: "الرمز غير صحيح أو منتهي", .challengePlanetYours: "الكوكب ملكك الآن",
+        .friendsPrizeLabel: "كوكب الجائزة", .friendsRacePreview: "سباق الصواريخ",
+        .racePrizeLabel: "كوكب الجائزة", .raceMissionsTitle: "المهام",
+        .raceTapLaunch: "إكمال", .raceDoneYou: "تم الإنجاز", .raceDoneFriend: "صديقك أنجزها",
+        .raceBannerAhead: "قدّام — كمّلي", .raceBannerBehind: "قربي الفجوة",
+        .raceBannerTied: "تعادل", .raceVS: "ضد",
+        .challengeTasksProgress: "%d / %d منجزة", .challengeNextMission: "التالي",
+        .challengeCompletedCount: "%d مكتملة",
+        .challengeOrbAdded: "انضاف كوكب التحدي في Orbs — شوف الصواريخ تتسابق!",
+        .challengeCopyCode: "نسخ الرمز",
+        .challengeCreatedTitle: "تم إنشاء التحدي!",
+        .challengeCreatedHint: "أرسلي هذا الرمز لصديقك. ينضم من الأصدقاء ← الانضمام برمز.",
+        .challengeGoToOrbs: "شوفه في Orbs",
+        .challengeShareActive: "رمز تحديك — شاركيه مع صديقك",
+        .challengeRoomCode: "رمز الغرفة",
         .deleteOrbQuestion: "حذف هذا الأوربت؟", .deleteOrbMessage: "سيُحذف الأوربت وكل التقدم.",
         .daySun: "أحد", .dayMon: "إثن", .dayTue: "ثلا", .dayWed: "أرب",
         .dayThu: "خمي", .dayFri: "جمع", .daySat: "سبت",
@@ -411,7 +609,10 @@ final class LanguageManager: ObservableObject {
         .clearGoals: "مسح الأهداف", .clearGoalsQuestion: "مسح كل الأهداف؟",
         .clearGoalsMessage: "سيُحذف كل الأوربت والمهام من هذا الجهاز.",
         .logOut: "تسجيل الخروج", .logOutQuestion: "تسجيل الخروج؟",
+        .logOutMessage: "ستعودين لشاشة تسجيل الدخول وستُمسح الأهداف المحلية على هذا الجهاز.",
         .guestLogoutMessage: "أنت ضيف. الخروج يمسح كل البيانات المحلية.",
+        .continueAsGuest: "المتابعة كضيف",
+        .invalidCredentials: "اسم المستخدم أو كلمة المرور غير صحيحة.",
         .deleteAccount: "حذف الحساب", .deleteAccountQuestion: "حذف الحساب؟",
         .deleteAccountMessage: "سيُحذف حسابك وجميع أهدافك نهائياً ولا يمكن التراجع.",
         .deletePermanently: "حذف نهائي",
@@ -420,6 +621,21 @@ final class LanguageManager: ObservableObject {
         .energyTakeBreak: "استراحة", .energyAverage: "متوسط", .energyHardcore: "مكثّف",
         .energySelectedFormat: "المختار: %@", .energyChangeLater: "يمكنك تغييره لاحقاً من الإعدادات.",
         .todayShortcut: "اليوم", .late: "متأخر",
+        .reflectionTitle: "تأمل سريع",
+        .reflectionPlaceholder: "اكتب كلمات قليلة…",
+        .reflectionHint: "ملاحظات قصيرة تساعدك تتعلم من كل إنجاز.",
+        .reflectionPromptWhat: "وش سويت فعلاً عشان تخلص المهمة؟",
+        .reflectionPromptLearned: "وش لاحظت أو تعلّمت؟",
+        .reflectionPromptNext: "وش بتسوي مختلف المرة الجاية؟",
+        .reflectionPromptCloser: "وش قربك من هدفك؟",
+        .reflectionPromptFeel: "كيف كان شعورك بعد ما خلصت؟",
+        .achievementsTitle: "الإنجازات",
+        .achievementsWonPlanets: "كواكب فزت فيها",
+        .achievementsCompleted: "مهام مكتملة",
+        .achievementsReflections: "تأملات",
+        .achievementsNoTasks: "أكمل مهام عشان تملأ هالمعرض.",
+        .achievementsNoReflections: "اضغط على مهمة منتهية عشان تكتب تأمل.",
+        .achievementsStatOrbs: "أوربت", .achievementsStatDone: "منجز", .achievementsStatWon: "فوز",
         .reportTitle: "تقرير التقدم",
         .reportTotalGoals: "إجمالي الأهداف", .reportGoalsCompleted: "أهداف مكتملة",
         .reportAvgProgress: "متوسط التقدم", .reportOverdue: "تجاوز الموعد",

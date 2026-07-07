@@ -3,20 +3,32 @@ import UIKit
 
 struct AppBackground: View {
     var body: some View {
+        SoftStarfieldBackground()
+    }
+}
+
+/// Original ORBIT gradient + Background 4 + glitter (Friends & Challenge)
+struct ClassicOrbitBackground: View {
+    var includeBackgroundImage: Bool = true
+
+    var body: some View {
         ZStack {
             Rectangle()
                 .fill(LinearGradient(colors: [.darkBlu, .dark], startPoint: .bottom, endPoint: .top))
                 .ignoresSafeArea()
-            Image("Star")
-                .resizable()
-                .scaledToFill()
-                .ignoresSafeArea()
-                .opacity(0.85)
+
+            if includeBackgroundImage {
+                Image("Background 4")
+                    .resizable()
+                    .ignoresSafeArea()
+                    .opacity(0.7)
+            }
 
             Image("Gliter")
                 .resizable()
                 .ignoresSafeArea()
         }
+        .allowsHitTesting(false)
     }
 }
 
@@ -90,11 +102,11 @@ struct GoalFlowNextButton: View {
     var body: some View {
         Button(action: action) {
             Text(lang.t(.next))
-                .font(.headline)
-                .foregroundColor(.white)
-                .frame(minWidth: 96)
+                .font(.system(size: 15, weight: .bold))
+                .foregroundStyle(Color.black.opacity(0.82))
+                .padding(.horizontal, 22)
                 .frame(height: GoalFlowLayout.buttonSize)
-                .glassEffect(.clear.tint(Color.black.opacity(0.4)), in: .rect(cornerRadius: 24))
+                .background(Capsule().fill(Color("accent")))
         }
         .buttonStyle(.plain)
     }
@@ -107,14 +119,16 @@ struct GoalFlowCheckButton: View {
     var body: some View {
         Button(action: action) {
             Image(systemName: "checkmark")
-                .font(.title2)
-                .foregroundColor(.white)
+                .font(.system(size: 18, weight: .bold))
+                .foregroundStyle(isEnabled ? Color.black.opacity(0.82) : .white.opacity(0.5))
                 .frame(width: GoalFlowLayout.buttonSize, height: GoalFlowLayout.buttonSize)
-                .glassEffect(.clear.tint(Color.black.opacity(0.4)), in: .rect(cornerRadius: 24))
+                .background {
+                    Circle()
+                        .fill(isEnabled ? Color("accent") : Color.white.opacity(0.08))
+                }
         }
         .buttonStyle(.plain)
         .disabled(!isEnabled)
-        .opacity(isEnabled ? 1 : 0.5)
     }
 }
 
@@ -165,18 +179,17 @@ struct GoalFlowScreen<Background: View, TopBar: View, Content: View>: View {
                     .frame(maxWidth: .infinity)
                     .frame(height: GoalFlowLayout.topBarHeight)
                     .padding(.horizontal, GoalFlowLayout.horizontalPadding)
-                    .padding(.top, GoalFlowLayout.topSafeArea)
                     .padding(.bottom, GoalFlowLayout.topBarBottomGap)
 
                 content()
-                    .frame(maxWidth: .infinity, maxHeight: .infinity)
-                    .padding(.top, GoalFlowLayout.contentTopGap)
+                    .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .top)
             }
         }
         .environment(\.layoutDirection, lang.language.layoutDirection)
         .environment(\.locale, lang.language.locale)
         .toolbar(.hidden, for: .navigationBar)
         .toolbar(.hidden, for: .tabBar)
+        .toolbarBackground(.hidden, for: .navigationBar)
         .navigationBarBackButtonHidden(true)
     }
 }
@@ -189,14 +202,34 @@ struct GlassCard<Content: View>: View {
     }
 
     var body: some View {
-        VStack(alignment: .leading, spacing: 16) {
+        GoalSetupPanel { content }
+    }
+}
+
+/// Tighter glass panel for goal setup forms.
+struct GoalSetupPanel<Content: View>: View {
+    let content: Content
+
+    init(@ViewBuilder content: () -> Content) {
+        self.content = content()
+    }
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: GoalFormStyle.compactSpacing) {
             content
         }
-        .padding(.horizontal, 16)
-        .padding(.vertical, 20)
+        .padding(.horizontal, 14)
+        .padding(.vertical, 12)
         .frame(maxWidth: .infinity, alignment: .leading)
-        .glassEffect(.clear.tint(Color.black.opacity(0.4)), in: .rect(cornerRadius: 24))
-        .clipShape(RoundedRectangle(cornerRadius: 24, style: .continuous))
+        .background {
+            RoundedRectangle(cornerRadius: 20, style: .continuous)
+                .fill(.clear)
+                .glassEffect(.clear.tint(Color.black.opacity(0.34)), in: .rect(cornerRadius: 20))
+        }
+        .overlay {
+            RoundedRectangle(cornerRadius: 20, style: .continuous)
+                .stroke(.white.opacity(0.12), lineWidth: 1)
+        }
     }
 }
 
@@ -228,29 +261,32 @@ struct GoalChallengeProgressBars: View {
     var myProgress: Double
     var friendProgress: Double
     var friendName: String
+    var myLabel: String = "You"
+
+    private var accent: Color { Color("accent") }
 
     var body: some View {
         VStack(alignment: .leading, spacing: 10) {
             HStack {
-                Text("You")
+                Text(myLabel)
                     .font(.caption2.weight(.semibold))
-                    .foregroundColor(.cyan)
+                    .foregroundColor(accent)
                 Spacer()
                 Text("\(Int(myProgress * 100))%")
                     .font(.caption2.monospacedDigit())
                     .foregroundColor(.white.opacity(0.7))
             }
-            GoalProgressBar(progress: myProgress, tint: .cyan)
+            GoalProgressBar(progress: myProgress, tint: accent)
             HStack {
                 Text(friendName)
                     .font(.caption2.weight(.semibold))
-                    .foregroundColor(.orange)
+                    .foregroundColor(.white.opacity(0.55))
                 Spacer()
                 Text("\(Int(friendProgress * 100))%")
                     .font(.caption2.monospacedDigit())
                     .foregroundColor(.white.opacity(0.7))
             }
-            GoalProgressBar(progress: friendProgress, tint: .orange)
+            GoalProgressBar(progress: friendProgress, tint: .white.opacity(0.35))
         }
     }
 }
@@ -364,8 +400,9 @@ struct SectionHeader: View {
 
     var body: some View {
         Text(title)
-            .font(.system(size: 18, weight: .bold))
-            .foregroundColor(.white.opacity(0.9))
+            .font(.caption.weight(.semibold))
+            .foregroundColor(.white.opacity(0.5))
+            .textCase(.none)
             .frame(maxWidth: .infinity, alignment: .leading)
     }
 }
@@ -376,7 +413,7 @@ struct GoalFormField<Content: View>: View {
     @ViewBuilder var content: () -> Content
 
     var body: some View {
-        VStack(alignment: .leading, spacing: 8) {
+        VStack(alignment: .leading, spacing: GoalFormStyle.fieldSpacing) {
             SectionHeader(title: title)
             content()
         }
@@ -385,8 +422,10 @@ struct GoalFormField<Content: View>: View {
 }
 
 enum GoalFormStyle {
-    static let fieldRadius: CGFloat = 15
-    static let fieldFill = Color.black.opacity(0.4)
+    static let fieldRadius: CGFloat = 14
+    static let fieldFill = Color.black.opacity(0.38)
+    static let compactSpacing: CGFloat = 12
+    static let fieldSpacing: CGFloat = 6
 }
 
 extension View {
@@ -420,13 +459,14 @@ struct NumberStepper: View {
     let suffix: String
     /// Goal setup only: tap center to type a large number.
     var allowsTyping: Bool = false
+    var compact: Bool = false
 
     var body: some View {
-        HStack {
+        HStack(spacing: compact ? 4 : 8) {
             stepButton(systemName: "minus") {
                 if value > range.lowerBound { value -= 1 }
             }
-            Spacer()
+            Spacer(minLength: 0)
             if allowsTyping {
                 EditableQuantityField(
                     title: title,
@@ -434,28 +474,31 @@ struct NumberStepper: View {
                     range: range,
                     suffix: suffix
                 )
-                .frame(maxWidth: 200)
+                .frame(maxWidth: compact ? 120 : 200)
             } else {
-                Text("\(value) \(suffix)")
-                    .font(.system(size: 18, weight: .regular))
+                Text("\(value)\(suffix.isEmpty ? "" : " \(suffix)")")
+                    .font(.system(size: compact ? 15 : 18, weight: .semibold))
                     .foregroundColor(.white)
+                    .lineLimit(1)
+                    .minimumScaleFactor(0.75)
             }
-            Spacer()
+            Spacer(minLength: 0)
             stepButton(systemName: "plus") {
                 if value < range.upperBound { value += 1 }
             }
         }
-        .padding(.horizontal, 12)
-        .padding(.vertical, allowsTyping ? 8 : 4)
+        .padding(.horizontal, compact ? 8 : 12)
+        .padding(.vertical, compact ? 6 : (allowsTyping ? 8 : 4))
         .goalFormSurface()
     }
 
     private func stepButton(systemName: String, action: @escaping () -> Void) -> some View {
-        Button(action: action) {
+        let size: CGFloat = compact ? 32 : 40
+        return Button(action: action) {
             Image(systemName: systemName)
-                .font(.system(size: 18, weight: .medium))
+                .font(.system(size: compact ? 14 : 18, weight: .medium))
                 .foregroundColor(.white)
-                .frame(width: 40, height: 40)
+                .frame(width: size, height: size)
         }
         .buttonStyle(.plain)
     }
@@ -540,12 +583,12 @@ struct WeekDaysSelector: View {
                     }
                 } label: {
                     Text(lang.weekdayShort(calendarIndex: calendarIndex))
-                        .font(.system(size: 13, weight: .medium))
+                        .font(.system(size: 12, weight: .medium))
                         .foregroundColor(.white)
                         .lineLimit(1)
-                        .minimumScaleFactor(0.7)
+                        .minimumScaleFactor(0.65)
                         .frame(maxWidth: .infinity)
-                        .frame(height: 40)
+                        .frame(height: 36)
                         .background(
                             RoundedRectangle(cornerRadius: 14)
                                 .fill(
@@ -610,8 +653,8 @@ struct TimePickerRow: View {
                 .colorScheme(.dark)
                 .frame(maxWidth: .infinity)
         }
-        .padding(.horizontal, 14)
-        .padding(.vertical, 10)
+        .padding(.horizontal, 10)
+        .padding(.vertical, 8)
         .goalFormSurface()
     }
 }
@@ -784,7 +827,9 @@ struct CustomTextField: View {
     var body: some View {
         TextField(placeholder, text: $text)
             .colorScheme(.dark)
-            .padding(14)
+            .font(.system(size: 15))
+            .padding(.horizontal, 12)
+            .padding(.vertical, 10)
 
             .frame(maxWidth: .infinity)
             .background(

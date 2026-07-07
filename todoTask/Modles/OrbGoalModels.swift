@@ -42,6 +42,12 @@ struct GoalTask: Identifiable, Codable, Hashable {
     var targetAmount:    Int    = 1
     /// How much the user actually did (e.g. 3 of 4).
     var completedAmount: Int    = 0
+    /// Optional note the user writes after finishing (reflection).
+    var reflectionNote: String? = nil
+    /// Which prompt was shown when they wrote the note.
+    var reflectionPromptKey: String? = nil
+    /// When the task was first fully completed.
+    var completedAt: Date? = nil
 
     var isFullyComplete: Bool {
         targetAmount > 0 && completedAmount >= targetAmount
@@ -133,6 +139,10 @@ struct OrbGoal: Identifiable, Codable, Equatable {
     /// Primary: readable step label. Secondary: goal name.
     func todayTaskLines(for task: GoalTask, lang: LanguageManager) -> (primary: String, secondary: String) {
         (GoalTaskDisplay.todayPrimary(for: task, in: self, lang: lang), title)
+    }
+
+    var accentColor: Color {
+        design.gradientStops.first?.swiftUIColor ?? Color("accent")
     }
 
     func tasks(for date: Date) -> [GoalTask] {

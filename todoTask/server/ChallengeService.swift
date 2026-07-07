@@ -179,9 +179,23 @@ class ChallengeService: ObservableObject {
     }
 
     func opponentProgress(myId: String) -> Double {
-        guard !tasks.isEmpty else { return 0 }
-        let opId = tasks.first { $0.completedBy != nil && $0.completedBy != myId }?.completedBy
-        return Double(tasks.filter { $0.completedBy == opId }.count) / Double(tasks.count)
+        guard !tasks.isEmpty, let room else { return 0 }
+        let opponentId: String?
+        if room.player1Id == myId {
+            opponentId = room.player2Id
+        } else {
+            opponentId = room.player1Id
+        }
+        guard let opponentId else { return 0 }
+        return Double(tasks.filter { $0.completedBy == opponentId }.count) / Double(tasks.count)
+    }
+
+    func fetchRoom(roomId: String) async throws -> ChallengeRoom {
+        let snap = try await db.collection("challenges").document(roomId).getDocument()
+        guard let room = try? snap.data(as: ChallengeRoom.self) else {
+            throw NSError(domain: "ChallengeError", code: 404, userInfo: nil)
+        }
+        return room
     }
 
     private func buildTasks(from goals: [OrbGoal]) -> [ChallengeTask] {

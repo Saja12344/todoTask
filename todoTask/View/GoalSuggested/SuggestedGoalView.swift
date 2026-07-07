@@ -8,165 +8,221 @@ import SwiftUI
 struct SuggestedGoalView: View {
     let goalText: String
     let suggestedType: GoalType?
-    let onContinue: (GoalType) -> Void
+    let onContinue: (GoalShapeOption) -> Void
     let onBack: () -> Void
 
     @EnvironmentObject private var lang: LanguageManager
-    @State private var selectedType: GoalType?
+    @State private var selectedOption: GoalShapeOption?
     @State private var showPicker = false
+    @State private var scanning = true
+    @State private var contentRevealed = false
 
-    private var resolvedType: GoalType? {
-        selectedType ?? suggestedType
+    private var resolvedOption: GoalShapeOption? {
+        if let selectedOption { return selectedOption }
+        if let suggestedType { return GoalShapeOption.defaultFor(suggestedType) }
+        return nil
     }
 
     var body: some View {
         GoalFlowScreen(
             background: { AppBackground() },
             topBar: {
-                GoalFlowNavigationRow(
-                    onBack: onBack,
-                    trailing: {
-                        Group {
-                            if resolvedType != nil {
-                                GoalFlowNextButton(action: continueTapped)
-                            } else {
-                                GoalFlowNextButton(action: {})
-                                    .opacity(0.4)
-                                    .allowsHitTesting(false)
-                            }
-                        }
+                HStack {
+                    GoalFlowBackButton(action: onBack)
+                    Spacer()
+                    if resolvedOption != nil {
+                        GoalFlowNextButton(action: continueTapped)
+                    } else {
+                        GoalFlowNextButton(action: {})
+                            .opacity(0.35)
+                            .allowsHitTesting(false)
                     }
-                )
-                .frame(height: GoalFlowLayout.topBarHeight)
+                }
             },
             content: {
-                ScrollView(showsIndicators: false) {
-                    VStack(spacing: 20) {
-                        GoalCreationStepIndicator(current: 2)
-
-                        Text(lang.t(.yourGoal))
-                            .font(.subheadline.weight(.medium))
-                            .foregroundColor(.white.opacity(0.55))
-
-                        Text(goalText)
-                            .font(.system(size: 20, weight: .semibold))
-                            .foregroundColor(.white)
-                            .multilineTextAlignment(.center)
-                            .padding(.horizontal, 24)
-
-                        if showPicker {
-                            pickerSection
-                        } else if let type = suggestedType {
-                            suggestionCardView(for: type)
-                        } else {
-                            noSuggestionCard
-                        }
-
-                        Button {
-                            withAnimation(.spring(response: 0.35)) {
-                                showPicker.toggle()
-                            }
-                        } label: {
-                            Text(showPicker ? lang.t(.hideTypes) : lang.t(.chooseDifferentType))
-                                .font(.system(size: 16, weight: .medium))
-                                .foregroundColor(.white.opacity(0.9))
-                                .frame(maxWidth: .infinity)
-                                .frame(height: 48)
-                                .glassEffect(.clear.tint(Color.black.opacity(0.4)), in: .rect(cornerRadius: 22))
-                        }
-                        .padding(.horizontal, 8)
-
-                        if !showPicker, suggestedType != nil {
-                            Text(lang.t(.suggestNextHint))
-                                .font(.footnote)
-                                .foregroundColor(.white.opacity(0.45))
-                                .multilineTextAlignment(.center)
-                                .padding(.horizontal, 16)
-                        }
+                GeometryReader { geo in
+                    if showPicker {
+                        pickerContent(height: geo.size.height)
+                    } else {
+                        suggestContent(height: geo.size.height)
                     }
-                    .padding(.horizontal, 20)
-                    .padding(.bottom, 32)
                 }
             }
         )
         .onAppear {
-            selectedType = suggestedType
-        }
-    }
-
-    private func suggestionCardView(for type: GoalType) -> some View {
-        VStack(spacing: 14) {
-            Text(lang.t(.weSuggest))
-                .font(.subheadline.weight(.medium))
-                .foregroundColor(.white.opacity(0.6))
-
-            HStack(spacing: 12) {
-                Image(systemName: type.creationIcon)
-                    .font(.system(size: 32))
-                    .foregroundColor(.white)
-                VStack(alignment: .leading, spacing: 4) {
-                    Text(lang.goalTypeTitle(type))
-                        .font(.title2.bold())
-                        .foregroundColor(.white)
-                    Text(lang.goalTypeDescription(type))
-                        .font(.subheadline)
-                        .foregroundColor(.white.opacity(0.7))
-                }
-                Spacer(minLength: 0)
+            if let suggestedType {
+                selectedOption = GoalShapeOption.defaultFor(suggestedType)
             }
-            .padding(18)
-            .frame(maxWidth: .infinity, alignment: .leading)
-            .glassEffect(.clear.tint(Color.black.opacity(0.45)), in: .rect(cornerRadius: 22))
-            .overlay(
-                RoundedRectangle(cornerRadius: 22)
-                    .stroke(Color.cyan.opacity(0.35), lineWidth: 1)
-            )
+            startReveal()
         }
     }
 
-    private var noSuggestionCard: some View {
-        VStack(spacing: 10) {
-            Image(systemName: "sparkles")
-                .font(.system(size: 36))
-                .foregroundColor(.white.opacity(0.5))
-            Text(lang.t(.noMatchTitle))
-                .font(.headline)
-                .foregroundColor(.white)
-            Text(lang.t(.noMatchBody))
-                .font(.subheadline)
-                .foregroundColor(.white.opacity(0.65))
-                .multilineTextAlignment(.center)
-        }
-        .padding(20)
-        .frame(maxWidth: .infinity)
-        .glassEffect(.clear.tint(Color.black.opacity(0.35)), in: .rect(cornerRadius: 22))
-        .onAppear {
-            showPicker = true
+    private func startReveal() {
+        scanning = true
+        contentRevealed = false
+        DispatchQueue.main.asyncAfter(deadline: .now() + 1.0) {
+            withAnimation(.spring(response: 0.55, dampingFraction: 0.78)) {
+                scanning = false
+                contentRevealed = true
+            }
         }
     }
 
-    private var pickerSection: some View {
-        VStack(spacing: 12) {
-            Text(lang.t(.goalTypes))
-                .font(.headline)
-                .foregroundColor(.white)
-                .frame(maxWidth: .infinity, alignment: .leading)
+    @ViewBuilder
+    private func suggestContent(height: CGFloat) -> some View {
+        VStack(spacing: 0) {
+            Spacer(minLength: height * 0.1)
 
-            LazyVGrid(columns: [GridItem(.flexible()), GridItem(.flexible())], spacing: 12) {
-                ForEach(GoalType.allCases, id: \.self) { type in
-                    GoalTypeChip(
-                        type: type,
-                        isSelected: (selectedType ?? suggestedType) == type
-                    ) {
-                        selectedType = type
+            ZStack {
+                SuggestedShapeArtwork()
+                    .frame(height: 320)
+
+                if scanning {
+                    VStack(spacing: 16) {
+                        ProgressView()
+                            .tint(Color("accent"))
+                        Text(lang.t(.suggestTypeScanning))
+                            .font(.subheadline.weight(.medium))
+                            .foregroundStyle(.white.opacity(0.5))
+                    }
+                } else if let option = resolvedOption {
+                    VStack(spacing: 14) {
+                        Text(lang.t(.suggestShapeIntro))
+                            .font(.system(size: 17, weight: .regular))
+                            .foregroundStyle(.white.opacity(0.82))
+                            .multilineTextAlignment(.center)
+
+                        Text(option.title(lang))
+                            .font(.system(size: 34, weight: .bold, design: .rounded))
+                            .foregroundStyle(.white)
+                            .multilineTextAlignment(.center)
+                            .lineLimit(3)
+                            .minimumScaleFactor(0.75)
+
+                        Text(option.description(lang))
+                            .font(.system(size: 15, weight: .regular))
+                            .foregroundStyle(.white.opacity(0.55))
+                            .multilineTextAlignment(.center)
+                            .lineLimit(2)
+
+                        Button {
+                            withAnimation(.spring(response: 0.32)) { showPicker = true }
+                        } label: {
+                            Text(lang.t(.chooseDifferentType))
+                                .font(.system(size: 15, weight: .semibold))
+                                .foregroundStyle(.white.opacity(0.88))
+                                .padding(.horizontal, 28)
+                                .padding(.vertical, 12)
+                                .background {
+                                    Capsule()
+                                        .fill(.white.opacity(0.08))
+                                        .glassEffect(.clear, in: .capsule)
+                                }
+                        }
+                        .buttonStyle(.plain)
+                        .padding(.top, 8)
+                    }
+                    .padding(.horizontal, 32)
+                    .opacity(contentRevealed ? 1 : 0)
+                    .scaleEffect(contentRevealed ? 1 : 0.94)
+                } else {
+                    Text(lang.t(.noMatchTitle))
+                        .font(.headline)
+                        .foregroundStyle(.white.opacity(0.7))
+                        .onAppear { showPicker = true }
+                }
+            }
+            .frame(maxWidth: .infinity)
+
+            Spacer(minLength: height * 0.14)
+        }
+    }
+
+    @ViewBuilder
+    private func pickerContent(height: CGFloat) -> some View {
+        ScrollView(showsIndicators: false) {
+            VStack(spacing: 16) {
+                Text(lang.t(.selectGoalShape))
+                    .font(.system(size: 22, weight: .bold))
+                    .foregroundStyle(.white)
+                    .frame(maxWidth: .infinity)
+                    .padding(.top, 8)
+
+                GoalShapeGrid(selectedID: selectedOption?.id) { option in
+                    withAnimation(.spring(response: 0.35, dampingFraction: 0.72)) {
+                        selectedOption = option
+                        showPicker = false
                     }
                 }
+
+                Button {
+                    withAnimation(.spring(response: 0.32)) { showPicker = false }
+                } label: {
+                    Text(lang.t(.hideTypes))
+                        .font(.system(size: 15, weight: .medium))
+                        .foregroundStyle(.white.opacity(0.5))
+                }
+                .buttonStyle(.plain)
+                .padding(.top, 4)
             }
+            .padding(.horizontal, 4)
+            .frame(minHeight: height, alignment: .top)
+            .padding(.bottom, 24)
         }
     }
 
     private func continueTapped() {
-        guard let type = resolvedType else { return }
-        onContinue(type)
+        guard let option = resolvedOption else { return }
+        onContinue(option)
+    }
+}
+
+// MARK: - Figma "Background 2" fluid artwork
+private struct SuggestedShapeArtwork: View {
+    var body: some View {
+        GeometryReader { geo in
+            ZStack {
+                RadialGradient(
+                    colors: [Color("accent").opacity(0.20), .clear],
+                    center: .center,
+                    startRadius: 10,
+                    endRadius: geo.size.width * 0.75
+                )
+                .blur(radius: 20)
+
+                Image("Background 2")
+                    .resizable()
+                    .scaledToFill()
+                    .frame(width: geo.size.width, height: geo.size.height)
+                    .clipped()
+                    .opacity(0.95)
+            }
+            .frame(width: geo.size.width, height: geo.size.height)
+            .mask(
+                LinearGradient(
+                    stops: [
+                        .init(color: .clear, location: 0.0),
+                        .init(color: .black, location: 0.28),
+                        .init(color: .black, location: 0.72),
+                        .init(color: .clear, location: 1.0)
+                    ],
+                    startPoint: .top,
+                    endPoint: .bottom
+                )
+                .mask(
+                    LinearGradient(
+                        stops: [
+                            .init(color: .clear, location: 0.0),
+                            .init(color: .black, location: 0.12),
+                            .init(color: .black, location: 0.88),
+                            .init(color: .clear, location: 1.0)
+                        ],
+                        startPoint: .leading,
+                        endPoint: .trailing
+                    )
+                )
+            )
+        }
+        .allowsHitTesting(false)
     }
 }

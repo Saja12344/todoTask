@@ -12,6 +12,7 @@ struct GoalTasksView: View {
     @State private var showDeleteConfirm = false
     @State private var taskPendingDelete: GoalTask?
     @State private var showAllTasks = false
+    @State private var reflectionContext: TaskReflectionContext?
 
     let goalID: UUID
 
@@ -75,6 +76,11 @@ struct GoalTasksView: View {
                 taskPendingDelete = nil
             }
             Button(lang.t(.cancel), role: .cancel) { taskPendingDelete = nil }
+        }
+        .sheet(item: $reflectionContext) { context in
+            TaskReflectionSheet(context: context)
+                .environmentObject(store)
+                .environmentObject(lang)
         }
     }
 
@@ -168,7 +174,7 @@ struct GoalTasksView: View {
                     friendName: info.opponentName
                 )
             } else {
-                GoalProgressBar(progress: goal?.progress ?? 0)
+                GoalProgressBar(progress: goal?.progress ?? 0, tint: goal?.accentColor ?? .cyan)
             }
         }
         .padding(.bottom, 4)
@@ -188,13 +194,29 @@ struct GoalTasksView: View {
         VStack(spacing: 10) {
             if !sortedTasks.isEmpty {
                 ForEach(visibleTasks) { task in
-                    TaskTrackRow(task: task, goal: goal, lang: lang)
-                        .contextMenu {
-                            Button(role: .destructive) {
-                                taskPendingDelete = task
-                                showDeleteConfirm = true
-                            } label: { Label(lang.t(.deleteTask), systemImage: "trash") }
+                    TaskTrackRow(
+                        task: task,
+                        goal: goal,
+                        lang: lang,
+                        interactive: true,
+                        onReflect: task.isFullyComplete ? {
+                            reflectionContext = store.reflectionContext(goalID: goalID, taskID: task.id)
+                        } : nil
+                    ) { newAmount in
+                        let wasComplete = task.isFullyComplete
+                        if let newAmount {
+                            store.setTaskCompletedAmount(goalID: goalID, taskID: task.id, amount: newAmount)
+                        } else {
+                            store.toggleTodayTask(goalID: goalID, taskID: task.id)
                         }
+                        maybeOpenReflection(taskID: task.id, wasComplete: wasComplete)
+                    }
+                    .contextMenu {
+                        Button(role: .destructive) {
+                            taskPendingDelete = task
+                            showDeleteConfirm = true
+                        } label: { Label(lang.t(.deleteTask), systemImage: "trash") }
+                    }
                 }
 
                 if sortedTasks.count > tasksPreviewLimit {
@@ -255,6 +277,14 @@ struct GoalTasksView: View {
             store.updateGoal(goal)
         }
     }
+
+    private func maybeOpenReflection(taskID: UUID, wasComplete: Bool) {
+        guard let updated = store.goal(with: goalID)?.tasks.first(where: { $0.id == taskID }),
+              updated.isFullyComplete else { return }
+        if !wasComplete || (updated.reflectionNote ?? "").isEmpty {
+            reflectionContext = store.reflectionContext(goalID: goalID, taskID: taskID)
+        }
+    }
 }
 
 // MARK: - Winner Banner
@@ -285,11 +315,16 @@ struct WinnerBanner: View {
     }
 }
 
-// MARK: - TaskTrackRow (read-only; check off tasks on Today / calendar only)
+// MARK: - TaskTrackRow
 struct TaskTrackRow: View {
     let task: GoalTask
     let goal: OrbGoal?
     let lang: LanguageManager
+    var interactive: Bool = false
+    var onReflect: (() -> Void)? = nil
+    var onChange: ((Int?) -> Void)? = nil
+
+    private var accent: Color { goal?.accentColor ?? .cyan }
 
     private var statusTitle: String {
         if let goal, let partial = GoalTaskDisplay.partialProgressLine(for: task, in: goal), task.completedAmount > 0 {
@@ -298,31 +333,83 @@ struct TaskTrackRow: View {
         return goal.map { GoalTaskDisplay.label(for: task, in: $0, lang: lang) } ?? task.title
     }
 
-    private var trailingStatus: String? {
-        if task.targetAmount > 1 {
-            return "\(task.completedAmount)/\(task.targetAmount)"
-        }
-        if task.isDone || task.isFullyComplete {
-            return lang.language == .arabic ? "تم" : "Done"
-        }
-        return nil
-    }
-
     var body: some View {
         HStack(alignment: .center, spacing: 12) {
-            Text("•").font(.title3).foregroundStyle(.white.opacity(0.9))
-            Text(statusTitle)
-                .foregroundStyle(.white)
-                .opacity(task.isFullyComplete ? 0.45 : 0.92)
-                .strikethrough(task.isFullyComplete, color: .white.opacity(0.35))
-            Spacer()
-            if let trailingStatus {
-                Text(trailingStatus)
-                    .font(.caption.weight(.semibold))
-                    .foregroundColor(task.isFullyComplete ? .cyan.opacity(0.7) : .white.opacity(0.45))
+            RoundedRectangle(cornerRadius: 2, style: .continuous)
+                .fill(accent.opacity(task.isFullyComplete ? 0.35 : 0.85))
+                .frame(width: 3, height: 28)
+
+            VStack(alignment: .leading, spacing: 3) {
+                Text(statusTitle)
+                    .foregroundStyle(.white)
+                    .opacity(task.isFullyComplete ? 0.45 : 0.92)
+                    .strikethrough(task.isFullyComplete, color: .white.opacity(0.35))
+                    .font(.system(size: 14, weight: .medium))
+                    .lineLimit(2)
+
+                if task.isFullyComplete, task.reflectionNote != nil {
+                    Text(lang.t(.reflectionTitle))
+                        .font(.caption2.weight(.medium))
+                        .foregroundStyle(accent.opacity(0.75))
+                }
+            }
+            .contentShape(Rectangle())
+            .onTapGesture {
+                if task.isFullyComplete { onReflect?() }
+            }
+
+            Spacer(minLength: 8)
+
+            if interactive, let onChange {
+                TaskCompletionControl(task: task, accent: accent, onChange: onChange)
+            } else if task.targetAmount > 1 {
+                Text("\(task.completedAmount)/\(task.targetAmount)")
+                    .font(.caption.monospacedDigit().weight(.semibold))
+                    .foregroundColor(task.isFullyComplete ? accent.opacity(0.75) : .white.opacity(0.45))
+            } else if task.isDone || task.isFullyComplete {
+                Image(systemName: "checkmark.circle.fill")
+                    .foregroundStyle(accent)
             }
         }
-        .padding(.vertical, 6)
+        .padding(.horizontal, 10)
+        .padding(.vertical, 8)
+        .background {
+            RoundedRectangle(cornerRadius: 14, style: .continuous)
+                .fill(.white.opacity(task.isFullyComplete ? 0.03 : 0.05))
+        }
+    }
+}
+
+// MARK: - Shared completion control
+struct TaskCompletionControl: View {
+    let task: GoalTask
+    let accent: Color
+    let onChange: (Int?) -> Void
+
+    private var showsStepper: Bool { task.targetAmount > 1 }
+
+    var body: some View {
+        Group {
+            if showsStepper {
+                TaskAmountStepper(
+                    completed: task.completedAmount,
+                    target: task.targetAmount,
+                    accent: accent,
+                    onMinus: { onChange(max(0, task.completedAmount - 1)) },
+                    onPlus: { onChange(min(task.targetAmount, task.completedAmount + 1)) }
+                )
+            } else {
+                Button {
+                    onChange(nil)
+                } label: {
+                    Image(systemName: task.isDone ? "checkmark.circle.fill" : "circle")
+                        .font(.system(size: 28))
+                        .foregroundStyle(task.isDone ? accent : .white.opacity(0.35))
+                        .symbolEffect(.bounce, value: task.isDone)
+                }
+                .buttonStyle(.plain)
+            }
+        }
     }
 }
 
@@ -330,6 +417,7 @@ struct TaskTrackRow: View {
 struct TaskAmountStepper: View {
     let completed: Int
     let target:    Int
+    var accent: Color = .cyan
     let onMinus:   () -> Void
     let onPlus:    () -> Void
 
@@ -342,15 +430,19 @@ struct TaskAmountStepper: View {
                 .frame(minWidth: 36)
             stepButton(systemName: "plus", enabled: completed < target, action: onPlus)
         }
+        .padding(.horizontal, 8)
+        .padding(.vertical, 6)
+        .background(Capsule().fill(accent.opacity(0.12)))
+        .overlay(Capsule().stroke(accent.opacity(0.22), lineWidth: 1))
     }
 
     private func stepButton(systemName: String, enabled: Bool, action: @escaping () -> Void) -> some View {
         Button(action: action) {
             Image(systemName: systemName)
-                .font(.system(size: 14, weight: .bold))
-                .foregroundColor(enabled ? .white : .white.opacity(0.25))
-                .frame(width: 28, height: 28)
-                .background(Circle().fill(.white.opacity(enabled ? 0.12 : 0.05)))
+                .font(.system(size: 13, weight: .bold))
+                .foregroundColor(enabled ? accent : .white.opacity(0.25))
+                .frame(width: 26, height: 26)
+                .background(Circle().fill(.white.opacity(enabled ? 0.10 : 0.04)))
         }
         .disabled(!enabled)
         .buttonStyle(.plain)

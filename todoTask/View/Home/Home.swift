@@ -23,30 +23,34 @@ struct Home: View {
 
 struct NativeTabView: View {
     @EnvironmentObject private var lang: LanguageManager
+    @EnvironmentObject private var tabRouter: OrbitTabRouter
 
     var body: some View {
-        TabView {
-            Tab(lang.t(.tabToday), systemImage: "checklist") {
-                NavigationStack {
-                    today()
-                        .navigationTitle(lang.t(.goalsOfTheDay))
-                }
+        TabView(selection: $tabRouter.selectedTab) {
+            NavigationStack {
+                today()
+                    .navigationTitle(lang.t(.goalsOfTheDay))
             }
-            Tab(lang.t(.tabOrbs), systemImage: "globe.americas.fill") {
-                GoalsPage()
+            .tabItem { Label(lang.t(.tabToday), systemImage: "checklist") }
+            .tag(0)
+
+            GoalsPage()
+                .tabItem { Label(lang.t(.tabOrbs), systemImage: "globe.americas.fill") }
+                .tag(1)
+
+            NavigationStack {
+                FriendsV()
+                    .navigationTitle(lang.t(.tabFriends))
             }
-            Tab(lang.t(.tabFriends), systemImage: "person.2.fill") {
-                NavigationStack {
-                    FriendsV()
-                        .navigationTitle(lang.t(.tabFriends))
-                }
+            .tabItem { Label(lang.t(.tabFriends), systemImage: "person.2.fill") }
+            .tag(2)
+
+            NavigationStack {
+                Settings()
+                    .navigationBarHidden(true)
             }
-            Tab(lang.t(.tabSettings), systemImage: "gear") {
-                NavigationStack {
-                    Settings()
-                        .navigationTitle(lang.t(.settingsTitle))
-                }
-            }
+            .tabItem { Label(lang.t(.tabSettings), systemImage: "gear") }
+            .tag(3)
         }
         .accentColor(.accent)
     }

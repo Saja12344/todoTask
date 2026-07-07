@@ -7,6 +7,9 @@ struct todoTaskApp: App {
     @StateObject private var userVM      = UserViewModel()
     @StateObject private var goalStore   = OrbGoalStore()
     @StateObject private var language    = LanguageManager()
+    @StateObject private var achievements = OrbAchievementStore.shared
+    @StateObject private var challengeOrbs = ChallengeOrbsManager.shared
+    @StateObject private var tabRouter     = OrbitTabRouter()
     @StateObject private var deepLink    = DeepLinkManager.shared
     @State private var showSplash = true
 
@@ -30,6 +33,9 @@ struct todoTaskApp: App {
                     .environmentObject(userVM)
                     .environmentObject(goalStore)
                     .environmentObject(language)
+                    .environmentObject(achievements)
+                    .environmentObject(challengeOrbs)
+                    .environmentObject(tabRouter)
                     .environmentObject(deepLink)
                     .environment(\.layoutDirection, language.language.layoutDirection)
                     .preferredColorScheme(.dark)
@@ -44,6 +50,7 @@ struct todoTaskApp: App {
                                 fromUsername: deepLink.pendingFromUser ?? "Friend"
                             )
                             .environmentObject(goalStore)
+                            .environmentObject(userVM)
                         }
                     }
             }
@@ -53,7 +60,16 @@ struct todoTaskApp: App {
 
 // MARK: - Root Router
 struct RootRouterView: View {
+    @EnvironmentObject private var userVM: UserViewModel
+
     var body: some View {
-        Home()
+        Group {
+            if userVM.isLoggedIn {
+                Home()
+            } else {
+                EnterView()
+            }
+        }
+        .animation(.easeInOut(duration: 0.25), value: userVM.isLoggedIn)
     }
 }

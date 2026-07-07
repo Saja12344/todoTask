@@ -2,17 +2,11 @@
 //  ChallengeOrbitView.swift
 //  todoTask
 //
-//  Created by شهد عبدالله القحطاني on 16/12/1447 AH.
-//
-
-
-//  ChallengeOrbitView.swift
-//  todoTask
 
 import SwiftUI
 
 struct ChallengeOrbitView: View {
-    @EnvironmentObject private var userVM: UserViewModel
+    @EnvironmentObject private var lang: LanguageManager
     let winner: ChallengeWinner
     let isMyWin: Bool
     let onDismiss: () -> Void
@@ -20,6 +14,7 @@ struct ChallengeOrbitView: View {
     @State private var orbitAngle: Double = 0
     @State private var showCard = false
     @State private var saved = false
+    @State private var burst = false
 
     private let service = ChallengeService()
 
@@ -29,97 +24,90 @@ struct ChallengeOrbitView: View {
 
     var body: some View {
         ZStack {
-            Color.black.ignoresSafeArea()
-            StarsBackgroundView()
+            ClassicOrbitBackground()
 
             VStack(spacing: 0) {
+                Text(isMyWin ? lang.t(.challengeYouWon) : lang.challengeFriendWon(winner.name))
+                    .font(.system(size: 26, weight: .bold, design: .rounded))
+                    .foregroundStyle(isMyWin ? .yellow : .white.opacity(0.75))
+                    .padding(.top, 56)
 
-                // عنوان
-                Text(isMyWin ? "فزت بالكوكب!" : "\(winner.name) فاز بالكوكب")
-                    .font(.title2.bold())
-                    .foregroundColor(isMyWin ? .yellow : .white.opacity(0.6))
-                    .padding(.top, 52)
-
-                Text(isMyWin ? winner.planetName : "أكمل أكثر في المرة القادمة")
+                Text(isMyWin ? winner.planetName : lang.t(.challengeTryAgain))
                     .font(.subheadline)
-                    .foregroundColor(.white.opacity(0.45))
+                    .foregroundStyle(.white.opacity(0.5))
                     .padding(.top, 6)
 
                 Spacer()
 
-                // مشهد الـ Orbit
                 ZStack {
-                    // مدار
-                    Circle()
-                        .stroke(Color.white.opacity(0.12),
-                                style: StrokeStyle(lineWidth: 1, dash: [6, 5]))
-                        .frame(width: 270, height: 270)
+                    ForEach(0..<3, id: \.self) { ring in
+                        Circle()
+                            .stroke(
+                                (planetColors.first ?? .purple).opacity(0.12 + Double(ring) * 0.06),
+                                style: StrokeStyle(lineWidth: 1, dash: [5, 6])
+                            )
+                            .frame(width: 250 + CGFloat(ring * 40), height: 250 + CGFloat(ring * 40))
+                            .scaleEffect(burst ? 1.04 : 0.96)
+                    }
 
-                    // الكوكب
                     PlanetOrbView(
-                        size: 120,
+                        size: 130,
                         gradientColors: planetColors,
-                        glow: winner.planetGlow,
+                        glow: winner.planetGlow + (isMyWin ? 0.04 : 0),
                         textureAssetName: winner.planetTextureAsset,
                         textureOpacity: winner.planetTextureOpacity
                     )
+                    .shadow(color: (planetColors.first ?? .purple).opacity(0.5), radius: 28, y: 10)
 
-                    // صاروخ يدور
-                    RocketSprite(
-                        color: isMyWin ? .purple : .teal,
-                        label: "",
-                        progress: 1.0
-                    )
-                    .rotationEffect(.degrees(-90))
-                    .offset(x: 135)
-                    .rotationEffect(.degrees(orbitAngle),
-                                    anchor: .init(x: 0.5, y: 0.5))
+                    RocketSprite(color: isMyWin ? .purple : .teal, label: "", progress: 1.0)
+                        .scaleEffect(0.9)
+                        .rotationEffect(.degrees(-90))
+                        .offset(x: 145)
+                        .rotationEffect(.degrees(orbitAngle))
                 }
-                .frame(width: 290, height: 290)
+                .frame(width: 300, height: 300)
 
                 Spacer()
 
-                // بطاقة المعلومات
                 if showCard {
-                    PlanetWinCard(
-                        winner: winner,
-                        isMyWin: isMyWin,
-                        saved: saved
-                    )
-                    .padding(.horizontal, 24)
-                    .transition(.move(edge: .bottom).combined(with: .opacity))
+                    PlanetWinCard(winner: winner, isMyWin: isMyWin, saved: saved, lang: lang)
+                        .padding(.horizontal, 24)
+                        .transition(.move(edge: .bottom).combined(with: .opacity))
                 }
 
-                // أزرار
                 VStack(spacing: 12) {
                     if isMyWin && !saved {
                         Button {
                             Task { await saveWin() }
                         } label: {
-                            Label("احتفظ بالكوكب", systemImage: "star.fill")
+                            Label(lang.t(.challengeKeepPlanet), systemImage: "star.fill")
                                 .font(.system(size: 16, weight: .semibold))
                                 .foregroundColor(.white)
-                                .frame(maxWidth: .infinity).frame(height: 52)
+                                .frame(maxWidth: .infinity)
+                                .frame(height: 52)
                         }
-                        .background(Color.accent)
+                        .background(
+                            LinearGradient(colors: [.yellow.opacity(0.85), .orange.opacity(0.75)], startPoint: .leading, endPoint: .trailing)
+                        )
                         .clipShape(RoundedRectangle(cornerRadius: 16))
                         .padding(.horizontal, 28)
                     }
 
-                    Button("العودة للرئيسية") { onDismiss() }
+                    Button(lang.t(.challengeBackHome), action: onDismiss)
                         .foregroundColor(.white.opacity(0.5))
                         .font(.subheadline)
                 }
                 .padding(.bottom, 44)
             }
         }
-        .colorScheme(.dark)
+        .orbitForcedDark()
         .onAppear {
-            // تحريك الصاروخ في المدار
-            withAnimation(.linear(duration: 7).repeatForever(autoreverses: false)) {
+            withAnimation(.linear(duration: 8).repeatForever(autoreverses: false)) {
                 orbitAngle = 360
             }
-            // ظهور البطاقة
+            withAnimation(.easeInOut(duration: 2).repeatForever(autoreverses: true)) {
+                burst = true
+            }
             withAnimation(.spring(duration: 0.7).delay(0.4)) {
                 showCard = true
             }
@@ -128,6 +116,7 @@ struct ChallengeOrbitView: View {
 
     private func saveWin() async {
         try? await service.savePlanetToWinner(winner: winner)
+        OrbAchievementStore.shared.addWonPlanet(from: winner)
         withAnimation { saved = true }
     }
 }
@@ -136,26 +125,29 @@ struct PlanetWinCard: View {
     let winner: ChallengeWinner
     let isMyWin: Bool
     let saved: Bool
+    let lang: LanguageManager
 
     var body: some View {
         HStack(spacing: 16) {
             Image(systemName: isMyWin ? "crown.fill" : "figure.walk")
                 .font(.system(size: 28))
-                .foregroundColor(isMyWin ? .yellow : .white.opacity(0.4))
+                .foregroundStyle(isMyWin ? .yellow : .white.opacity(0.4))
 
             VStack(alignment: .leading, spacing: 4) {
-                Text(isMyWin ? "الكوكب أصبح ملكك" : "أفضل حظاً المرة القادمة")
+                Text(isMyWin ? lang.t(.challengePlanetYours) : lang.t(.challengeTryAgain))
                     .font(.system(size: 15, weight: .semibold))
-                    .foregroundColor(.white)
+                    .foregroundStyle(.white)
                 if isMyWin {
-                    Text(saved ? "محفوظ في مجموعتك" : winner.planetName)
-                        .font(.caption).foregroundColor(.white.opacity(0.5))
+                    Text(saved ? lang.t(.save) + " ✓" : winner.planetName)
+                        .font(.caption)
+                        .foregroundStyle(.white.opacity(0.5))
                 }
             }
             Spacer()
             if saved {
                 Image(systemName: "checkmark.circle.fill")
-                    .foregroundColor(.green).font(.system(size: 22))
+                    .foregroundStyle(.green)
+                    .font(.system(size: 22))
             }
         }
         .padding(18)

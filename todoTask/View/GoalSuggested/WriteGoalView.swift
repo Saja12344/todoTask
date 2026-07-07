@@ -12,13 +12,10 @@ struct WriteGoalView: View {
 
     @EnvironmentObject private var lang: LanguageManager
     @State private var goalText: String = ""
+    @FocusState private var fieldFocused: Bool
 
     private var canSubmit: Bool {
         !goalText.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty
-    }
-
-    private var liveHint: String? {
-        lang.liveHint(for: goalText, suggested: GoalSuggestionData.suggest(for: goalText))
     }
 
     init(
@@ -33,140 +30,93 @@ struct WriteGoalView: View {
 
     var body: some View {
         GoalFlowScreen(
-            background: {
-                ZStack {
-                    Rectangle()
-                        .fill(LinearGradient(colors: [.darkBlu, .dark], startPoint: .bottom, endPoint: .top))
-                    Image("Star")
-                        .resizable()
-                        .scaledToFill()
-                        .opacity(0.85)
-                    Image("Gliter")
-                        .resizable()
+            background: { AppBackground() },
+            topBar: {
+                HStack {
+                    GoalFlowBackButton(action: { onCancel?() })
+                    Spacer()
+                    GoalFlowCheckButton(isEnabled: canSubmit, action: submit)
                 }
             },
-            topBar: {
-                GoalFlowNavigationRow(
-                    onBack: { onCancel?() },
-                    trailing: {
-                        GoalFlowCheckButton(isEnabled: canSubmit, action: submit)
-                    }
-                )
-                .frame(height: GoalFlowLayout.topBarHeight)
-            },
             content: {
-                ScrollView(showsIndicators: false) {
-                    VStack(alignment: .leading, spacing: 22) {
-                        GoalCreationStepIndicator(current: 1)
+                GeometryReader { geo in
+                    VStack(spacing: 0) {
+                        Spacer(minLength: geo.size.height * 0.14)
 
-                        VStack(alignment: .leading, spacing: 8) {
+                        VStack(spacing: 20) {
                             Text(lang.t(.writeGoalTitle))
-                                .font(.system(size: 32, weight: .bold))
-                                .foregroundColor(.white)
+                                .font(.system(size: 32, weight: .bold, design: .rounded))
+                                .foregroundStyle(.white)
+                                .multilineTextAlignment(.center)
+                                .frame(maxWidth: .infinity)
 
-                            Text(lang.t(.writeGoalSubtitle))
-                                .font(.subheadline)
-                                .foregroundColor(.white.opacity(0.65))
-                                .fixedSize(horizontal: false, vertical: true)
-                        }
-
-                        VStack(alignment: .leading, spacing: 8) {
-                            Text(lang.t(.tryIncluding))
-                                .font(.caption.weight(.semibold))
-                                .foregroundColor(.white.opacity(0.5))
-                            VStack(alignment: .leading, spacing: 4) {
-                                templateRow(lang.t(.whatLabel), lang.language == .arabic ? "مثال: قراءة، نادي، ادخار" : "e.g. read, gym, save money")
-                                templateRow(lang.t(.howMuchLabel), lang.language == .arabic ? "مثال: 20 كتاب، 3 مرات بالأسبوع" : "e.g. 20 books, 3× per week")
+                            TextField(
+                                "",
+                                text: $goalText,
+                                prompt: Text(lang.t(.writePlaceholder))
+                                    .foregroundStyle(.white.opacity(0.35))
+                            )
+                            .focused($fieldFocused)
+                            .foregroundStyle(.white)
+                            .font(.system(size: 17, weight: .medium))
+                            .padding(.horizontal, 22)
+                            .padding(.vertical, 20)
+                            .background {
+                                Capsule()
+                                    .fill(Color.black.opacity(0.38))
                             }
-                        }
-                        .padding(14)
-                        .frame(maxWidth: .infinity, alignment: .leading)
-                        .background(RoundedRectangle(cornerRadius: 16).fill(Color.black.opacity(0.25)))
-
-                        TextField(
-                            "",
-                            text: $goalText,
-                            prompt: Text(lang.t(.writePlaceholder))
-                                .foregroundColor(.white.opacity(0.35))
-                        )
-                        .foregroundColor(.white)
-                        .font(.system(size: 17))
-                        .padding(.horizontal, 18)
-                        .padding(.vertical, 16)
-                        .background(RoundedRectangle(cornerRadius: 20).fill(Color.black.opacity(0.35)))
-                        .overlay(RoundedRectangle(cornerRadius: 20).stroke(Color.white.opacity(0.2), lineWidth: 1))
-                        .multilineTextAlignment(lang.language == .arabic ? .trailing : .leading)
-
-                        if let liveHint {
-                            HStack(alignment: .top, spacing: 10) {
-                                Image(systemName: "lightbulb.fill")
-                                    .foregroundColor(.yellow.opacity(0.9))
-                                    .font(.system(size: 14))
-                                Text(liveHint)
-                                    .font(.footnote)
-                                    .foregroundColor(.white.opacity(0.75))
-                                    .fixedSize(horizontal: false, vertical: true)
+                            .overlay {
+                                Capsule()
+                                    .stroke(
+                                        fieldFocused ? Color("accent").opacity(0.5) : .white.opacity(0.12),
+                                        lineWidth: 1
+                                    )
                             }
-                            .padding(12)
-                            .frame(maxWidth: .infinity, alignment: .leading)
-                            .background(RoundedRectangle(cornerRadius: 14).fill(Color.white.opacity(0.08)))
-                        }
-
-                        VStack(alignment: .leading, spacing: 10) {
-                            Text(lang.t(.examples))
-                                .font(.caption.weight(.semibold))
-                                .foregroundColor(.white.opacity(0.5))
+                            .submitLabel(.continue)
+                            .onSubmit { if canSubmit { submit() } }
 
                             ScrollView(.horizontal, showsIndicators: false) {
-                                HStack(spacing: 10) {
+                                HStack(spacing: 8) {
                                     ForEach(exampleChips) { chip in
                                         Button { goalText = chip.text } label: {
                                             Text(chip.label)
-                                                .font(.system(size: 14, weight: .medium))
-                                                .foregroundColor(.white)
-                                                .padding(.horizontal, 14)
-                                                .padding(.vertical, 10)
-                                                .background(Capsule().fill(Color.white.opacity(0.12)))
-                                                .overlay(Capsule().stroke(Color.white.opacity(0.2), lineWidth: 1))
+                                                .font(.system(size: 12, weight: .medium))
+                                                .foregroundStyle(.white.opacity(0.75))
+                                                .padding(.horizontal, 12)
+                                                .padding(.vertical, 8)
+                                                .background(Capsule().fill(.white.opacity(0.08)))
                                         }
                                         .buttonStyle(.plain)
                                     }
                                 }
+                                .padding(.horizontal, 2)
                             }
                         }
+                        .padding(.horizontal, 28)
+
+                        Spacer(minLength: 0)
 
                         Button(action: onSkipToManual) {
                             Text(lang.t(.skipManual))
-                                .font(.system(size: 15, weight: .medium))
-                                .foregroundColor(.white.opacity(0.75))
-                                .frame(maxWidth: .infinity)
-                                .padding(.vertical, 14)
+                                .font(.system(size: 14, weight: .medium))
+                                .foregroundStyle(.white.opacity(0.38))
                         }
-                        .padding(.top, 4)
+                        .buttonStyle(.plain)
+                        .padding(.bottom, 16)
                     }
-                    .padding(.horizontal, 20)
-                    .padding(.bottom, 28)
+                    .frame(width: geo.size.width, height: geo.size.height)
                 }
             }
         )
+        .onAppear {
+            DispatchQueue.main.asyncAfter(deadline: .now() + 0.35) {
+                fieldFocused = true
+            }
+        }
     }
 
     private var exampleChips: [GoalSuggestionData.ExampleChip] {
         lang.language == .arabic ? GoalSuggestionData.arabicExamples : GoalSuggestionData.englishExamples
-    }
-
-    private func templateRow(_ title: String, _ example: String) -> some View {
-        HStack(alignment: .top, spacing: 6) {
-            Text("•").foregroundColor(.white.opacity(0.4))
-            VStack(alignment: .leading, spacing: 2) {
-                Text(title)
-                    .font(.caption.weight(.semibold))
-                    .foregroundColor(.white.opacity(0.7))
-                Text(example)
-                    .font(.caption2)
-                    .foregroundColor(.white.opacity(0.45))
-            }
-        }
     }
 
     private func submit() {

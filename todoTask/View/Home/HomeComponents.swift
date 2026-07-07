@@ -50,6 +50,7 @@ struct today: View {
     @State private var chosenSettings: GoalSettings? = nil
     @State private var path:           [GoalCreationStep] = []
     @State private var selectedEnergyID: String? = nil
+    @State private var reflectionContext: TaskReflectionContext?
 
     private var selectedDate: Date { calVM.selectedDate }
 
@@ -175,13 +176,29 @@ struct today: View {
                                             goal: item.goal,
                                             primaryText: lines.primary,
                                             secondaryText: lines.secondary,
-                                            isLate: item.isLate
+                                            isLate: item.isLate,
+                                            onReflect: item.task.isFullyComplete ? {
+                                                reflectionContext = store.reflectionContext(
+                                                    goalID: item.goal.id,
+                                                    taskID: item.task.id
+                                                )
+                                            } : nil
                                         ) { newAmount in
+                                            let wasComplete = item.task.isFullyComplete
                                             if let newAmount {
-                                                store.setTaskCompletedAmount(goalID: item.goal.id, taskID: item.task.id, amount: newAmount)
+                                                store.setTaskCompletedAmount(
+                                                    goalID: item.goal.id,
+                                                    taskID: item.task.id,
+                                                    amount: newAmount
+                                                )
                                             } else {
                                                 store.toggleTodayTask(goalID: item.goal.id, taskID: item.task.id)
                                             }
+                                            maybeOpenReflection(
+                                                goalID: item.goal.id,
+                                                taskID: item.task.id,
+                                                wasComplete: wasComplete
+                                            )
                                         }
                                     }
                                 }
@@ -227,7 +244,10 @@ struct today: View {
                         },
                         onSkipToManual: {
                             draftTitle = ""
-                            path.append(.configure(type: nil, draftText: "", openSettings: false))
+                            path.append(.configure(
+                                type: nil, draftText: "", openSettings: false,
+                                milestoneMode: false, streakMode: false
+                            ))
                         },
                         onCancel: { _ = path.popLast() }
                     )
@@ -236,18 +256,26 @@ struct today: View {
                     SuggestedGoalView(
                         goalText: text,
                         suggestedType: type,
-                        onContinue: { chosen in
-                            chosenType = chosen
-                            path.append(.configure(type: chosen, draftText: draftTitle, openSettings: true))
+                        onContinue: { option in
+                            chosenType = option.goalType
+                            path.append(.configure(
+                                type: option.goalType,
+                                draftText: draftTitle,
+                                openSettings: true,
+                                milestoneMode: option.isMilestoneMode,
+                                streakMode: option.isStreakMode
+                            ))
                         },
                         onBack: { _ = path.popLast() }
                     )
 
-                case let .configure(type, draftText, openSettings):
+                case let .configure(type, draftText, openSettings, milestoneMode, streakMode):
                     GoalShapeView(
                         selectedGoal: type,
                         draftText: draftText,
                         openSettingsDirectly: openSettings,
+                        initialMilestoneMode: milestoneMode,
+                        initialStreakMode: streakMode,
                         onFinished: { type, settings in
                             chosenType = type
                             chosenSettings = settings
@@ -283,12 +311,25 @@ struct today: View {
                     
                 }
             }
+            .sheet(item: $reflectionContext) { context in
+                TaskReflectionSheet(context: context)
+                    .environmentObject(store)
+                    .environmentObject(lang)
+            }
         }
     }
 
     private func startCreation() {
         draftTitle = ""; chosenType = nil; chosenSettings = nil
         path = [.write]
+    }
+
+    private func maybeOpenReflection(goalID: UUID, taskID: UUID, wasComplete: Bool) {
+        guard let updated = store.goal(with: goalID)?.tasks.first(where: { $0.id == taskID }),
+              updated.isFullyComplete else { return }
+        if !wasComplete || (updated.reflectionNote ?? "").isEmpty {
+            reflectionContext = store.reflectionContext(goalID: goalID, taskID: taskID)
+        }
     }
 }
 
@@ -300,19 +341,46 @@ struct TodayTaskRow: View {
     let primaryText:     String
     let secondaryText:   String
     var isLate:          Bool = false
+    var onReflect:       (() -> Void)? = nil
     let onChange:        (Int?) -> Void
 
-    private var showsStepper: Bool { task.targetAmount > 1 }
+    private var accent: Color { goal.accentColor }
 
     var body: some View {
         ZStack {
-            RoundedRectangle(cornerRadius: 20)
+            RoundedRectangle(cornerRadius: 20, style: .continuous)
+                .fill(.clear)
                 .frame(maxWidth: .infinity)
-                .frame(height: showsStepper ? 72 : 68)
-                .foregroundColor(.clear)
+                .frame(minHeight: 68)
                 .glassEffect(.clear, in: .rect(cornerRadius: 20))
+                .overlay(alignment: .leading) {
+                    RoundedRectangle(cornerRadius: 20, style: .continuous)
+                        .fill(
+                            LinearGradient(
+                                colors: [accent, accent.opacity(0.15)],
+                                startPoint: .top,
+                                endPoint: .bottom
+                            )
+                        )
+                        .frame(width: 4)
+                        .padding(.vertical, 10)
+                }
+                .overlay {
+                    RoundedRectangle(cornerRadius: 20, style: .continuous)
+                        .stroke(accent.opacity(task.isFullyComplete ? 0.35 : 0.12), lineWidth: 1)
+                }
 
-            HStack {
+            HStack(spacing: 12) {
+                PlanetOrbView(
+                    size: 28,
+                    gradientColors: goal.design.gradientStops.map { $0.swiftUIColor },
+                    glow: min(goal.design.glow, 0.12),
+                    textureAssetName: goal.design.textureAssetName,
+                    textureOpacity: goal.design.textureOpacity * 0.65
+                )
+                .frame(width: 32, height: 32)
+                .opacity(task.isFullyComplete ? 0.45 : 1)
+
                 VStack(alignment: .leading, spacing: 4) {
                     HStack(spacing: 6) {
                         Text(primaryText)
@@ -325,32 +393,32 @@ struct TodayTaskRow: View {
                             Text(lang.t(.late))
                                 .font(.caption.bold())
                                 .foregroundColor(.red)
+                                .padding(.horizontal, 6)
+                                .padding(.vertical, 2)
+                                .background(Capsule().fill(.red.opacity(0.15)))
                         }
                     }
                     if !secondaryText.isEmpty {
                         Text(secondaryText)
                             .font(.caption)
-                            .foregroundColor(.white.opacity(0.5))
+                            .foregroundColor(accent.opacity(0.75))
                             .lineLimit(1)
                     }
+                    if task.isFullyComplete, task.reflectionNote != nil {
+                        Text(lang.t(.reflectionTitle))
+                            .font(.caption2.weight(.medium))
+                            .foregroundColor(accent.opacity(0.7))
+                    }
                 }
-                Spacer()
-                if showsStepper {
-                    TaskAmountStepper(
-                        completed: task.completedAmount,
-                        target: task.targetAmount,
-                        onMinus: { onChange(max(0, task.completedAmount - 1)) },
-                        onPlus:  { onChange(min(task.targetAmount, task.completedAmount + 1)) }
-                    )
-                } else {
-                    Image(systemName: task.isDone ? "checkmark.circle.fill" : "circle")
-                        .foregroundColor(task.isDone ? .blue : .gray)
-                        .font(.system(size: 28))
-                        .onTapGesture { onChange(nil) }
-                        .animation(.easeInOut(duration: 0.2), value: task.isDone)
+                .contentShape(Rectangle())
+                .onTapGesture {
+                    if task.isFullyComplete { onReflect?() }
                 }
+                Spacer(minLength: 8)
+                TaskCompletionControl(task: task, accent: accent, onChange: onChange)
             }
-            .padding(.horizontal, 30)
+            .padding(.horizontal, 16)
+            .padding(.vertical, 12)
         }
         .padding(.horizontal, 4)
     }
@@ -416,7 +484,7 @@ struct Settings: View {
     @EnvironmentObject private var userVM: UserViewModel
     @EnvironmentObject private var store: OrbGoalStore
     @EnvironmentObject private var lang: LanguageManager
-    @State private var showGuestLogoutAlert: Bool = false
+    @State private var showLogoutAlert: Bool = false
     @State private var showDeleteConfirmation: Bool = false
     @State private var showClearGoalsConfirm: Bool = false
 
@@ -476,6 +544,17 @@ struct Settings: View {
 
                         settingsDivider
 
+                        NavigationLink(destination: AchievementsView().orbitForcedDark()) {
+                            SettingsRow(icon: "trophy.fill", title: lang.t(.achievementsTitle)) {
+                                Image(systemName: "chevron.right")
+                                    .font(.caption.weight(.semibold))
+                                    .foregroundColor(.white.opacity(0.35))
+                            }
+                        }
+                        .buttonStyle(.plain)
+
+                        settingsDivider
+
                         NavigationLink(destination: Report().orbitForcedDark()) {
                             SettingsRow(icon: "chart.bar.fill", title: lang.t(.progressReport)) {
                                 Image(systemName: "chevron.right")
@@ -514,10 +593,7 @@ struct Settings: View {
                         SettingsRow(icon: "rectangle.portrait.and.arrow.right", title: lang.t(.logOut), tint: Color(.lightRed)) {
                             EmptyView()
                         }
-                        .onTapGesture {
-                            if userVM.currentUser?.authMode == .guest { showGuestLogoutAlert = true }
-                            else { userVM.clearLocalUser() }
-                        }
+                        .onTapGesture { showLogoutAlert = true }
 
                         settingsDivider
 
@@ -532,6 +608,7 @@ struct Settings: View {
         }
         .confirmationDialog(lang.t(.deleteAccountQuestion), isPresented: $showDeleteConfirmation, titleVisibility: .visible) {
             Button(lang.t(.deletePermanently), role: .destructive) {
+                store.clearAll()
                 Task { await userVM.deleteAccount() }
             }
             Button(lang.t(.cancel), role: .cancel) {}
@@ -544,11 +621,14 @@ struct Settings: View {
         } message: {
             Text(lang.t(.clearGoalsMessage))
         }
-        .alert(lang.t(.logOutQuestion), isPresented: $showGuestLogoutAlert) {
+        .alert(lang.t(.logOutQuestion), isPresented: $showLogoutAlert) {
             Button(lang.t(.cancel), role: .cancel) {}
-            Button(lang.t(.logOut), role: .destructive) { userVM.clearLocalUser() }
+            Button(lang.t(.logOut), role: .destructive) {
+                store.clearAll()
+                userVM.logOut()
+            }
         } message: {
-            Text(lang.t(.guestLogoutMessage))
+            Text(lang.t(.logOutMessage))
         }
         .orbitForcedDark()
     }

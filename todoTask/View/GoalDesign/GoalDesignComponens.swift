@@ -63,19 +63,24 @@ public struct PlanetOrbView: View {
     let glow: Double
     let textureAssetName: String?
     let textureOpacity: Double
+    var autoSpin: Bool = false
+
+    @State private var spinAngle: Double = 0
 
     public init(
         size: CGFloat,
         gradientColors: [Color],
         glow: Double,
         textureAssetName: String?,
-        textureOpacity: Double
+        textureOpacity: Double,
+        autoSpin: Bool = false
     ) {
         self.size = size
         self.gradientColors = gradientColors
         self.glow = glow
         self.textureAssetName = textureAssetName
         self.textureOpacity = textureOpacity
+        self.autoSpin = autoSpin
     }
 
     private var glowColor: Color { gradientColors.first ?? .purple }
@@ -93,32 +98,66 @@ public struct PlanetOrbView: View {
                 )
                 .frame(width: size * 1.3, height: size * 1.3)
 
-            Circle()
-                .fill(
-                    AngularGradient(
-                        gradient: Gradient(
-                            colors: gradientColors.count >= 2
-                            ? gradientColors
-                            : [glowColor, glowColor.opacity(0.7)]
-                        ),
-                        center: .center
-                    )
-                )
-                .frame(width: size, height: size)
-                .overlay(
-                    Group {
-                        if let name = textureAssetName {
-                            Image(name)
-                                .resizable()
-                                .scaledToFill()
-                                .frame(width: size, height: size)
-                                .clipShape(Circle())
-                                .opacity(textureOpacity)
-                                .blendMode(.hardLight)
-                        }
-                    }
-                )
-                .shadow(color: glowColor.opacity(0.35), radius: 18, x: 0, y: 8)
+            planetBody
+                .rotationEffect(.degrees(autoSpin ? spinAngle : 0))
         }
+        .onAppear {
+            guard autoSpin else { return }
+            let duration = Double.random(in: 22...34)
+            withAnimation(.linear(duration: duration).repeatForever(autoreverses: false)) {
+                spinAngle = 360
+            }
+        }
+    }
+
+    private var planetBody: some View {
+        Circle()
+            .fill(
+                AngularGradient(
+                    gradient: Gradient(
+                        colors: gradientColors.count >= 2
+                        ? gradientColors
+                        : [glowColor, glowColor.opacity(0.7)]
+                    ),
+                    center: .center
+                )
+            )
+            .frame(width: size, height: size)
+            .overlay {
+                Circle()
+                    .fill(
+                        RadialGradient(
+                            colors: [.white.opacity(0.22), .clear],
+                            center: UnitPoint(x: 0.32, y: 0.28),
+                            startRadius: 0,
+                            endRadius: size * 0.55
+                        )
+                    )
+            }
+            .overlay(
+                Group {
+                    if let name = textureAssetName {
+                        Image(name)
+                            .resizable()
+                            .scaledToFill()
+                            .frame(width: size, height: size)
+                            .clipShape(Circle())
+                            .opacity(textureOpacity)
+                            .blendMode(.hardLight)
+                    }
+                }
+            )
+            .overlay {
+                Circle()
+                    .stroke(
+                        LinearGradient(
+                            colors: [.white.opacity(0.35), .white.opacity(0.05)],
+                            startPoint: .topLeading,
+                            endPoint: .bottomTrailing
+                        ),
+                        lineWidth: max(1, size * 0.012)
+                    )
+            }
+            .shadow(color: glowColor.opacity(0.35), radius: 18, x: 0, y: 8)
     }
 }
