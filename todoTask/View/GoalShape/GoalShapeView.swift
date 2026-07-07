@@ -19,7 +19,7 @@ struct GoalShapeView: View {
     @State private var selectedGoal: GoalType?
     @State private var selectedOption: GoalShapeOption?
     @State private var showSettings = false
-    @State private var capturedDays:            Set<Int> = [1,2,3,4,5,6,7]
+    @State private var capturedDays:            Set<Int> = []
     @State private var capturedStartTime:       Date     = Calendar.current.date(bySettingHour: 8,  minute: 0, second: 0, of: Date())!
     @State private var capturedEndTime:         Date     = Calendar.current.date(bySettingHour: 9,  minute: 0, second: 0, of: Date())!
     @State private var capturedTarget:          Int      = 10
@@ -69,30 +69,13 @@ struct GoalShapeView: View {
     var body: some View {
         GoalFlowScreen(
             background: { AppBackground() },
-            topBar: {
-                GoalFlowNavigationRow(
-                    onBack: handleBack,
-                    trailing: {
-                        GoalFlowNextButton(action: {
-                            if !showSettings {
-                                if selectedOption != nil { withAnimation { showSettings = true } }
-                            } else if let type = selectedGoal {
-                                onFinished?(type, buildSettings())
-                            }
-                        })
-                        .opacity((!showSettings && selectedOption == nil) ? 0.4 : 1)
-                        .allowsHitTesting(showSettings || selectedOption != nil)
-                    }
-                )
-                .frame(height: GoalFlowLayout.topBarHeight)
-            },
+            topBar: { topBar },
             content: {
                 VStack(spacing: 0) {
-                    GoalCreationStepIndicator(current: flowStepNumber)
-                        .padding(.horizontal, GoalFlowLayout.horizontalPadding)
-                        .padding(.bottom, 12)
-
                     if !showSettings {
+                        GoalCreationStepIndicator(current: flowStepNumber)
+                            .padding(.horizontal, GoalFlowLayout.horizontalPadding)
+                            .padding(.bottom, 12)
                         shapePickerContent
                     } else {
                         settingsContent
@@ -102,6 +85,37 @@ struct GoalShapeView: View {
             }
         )
         .onAppear(perform: applyDraftIfNeeded)
+    }
+
+    @ViewBuilder private var topBar: some View {
+        if showSettings {
+            HStack(alignment: .center, spacing: 8) {
+                GoalFlowBackButton(action: handleBack)
+                Spacer(minLength: 8)
+                Text(selectedOption?.title(lang) ?? lang.t(.goalSetup))
+                    .font(.system(size: 20, weight: .semibold))
+                    .foregroundStyle(.white)
+                    .lineLimit(1)
+                    .minimumScaleFactor(0.7)
+                Spacer(minLength: 8)
+                GoalFlowNextButton(action: {
+                    if let type = selectedGoal { onFinished?(type, buildSettings()) }
+                })
+            }
+            .frame(height: GoalFlowLayout.topBarHeight)
+        } else {
+            GoalFlowNavigationRow(
+                onBack: handleBack,
+                trailing: {
+                    GoalFlowNextButton(action: {
+                        if selectedOption != nil { withAnimation { showSettings = true } }
+                    })
+                    .opacity(selectedOption == nil ? 0.4 : 1)
+                    .allowsHitTesting(selectedOption != nil)
+                }
+            )
+            .frame(height: GoalFlowLayout.topBarHeight)
+        }
     }
 
     private var flowStepNumber: Int {
@@ -134,65 +148,58 @@ struct GoalShapeView: View {
     private var settingsContent: some View {
         GeometryReader { geo in
             ScrollView(showsIndicators: false) {
-                VStack(spacing: 12) {
-                    if !draftText.isEmpty {
-                        GoalDraftBanner(goalText: draftText, goalType: selectedGoal)
-                    } else {
-                        Text(lang.t(.goalSetup))
-                            .font(.system(size: 20, weight: .bold))
-                            .foregroundStyle(.white)
-                            .frame(maxWidth: .infinity, alignment: .leading)
-                    }
-
-                    switch selectedGoal {
-                    case .reachTarget:
-                        ReachTargetContent(
-                            goalTitle:           draftText,
-                            targetNumber:        $capturedTarget,
-                            unit:                $capturedUnit,
-                            deadlineDate:        $capturedDeadline,
-                            selectedDays:        $capturedDays,
-                            startTime:           $capturedStartTime,
-                            endTime:             $capturedEndTime,
-                            isMilestoneMode:     $capturedIsMilestoneMode,
-                            scopeSize:           $capturedScope,
-                            dailyTimePreference: $capturedDailyMin
-                        )
-                    case .buildHabit:
-                        BuildHabitContent(
-                            selectedDays:  $capturedDays,
-                            startTime:     $capturedStartTime,
-                            endTime:       $capturedEndTime,
-                            unit:          $capturedUnit,
-                            isStreakMode:  $capturedIsStreakMode,
-                            targetNumber:  $capturedTarget,
-                            breakDays:     $capturedBreakDays
-                        )
-                    case .levelUp:
-                        LevelUpContent(
-                            activity:     $capturedUnit,
-                            targetLevel:  $capturedTarget,
-                            selectedDays: $capturedDays,
-                            stepUpPace:   $capturedPaceWeeks
-                        )
-                    case .reduce:
-                        ReduceContent(
-                            metricType:     $capturedUnit,
-                            isReduceBy:     $capturedIsReduceBy,
-                            baselineNumber: $capturedBaseline,
-                            targetNumber:   $capturedTarget,
-                            selectedDays:   $capturedDays,
-                            startTime:      $capturedStartTime,
-                            endTime:        $capturedEndTime
-                        )
-                    case .none:
-                        EmptyView()
-                    }
-                }
-                .frame(maxWidth: .infinity, minHeight: geo.size.height, alignment: .top)
-                .padding(.horizontal, GoalFlowLayout.horizontalPadding)
-                .padding(.bottom, 20)
+                goalSettingsPanel
+                    .padding(.horizontal, GoalFlowLayout.horizontalPadding)
+                    .padding(.vertical, 20)
+                    .frame(maxWidth: .infinity, minHeight: geo.size.height, alignment: .center)
             }
+        }
+    }
+
+    @ViewBuilder private var goalSettingsPanel: some View {
+        switch selectedGoal {
+        case .reachTarget:
+            ReachTargetContent(
+                goalTitle:           draftText,
+                targetNumber:        $capturedTarget,
+                unit:                $capturedUnit,
+                deadlineDate:        $capturedDeadline,
+                selectedDays:        $capturedDays,
+                startTime:           $capturedStartTime,
+                endTime:             $capturedEndTime,
+                isMilestoneMode:     $capturedIsMilestoneMode,
+                scopeSize:           $capturedScope,
+                dailyTimePreference: $capturedDailyMin
+            )
+        case .buildHabit:
+            BuildHabitContent(
+                selectedDays:  $capturedDays,
+                startTime:     $capturedStartTime,
+                endTime:       $capturedEndTime,
+                unit:          $capturedUnit,
+                isStreakMode:  $capturedIsStreakMode,
+                targetNumber:  $capturedTarget,
+                breakDays:     $capturedBreakDays
+            )
+        case .levelUp:
+            LevelUpContent(
+                activity:     $capturedUnit,
+                targetLevel:  $capturedTarget,
+                selectedDays: $capturedDays,
+                stepUpPace:   $capturedPaceWeeks
+            )
+        case .reduce:
+            ReduceContent(
+                metricType:     $capturedUnit,
+                isReduceBy:     $capturedIsReduceBy,
+                baselineNumber: $capturedBaseline,
+                targetNumber:   $capturedTarget,
+                selectedDays:   $capturedDays,
+                startTime:      $capturedStartTime,
+                endTime:        $capturedEndTime
+            )
+        case .none:
+            EmptyView()
         }
     }
 

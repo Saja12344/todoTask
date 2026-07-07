@@ -281,7 +281,8 @@ struct GoalTasksView: View {
     private func maybeOpenReflection(taskID: UUID, wasComplete: Bool) {
         guard let updated = store.goal(with: goalID)?.tasks.first(where: { $0.id == taskID }),
               updated.isFullyComplete else { return }
-        if !wasComplete || (updated.reflectionNote ?? "").isEmpty {
+        guard !wasComplete else { return }
+        DispatchQueue.main.asyncAfter(deadline: .now() + 0.35) {
             reflectionContext = store.reflectionContext(goalID: goalID, taskID: taskID)
         }
     }
@@ -333,6 +334,13 @@ struct TaskTrackRow: View {
         return goal.map { GoalTaskDisplay.label(for: task, in: $0, lang: lang) } ?? task.title
     }
 
+    private var scheduleLine: String {
+        let df = DateFormatter()
+        df.locale = Locale(identifier: lang.language == .arabic ? "ar" : "en_US")
+        df.setLocalizedDateFormatFromTemplate("EEE d MMM · jm")
+        return df.string(from: task.scheduledDate)
+    }
+
     var body: some View {
         HStack(alignment: .center, spacing: 12) {
             RoundedRectangle(cornerRadius: 2, style: .continuous)
@@ -346,6 +354,14 @@ struct TaskTrackRow: View {
                     .strikethrough(task.isFullyComplete, color: .white.opacity(0.35))
                     .font(.system(size: 14, weight: .medium))
                     .lineLimit(2)
+
+                HStack(spacing: 5) {
+                    Image(systemName: "calendar")
+                        .font(.system(size: 9, weight: .semibold))
+                    Text(scheduleLine)
+                        .font(.caption2.weight(.medium))
+                }
+                .foregroundStyle(.white.opacity(0.42))
 
                 if task.isFullyComplete, task.reflectionNote != nil {
                     Text(lang.t(.reflectionTitle))

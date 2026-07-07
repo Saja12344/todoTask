@@ -19,11 +19,18 @@ struct CreateChallengeSheet: View {
     @State private var step: CreateChallengeStep = .form
     @State private var isLoading = false
     @State private var error: String?
+    @State private var selectedGoalID: UUID?
     @Environment(\.dismiss) private var dismiss
 
     private let service = ChallengeService()
 
-    private var bestGoal: OrbGoal? { store.goals.first }
+    /// Only the user's own real orbs can be used as a challenge planet.
+    private var pickableGoals: [OrbGoal] { store.goals.filter { !$0.isChallenge } }
+
+    private var bestGoal: OrbGoal? {
+        if let id = selectedGoalID, let g = pickableGoals.first(where: { $0.id == id }) { return g }
+        return pickableGoals.first
+    }
 
     var body: some View {
         ZStack {
@@ -68,9 +75,18 @@ struct CreateChallengeSheet: View {
                     )
                 }
 
+                Text(goal.title)
+                    .font(.system(size: 16, weight: .semibold))
+                    .foregroundStyle(.white)
+                    .lineLimit(1)
+
                 Text(lang.t(.challengeCompetingFor))
                     .font(.caption)
                     .foregroundStyle(.white.opacity(0.5))
+
+                if pickableGoals.count > 1 {
+                    planetPicker(current: goal)
+                }
             } else {
                 VStack(spacing: 10) {
                     Image(systemName: "globe.americas.fill")
@@ -121,6 +137,46 @@ struct CreateChallengeSheet: View {
             .padding(.horizontal, 28)
 
             Spacer()
+        }
+    }
+
+    private func planetPicker(current: OrbGoal) -> some View {
+        ScrollView(.horizontal, showsIndicators: false) {
+            HStack(spacing: 14) {
+                ForEach(pickableGoals) { g in
+                    let isSelected = g.id == current.id
+                    Button {
+                        withAnimation(.spring(response: 0.3, dampingFraction: 0.78)) {
+                            selectedGoalID = g.id
+                        }
+                    } label: {
+                        VStack(spacing: 6) {
+                            PlanetOrbView(
+                                size: 48,
+                                gradientColors: g.design.gradientStops.map { $0.swiftUIColor },
+                                glow: g.design.glow,
+                                textureAssetName: g.design.textureAssetName,
+                                textureOpacity: g.design.textureOpacity
+                            )
+                            .frame(width: 54, height: 54)
+                            .overlay {
+                                Circle()
+                                    .stroke(Color("accent").opacity(isSelected ? 0.95 : 0), lineWidth: 2.5)
+                                    .padding(-3)
+                            }
+
+                            Text(g.title)
+                                .font(.system(size: 10, weight: .medium))
+                                .foregroundStyle(.white.opacity(isSelected ? 0.95 : 0.55))
+                                .lineLimit(1)
+                                .frame(maxWidth: 66)
+                        }
+                    }
+                    .buttonStyle(.plain)
+                }
+            }
+            .padding(.horizontal, 24)
+            .padding(.vertical, 4)
         }
     }
 
@@ -184,7 +240,7 @@ struct CreateChallengeSheet: View {
                 userId: user.id,
                 userName: user.username,
                 orbDesign: goal.design,
-                orbTasks: store.goals
+                orbTasks: [goal]
             )
             let challengeGoal = ChallengeOrbFactory.fromSourceGoal(goal, roomId: roomId, myId: user.id)
             store.addChallengeOrb(challengeGoal, myId: user.id)

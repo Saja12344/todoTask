@@ -20,8 +20,11 @@ struct ChallengeCodeCard: View {
                 .multilineTextAlignment(.center)
 
             Text(roomId)
-                .font(.system(size: 22, weight: .bold, design: .monospaced))
+                .font(.system(size: 24, weight: .bold, design: .monospaced))
                 .foregroundStyle(Color("accent"))
+                .lineLimit(1)
+                .minimumScaleFactor(0.5)
+                .kerning(2)
                 .padding(.horizontal, 20)
                 .padding(.vertical, 14)
                 .frame(maxWidth: .infinity)
@@ -51,7 +54,12 @@ struct ChallengeCodeCard: View {
         .padding(20)
         .background {
             RoundedRectangle(cornerRadius: 20, style: .continuous)
-                .fill(.white.opacity(0.06))
+                .fill(.clear)
+                .glassEffect(.clear.tint(.black.opacity(0.25)), in: .rect(cornerRadius: 20))
+        }
+        .overlay {
+            RoundedRectangle(cornerRadius: 20, style: .continuous)
+                .stroke(.white.opacity(0.12), lineWidth: 1)
         }
     }
 }

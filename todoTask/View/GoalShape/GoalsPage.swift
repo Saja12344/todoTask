@@ -94,7 +94,7 @@ struct GoalsPage: View {
                 challengeOrbs.attach(store: store)
             }
             .fullScreenCover(item: $challengeGoalOpen) { goal in
-                ChallengeOrbDetailView(goal: goal)
+                ChallengeOrbDetailView(goal: goal, onClose: { challengeGoalOpen = nil })
                     .environmentObject(store)
                     .environmentObject(lang)
                     .environmentObject(challengeOrbs)

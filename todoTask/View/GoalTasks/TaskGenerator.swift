@@ -22,6 +22,14 @@ extension GoalSettings {
 
 struct TaskGenerator {
 
+    /// Combines a calendar day with the user's chosen preferred (start) time,
+    /// so every task carries a real time-of-day (used by the calendar & reminders).
+    private static func atPreferredTime(_ day: Date, _ settings: GoalSettings, _ calendar: Calendar = .current) -> Date {
+        let h = calendar.component(.hour, from: settings.startTime)
+        let m = calendar.component(.minute, from: settings.startTime)
+        return calendar.date(bySettingHour: h, minute: m, second: 0, of: day) ?? day
+    }
+
     private static func unitSuffix(_ unit: String) -> String {
         let u = unit.trimmingCharacters(in: .whitespaces)
         return u.isEmpty ? "" : " \(u)"
@@ -72,7 +80,7 @@ struct TaskGenerator {
         let calendar = Calendar.current
         let today = calendar.startOfDay(for: Date())
         let deadline = settings.scheduleEnd(calendar: calendar)
-        let selectedDays = settings.selectedDays
+        let selectedDays = settings.selectedDays.isEmpty ? Set(1...7) : settings.selectedDays
         var validExecutionDates: [Date] = []
         var currentDate = today
         while currentDate <= deadline {
@@ -88,7 +96,7 @@ struct TaskGenerator {
             GoalTask(
                 goalID: goalID,
                 title: incrementLabel(amount: perStep, unit: unit),
-                scheduledDate: date,
+                scheduledDate: atPreferredTime(date, settings, calendar),
                 targetAmount: perStep,
                 completedAmount: 0
             )
@@ -100,7 +108,7 @@ struct TaskGenerator {
         let calendar = Calendar.current
         let today = calendar.startOfDay(for: Date())
         let deadline = settings.scheduleEnd(calendar: calendar)
-        let selectedDays = settings.selectedDays
+        let selectedDays = settings.selectedDays.isEmpty ? Set(1...7) : settings.selectedDays
         let cap = settings.deadline == nil ? settings.sessionCapWithoutDeadline : Int.max
         var scheduledDates: [Date] = []
         var currentDate = today
@@ -117,7 +125,7 @@ struct TaskGenerator {
             GoalTask(
                 goalID: goalID,
                 title: stepLabel(index: index, total: total, prefix: "Session", unit: settings.unit),
-                scheduledDate: date
+                scheduledDate: atPreferredTime(date, settings, calendar)
             )
         }
     }
@@ -134,7 +142,7 @@ struct TaskGenerator {
             return GoalTask(
                 goalID: goalID,
                 title: stepLabel(index: i, total: adjTarget, prefix: "Day", unit: unit),
-                scheduledDate: date
+                scheduledDate: atPreferredTime(date, settings, cal)
             )
         }
     }
@@ -157,7 +165,7 @@ struct TaskGenerator {
             return GoalTask(
                 goalID: goalID,
                 title: stepLabel(index: i, total: steps, prefix: "Week", unit: u),
-                scheduledDate: date
+                scheduledDate: atPreferredTime(date, settings, calendar)
             )
         }
     }
@@ -168,7 +176,7 @@ struct TaskGenerator {
         let today = calendar.startOfDay(for: Date())
         let deadline = settings.scheduleEnd(calendar: calendar)
         let totalDays = max(1, calendar.dateComponents([.day], from: today, to: deadline).day ?? 30)
-        let activeDays = settings.selectedDays
+        let activeDays = settings.selectedDays.isEmpty ? Set(1...7) : settings.selectedDays
         let activeDaysPerWeek = max(1, activeDays.count)
         let effectiveDays = max(1, Int(Double(totalDays) / 7.0 * Double(activeDaysPerWeek)))
         let rawCount = max(3, Int(Double(effectiveDays) * 0.3 * factor))
@@ -180,7 +188,7 @@ struct TaskGenerator {
             guard let date = calendar.date(byAdding: .day, value: dayOffset, to: today) else { continue }
             let weekday = calendar.component(.weekday, from: date)
             if !activeDays.contains(weekday) { continue }
-            tasks.append(GoalTask(goalID: goalID, title: "", scheduledDate: date))
+            tasks.append(GoalTask(goalID: goalID, title: "", scheduledDate: atPreferredTime(date, settings, calendar)))
         }
         let total = max(1, tasks.count)
         return tasks.enumerated().map { index, task in
@@ -200,12 +208,13 @@ struct TaskGenerator {
         let diff = max(1, baseline - target)
         let steps = min(max(3, diff), 10)
         let stepSize = max(1, diff / steps)
-        let today = Calendar.current.startOfDay(for: Date())
+        let calendar = Calendar.current
+        let today = calendar.startOfDay(for: Date())
         return (0..<steps).map { i in
             let current = max(target, baseline - (stepSize * i))
-            let date = Calendar.current.date(byAdding: .day, value: i, to: today)!
+            let date = calendar.date(byAdding: .day, value: i, to: today)!
             let label = "Stay at \(current)\(unitSuffix(settings.unit)) or less"
-            return GoalTask(goalID: goalID, title: label, scheduledDate: date)
+            return GoalTask(goalID: goalID, title: label, scheduledDate: atPreferredTime(date, settings, calendar))
         }
     }
 }

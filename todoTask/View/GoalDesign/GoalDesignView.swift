@@ -132,29 +132,35 @@ private struct OrbPreviewStage: View {
 
     private var accent: Color { gradientColors.first ?? Color("accent") }
 
+    private var glowStrength: Double { min(max(glow / 0.15, 0), 1) }
+
     var body: some View {
         ZStack {
             Circle()
                 .fill(
                     RadialGradient(
-                        colors: [accent.opacity(0.30), accent.opacity(0.06), .clear],
+                        colors: [
+                            accent.opacity(0.10 + glowStrength * 0.45),
+                            accent.opacity(0.04 + glowStrength * 0.12),
+                            .clear
+                        ],
                         center: .center,
-                        startRadius: size * 0.12,
-                        endRadius: size * 0.95
+                        startRadius: size * 0.10,
+                        endRadius: size * (0.75 + glowStrength * 0.45)
                     )
                 )
-                .frame(width: size * 1.8, height: size * 1.8)
-                .blur(radius: 10)
+                .frame(width: size * (1.5 + glowStrength * 0.9), height: size * (1.5 + glowStrength * 0.9))
+                .blur(radius: 8 + glowStrength * 18)
 
             PlanetOrbView(
                 size: size,
                 gradientColors: gradientColors,
-                glow: max(glow, 0.13),
+                glow: glow,
                 textureAssetName: textureAssetName,
                 textureOpacity: textureOpacity,
                 autoSpin: true
             )
-            .shadow(color: accent.opacity(0.5), radius: 36, y: 16)
+            .shadow(color: accent.opacity(0.25 + glowStrength * 0.5), radius: 18 + glowStrength * 40, y: 14)
         }
         .frame(width: size * 1.85, height: size * 1.85)
     }

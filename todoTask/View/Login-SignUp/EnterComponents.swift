@@ -63,21 +63,24 @@ struct Login: View {
             VStack(alignment: .leading, spacing: 18) {
                 if isSignUp {
                     labeledField(title: isArabic ? "الاسم" : "Name") {
-                        TextField(isArabic ? "اسمك" : "Your name", text: $username)
+                        TextField("", text: $username, prompt: grayPrompt(isArabic ? "اسمك" : "Your name"))
+                            .tint(.white)
                             .textInputAutocapitalization(.words)
                             .autocorrectionDisabled()
                     }
                 }
 
                 labeledField(title: isArabic ? "البريد الإلكتروني" : "Email") {
-                    TextField(isArabic ? "you@email.com" : "you@email.com", text: $email)
+                    TextField("", text: $email, prompt: grayPrompt("you@email.com"))
+                        .tint(.white)
                         .keyboardType(.emailAddress)
                         .textInputAutocapitalization(.never)
                         .autocorrectionDisabled()
                 }
 
                 labeledField(title: isArabic ? "كلمة المرور" : "Password") {
-                    SecureField("••••••••", text: $password)
+                    SecureField("", text: $password, prompt: grayPrompt("••••••••"))
+                        .tint(.white)
                         .textInputAutocapitalization(.never)
                         .autocorrectionDisabled()
                 }
@@ -171,6 +174,11 @@ struct Login: View {
     }
 
     // MARK: - Fields
+
+    /// Neutral gray placeholder so field hints never render in the system blue tint.
+    private func grayPrompt(_ text: String) -> Text {
+        Text(text).foregroundColor(.white.opacity(0.35))
+    }
 
     private func labeledField<Content: View>(
         title: String,

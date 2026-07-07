@@ -26,6 +26,8 @@ struct ChallengeOrbitView: View {
         ZStack {
             ClassicOrbitBackground()
 
+            WinBackdrop(tint: planetColors.first ?? .purple)
+
             VStack(spacing: 0) {
                 Text(isMyWin ? lang.t(.challengeYouWon) : lang.challengeFriendWon(winner.name))
                     .font(.system(size: 26, weight: .bold, design: .rounded))
@@ -100,6 +102,24 @@ struct ChallengeOrbitView: View {
                 .padding(.bottom, 44)
             }
         }
+        .overlay(alignment: .topLeading) {
+            Button(action: onDismiss) {
+                HStack(spacing: 6) {
+                    Image(systemName: "chevron.left")
+                        .font(.system(size: 14, weight: .bold))
+                    Text(lang.t(.challengeBackHome))
+                        .font(.system(size: 14, weight: .semibold))
+                }
+                .foregroundStyle(.white)
+                .padding(.horizontal, 14)
+                .padding(.vertical, 9)
+                .background(Capsule().fill(.white.opacity(0.12)))
+                .overlay(Capsule().stroke(.white.opacity(0.18), lineWidth: 1))
+            }
+            .buttonStyle(.plain)
+            .padding(.leading, 16)
+            .padding(.top, 14)
+        }
         .orbitForcedDark()
         .onAppear {
             withAnimation(.linear(duration: 8).repeatForever(autoreverses: false)) {
@@ -118,6 +138,49 @@ struct ChallengeOrbitView: View {
         try? await service.savePlanetToWinner(winner: winner)
         OrbAchievementStore.shared.addWonPlanet(from: winner)
         withAnimation { saved = true }
+    }
+}
+
+/// Celebratory "Background 3" artwork framed behind the winning planet.
+private struct WinBackdrop: View {
+    let tint: Color
+
+    var body: some View {
+        GeometryReader { geo in
+            let side = min(geo.size.width, geo.size.height) * 1.05
+            ZStack {
+                RadialGradient(
+                    colors: [tint.opacity(0.35), .clear],
+                    center: .center,
+                    startRadius: 0,
+                    endRadius: side * 0.55
+                )
+
+                Image("Background 3")
+                    .resizable()
+                    .scaledToFill()
+                    .frame(width: side, height: side)
+                    .clipped()
+                    .opacity(0.5)
+                    .blendMode(.screen)
+                    .mask(
+                        RadialGradient(
+                            stops: [
+                                .init(color: .white, location: 0.0),
+                                .init(color: .white.opacity(0.6), location: 0.55),
+                                .init(color: .clear, location: 1.0)
+                            ],
+                            center: .center,
+                            startRadius: 0,
+                            endRadius: side * 0.5
+                        )
+                    )
+            }
+            .frame(width: geo.size.width, height: geo.size.height)
+            .position(x: geo.size.width / 2, y: geo.size.height * 0.46)
+        }
+        .ignoresSafeArea()
+        .allowsHitTesting(false)
     }
 }
 

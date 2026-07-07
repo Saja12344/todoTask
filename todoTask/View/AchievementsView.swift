@@ -27,6 +27,9 @@ struct AchievementsView: View {
         ZStack {
             LinearGradient(colors: [.darkBlu, .black], startPoint: .top, endPoint: .bottom)
                 .ignoresSafeArea()
+
+            AchievementsBackdrop()
+
             StarsBackgroundView().opacity(0.5)
 
             ScrollView {
@@ -212,5 +215,34 @@ struct AchievementsView: View {
                         .stroke(goal.accentColor.opacity(0.2), lineWidth: 1)
                 }
         }
+    }
+}
+
+/// Subtle "Background 3" artwork behind the achievements content.
+/// Kept very light and faded toward the bottom so text stays fully readable.
+private struct AchievementsBackdrop: View {
+    var body: some View {
+        GeometryReader { geo in
+            Image("Background 3")
+                .resizable()
+                .scaledToFill()
+                .frame(width: geo.size.width, height: geo.size.height)
+                .clipped()
+                .opacity(0.16)
+                .mask(
+                    LinearGradient(
+                        stops: [
+                            .init(color: .white, location: 0.0),
+                            .init(color: .white.opacity(0.35), location: 0.45),
+                            .init(color: .clear, location: 0.85)
+                        ],
+                        startPoint: .top,
+                        endPoint: .bottom
+                    )
+                )
+                .blendMode(.screen)
+        }
+        .ignoresSafeArea()
+        .allowsHitTesting(false)
     }
 }

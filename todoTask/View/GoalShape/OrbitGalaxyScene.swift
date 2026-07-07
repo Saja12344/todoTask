@@ -489,7 +489,7 @@ struct GalaxyOrbNode: View {
         VStack(spacing: 16) {
             ZStack {
                 if goal.isChallenge {
-                    ChallengeOrbGalaxyView(goal: goal, live: live, size: size)
+                    cleanChallengeOrb
                         .offset(y: floatY)
                 } else {
                     regularOrbStack
@@ -529,6 +529,25 @@ struct GalaxyOrbNode: View {
             .frame(maxWidth: size * 1.55)
         }
         .contentShape(Rectangle())
+    }
+
+    private var cleanChallengeOrb: some View {
+        ZStack {
+            Ellipse()
+                .fill(.black.opacity(0.35))
+                .frame(width: size * 0.72, height: size * 0.14)
+                .blur(radius: 8)
+                .offset(y: size * 0.46)
+
+            PlanetOrbView(
+                size: size,
+                gradientColors: goal.design.gradientStops.map { $0.swiftUIColor },
+                glow: min(goal.design.glow + 0.02, 0.15),
+                textureAssetName: goal.design.textureAssetName,
+                textureOpacity: min(goal.design.textureOpacity, 0.65),
+                autoSpin: true
+            )
+        }
     }
 
     private var regularOrbStack: some View {

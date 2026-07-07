@@ -222,13 +222,13 @@ struct GoalSetupPanel<Content: View>: View {
         .padding(.vertical, 12)
         .frame(maxWidth: .infinity, alignment: .leading)
         .background {
-            RoundedRectangle(cornerRadius: 20, style: .continuous)
-                .fill(.clear)
-                .glassEffect(.clear.tint(Color.black.opacity(0.34)), in: .rect(cornerRadius: 20))
+            RoundedRectangle(cornerRadius: 24, style: .continuous)
+                .fill(Color(red: 0.03, green: 0.05, blue: 0.12).opacity(0.55))
+                .glassEffect(.clear.tint(Color.black.opacity(0.55)), in: .rect(cornerRadius: 24))
         }
         .overlay {
-            RoundedRectangle(cornerRadius: 20, style: .continuous)
-                .stroke(.white.opacity(0.12), lineWidth: 1)
+            RoundedRectangle(cornerRadius: 24, style: .continuous)
+                .stroke(.white.opacity(0.10), lineWidth: 1)
         }
     }
 }

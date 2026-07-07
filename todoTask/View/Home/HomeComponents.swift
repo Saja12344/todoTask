@@ -327,7 +327,9 @@ struct today: View {
     private func maybeOpenReflection(goalID: UUID, taskID: UUID, wasComplete: Bool) {
         guard let updated = store.goal(with: goalID)?.tasks.first(where: { $0.id == taskID }),
               updated.isFullyComplete else { return }
-        if !wasComplete || (updated.reflectionNote ?? "").isEmpty {
+        guard !wasComplete else { return }
+        // Present after the list finishes refreshing so the sheet isn't dismissed by state churn.
+        DispatchQueue.main.asyncAfter(deadline: .now() + 0.35) {
             reflectionContext = store.reflectionContext(goalID: goalID, taskID: taskID)
         }
     }

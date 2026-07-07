@@ -25,6 +25,9 @@ enum TaskScheduling {
     static let lateThresholdHours: Int = 24
 
     /// Rolls overdue tasks forward and applies energy-based deferral. Mutates goals in place.
+    ///
+    /// Overdue (incomplete, scheduled before today) tasks are redistributed one-per-day
+    /// across upcoming active days starting today — instead of all piling onto a single day.
     static func refreshSchedule(goals: inout [OrbGoal], referenceDate: Date = Date(), energy: DailyEnergyEntry?) {
         let cal = Calendar.current
         let now = referenceDate
@@ -36,23 +39,77 @@ enum TaskScheduling {
 
         for i in goals.indices {
             var lateFlags: [UUID: Bool] = [:]
+            let settings = goals[i].settings
+
+            // Collect overdue incomplete tasks, and remember which future days are already taken.
+            var overdueIndices: [Int] = []
+            var occupiedDays = Set<Date>()
             for j in goals[i].tasks.indices {
-                var task = goals[i].tasks[j]
-                guard !task.isDone, task.completedAmount < max(1, task.targetAmount) else { continue }
-
-                let scheduledStart = cal.startOfDay(for: task.scheduledDate)
-                let hours = cal.dateComponents([.hour], from: scheduledStart, to: now).hour ?? 0
-                guard hours >= lateThresholdHours else { continue }
-
-                let next = nextActiveDay(after: scheduledStart, settings: goals[i].settings, calendar: cal)
-                if !cal.isDate(task.scheduledDate, inSameDayAs: next) {
-                    task.scheduledDate = cal.date(bySettingHour: 8, minute: 0, second: 0, of: next) ?? next
-                    goals[i].tasks[j] = task
-                    lateFlags[task.id] = true
+                let task = goals[i].tasks[j]
+                let incomplete = !task.isDone && task.completedAmount < max(1, task.targetAmount)
+                let dayStart = cal.startOfDay(for: task.scheduledDate)
+                if incomplete && dayStart < todayStart {
+                    overdueIndices.append(j)
+                } else if dayStart >= todayStart {
+                    occupiedDays.insert(dayStart)
                 }
+            }
+
+            guard !overdueIndices.isEmpty else {
+                goals[i].lateTaskIDs = [:]
+                continue
+            }
+
+            // Keep original sequence order (Day 1, Day 2, …).
+            overdueIndices.sort { goals[i].tasks[$0].scheduledDate < goals[i].tasks[$1].scheduledDate }
+
+            var cursor = todayStart
+            for j in overdueIndices {
+                let target = nextFreeActiveDay(from: cursor, settings: settings, occupied: occupiedDays, calendar: cal)
+                occupiedDays.insert(target)
+
+                var task = goals[i].tasks[j]
+                task.scheduledDate = applyTime(of: task.scheduledDate, to: target, settings: settings, calendar: cal)
+                goals[i].tasks[j] = task
+                lateFlags[task.id] = true
+
+                cursor = cal.date(byAdding: .day, value: 1, to: target) ?? target
             }
             goals[i].lateTaskIDs = lateFlags
         }
+    }
+
+    /// Preferred time to place a rescheduled task at (falls back to its original time, then 8am).
+    private static func applyTime(of original: Date, to day: Date, settings: GoalSettings?, calendar: Calendar) -> Date {
+        let hour: Int
+        let minute: Int
+        if let settings {
+            hour = calendar.component(.hour, from: settings.startTime)
+            minute = calendar.component(.minute, from: settings.startTime)
+        } else {
+            let comps = calendar.dateComponents([.hour, .minute], from: original)
+            hour = comps.hour ?? 8
+            minute = comps.minute ?? 0
+        }
+        return calendar.date(bySettingHour: hour, minute: minute, second: 0, of: day) ?? day
+    }
+
+    /// First active weekday on/after `from` that isn't already occupied by another task.
+    private static func nextFreeActiveDay(
+        from: Date,
+        settings: GoalSettings?,
+        occupied: Set<Date>,
+        calendar: Calendar
+    ) -> Date {
+        var cursor = calendar.startOfDay(for: from)
+        let active = settings?.selectedDays ?? Set(1...7)
+        for _ in 0..<400 {
+            let weekday = calendar.component(.weekday, from: cursor)
+            let isActive = active.isEmpty || active.contains(weekday)
+            if isActive && !occupied.contains(cursor) { return cursor }
+            cursor = calendar.date(byAdding: .day, value: 1, to: cursor) ?? cursor
+        }
+        return cursor
     }
 
     static func itemsForDate(

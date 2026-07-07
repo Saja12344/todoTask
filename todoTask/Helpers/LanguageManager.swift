@@ -136,6 +136,7 @@ enum L10nKey: String, CaseIterable {
     case reflectionTitle, reflectionPlaceholder, reflectionHint
     case reflectionPromptWhat, reflectionPromptLearned, reflectionPromptNext
     case reflectionPromptCloser, reflectionPromptFeel
+    case reflectionPromptProud, reflectionPromptStuck
     case achievementsTitle, achievementsWonPlanets, achievementsCompleted
     case achievementsReflections, achievementsNoTasks, achievementsNoReflections
     case achievementsStatOrbs, achievementsStatDone, achievementsStatWon
@@ -190,6 +191,45 @@ final class LanguageManager: ObservableObject {
         let diff = myProgress - opponentProgress
         if abs(diff) < 0.04 { return t(.raceBannerTied) }
         return diff > 0 ? t(.raceBannerAhead) : t(.raceBannerBehind)
+    }
+
+    /// Fun competitive banter shown on the challenge screen. Changes with who's leading.
+    func raceBanter(myProgress: Double, opponentProgress: Double, opponentName: String) -> String {
+        let ar = language == .arabic
+        let diff = myProgress - opponentProgress
+
+        let ahead = ar
+            ? ["🚀 أنتِ بالمقدمة — خليهم يشوفون غبارك!",
+               "👀 \(opponentName) يحاول يلحقك… لا تنامين!",
+               "🔥 قدّام بفارق — كمّلي عشان تكسرين قلبها 😂",
+               "🏆 الكوكب قرّب يكون لك، لا تخربينها الحين!"]
+            : ["🚀 You're ahead — let them eat your dust!",
+               "👀 \(opponentName) is trying to catch up… don't blink!",
+               "🔥 Nice lead — finish it and break their heart 😂",
+               "🏆 The planet is almost yours, don't choke now!"]
+
+        let behind = ar
+            ? ["😳 \(opponentName) سابقتك! تحرّكي بسرعة!",
+               "🏃‍♀️ لسا تقدرين تلحقينها — يلا شدّي حيلك!",
+               "😂 ترا \(opponentName) بدأت تخلّص… وش تنتظرين؟",
+               "💪 الفجوة تكبر، قومي أنجزي مهمة الحين!"]
+            : ["😳 \(opponentName) pulled ahead! Move it!",
+               "🏃 Still time to catch up — go go go!",
+               "😂 \(opponentName) is about to finish… what are you waiting for?",
+               "💪 The gap is growing, knock out a task now!"]
+
+        let tied = ar
+            ? ["👀 راسًا براس — وحدة منكم بس بتفوز!",
+               "🔥 تعادل! نفّسي وأنجزي المهمة الجاية.",
+               "😅 ولا وحدة قدّام الثانية… يلا نكسر التعادل!"]
+            : ["👀 Neck and neck — only one of you wins!",
+               "🔥 Dead tie! Breathe and grab the next task.",
+               "😅 No one's leading… break the tie!"]
+
+        let pool = abs(diff) < 0.04 ? tied : (diff > 0 ? ahead : behind)
+        // Stable-ish pick so it doesn't flicker every redraw.
+        let idx = Int((myProgress + opponentProgress) * 100) % pool.count
+        return pool[max(0, idx)]
     }
 
     func challengeTasksProgress(done: Int, total: Int) -> String {
@@ -469,11 +509,13 @@ final class LanguageManager: ObservableObject {
         .reflectionTitle: "Quick reflection",
         .reflectionPlaceholder: "Write a few words…",
         .reflectionHint: "Short notes help you learn from each win.",
-        .reflectionPromptWhat: "What did you actually do to finish this?",
-        .reflectionPromptLearned: "What did you notice or learn?",
-        .reflectionPromptNext: "What will you do differently next time?",
-        .reflectionPromptCloser: "What moved you closer to your goal?",
-        .reflectionPromptFeel: "How did completing this feel?",
+        .reflectionPromptWhat: "What's one thing that went well this time?",
+        .reflectionPromptLearned: "What's one thing you learned that'll help next time?",
+        .reflectionPromptNext: "What would you do differently next time?",
+        .reflectionPromptCloser: "How did this bring you closer to your goal?",
+        .reflectionPromptFeel: "How do you feel now that it's done?",
+        .reflectionPromptProud: "What's one small win you're proud of right now?",
+        .reflectionPromptStuck: "Where did you get stuck — and what helped you push through?",
         .achievementsTitle: "Achievements",
         .achievementsWonPlanets: "Won planets",
         .achievementsCompleted: "Completed tasks",
@@ -624,11 +666,13 @@ final class LanguageManager: ObservableObject {
         .reflectionTitle: "تأمل سريع",
         .reflectionPlaceholder: "اكتب كلمات قليلة…",
         .reflectionHint: "ملاحظات قصيرة تساعدك تتعلم من كل إنجاز.",
-        .reflectionPromptWhat: "وش سويت فعلاً عشان تخلص المهمة؟",
-        .reflectionPromptLearned: "وش لاحظت أو تعلّمت؟",
-        .reflectionPromptNext: "وش بتسوي مختلف المرة الجاية؟",
-        .reflectionPromptCloser: "وش قربك من هدفك؟",
-        .reflectionPromptFeel: "كيف كان شعورك بعد ما خلصت؟",
+        .reflectionPromptWhat: "وش أكثر شي مشى تمام هالمرة؟",
+        .reflectionPromptLearned: "وش تعلّمته وبيفيدك المرة الجاية؟",
+        .reflectionPromptNext: "وش بتسوي بشكل مختلف المرة الجاية؟",
+        .reflectionPromptCloser: "كيف قرّبتك هالمهمة من هدفك؟",
+        .reflectionPromptFeel: "كيف شعورك الحين بعد ما خلّصت؟",
+        .reflectionPromptProud: "وش أكثر إنجاز صغير فخور فيه الحين؟",
+        .reflectionPromptStuck: "وين تعثّرت، ووش اللي ساعدك تكمّل؟",
         .achievementsTitle: "الإنجازات",
         .achievementsWonPlanets: "كواكب فزت فيها",
         .achievementsCompleted: "مهام مكتملة",

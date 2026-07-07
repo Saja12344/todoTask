@@ -493,14 +493,28 @@ struct FunChallengeMissionRow: View {
 
             if isOpen {
                 Button(action: onTap) {
-                    ZStack {
-                        Circle()
-                            .stroke(style == .featured ? accent.opacity(0.7) : .white.opacity(0.25), lineWidth: style == .featured ? 2 : 1.5)
-                            .frame(width: style == .featured ? 34 : 28, height: style == .featured ? 34 : 28)
-                        if style == .featured {
+                    if style == .featured {
+                        HStack(spacing: 6) {
+                            Image(systemName: "checkmark")
+                                .font(.system(size: 13, weight: .bold))
+                            Text(lang.t(.raceTapLaunch))
+                                .font(.system(size: 14, weight: .bold))
+                        }
+                        .foregroundStyle(Color.black.opacity(0.85))
+                        .padding(.horizontal, 14)
+                        .frame(height: 34)
+                        .background(Capsule().fill(accent))
+                    } else {
+                        ZStack {
                             Circle()
-                                .fill(accent.opacity(0.12))
-                                .frame(width: 34, height: 34)
+                                .fill(accent.opacity(0.18))
+                                .frame(width: 30, height: 30)
+                            Circle()
+                                .stroke(accent.opacity(0.8), lineWidth: 1.5)
+                                .frame(width: 30, height: 30)
+                            Image(systemName: "checkmark")
+                                .font(.system(size: 12, weight: .bold))
+                                .foregroundStyle(accent)
                         }
                     }
                 }

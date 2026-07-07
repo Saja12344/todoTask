@@ -65,37 +65,41 @@ enum GoalTaskNotificationScheduler {
     }
 
     private static func motivationalCopy(for task: GoalTask, goal: OrbGoal) -> MotivationalCopy {
-        let index = abs(task.id.hashValue) % 5
+        let index = abs(task.id.hashValue) % 6
         if isArabic {
             let titles = [
-                "كوكبك ينتظرك ✨",
-                "خطوة صغيرة، أوربت أكبر 🪐",
-                "أنت قريبة!",
-                "وقت إنجازك",
-                "يلا نكملها ⚡"
+                "كوكبك زعلان منك 🥺🪐",
+                "طق طق… مين بالباب؟ مهمتك 👀",
+                "لا تخليني أناديك مرتين 😤✨",
+                "الكسل ما بيبني كواكب 🚀",
+                "يا نجمة، وينك؟ 🌟",
+                "تعال بسرعة قبل ما أزعل 😂"
             ]
             let bodies = [
-                "«\(task.title)» على \(goal.title)",
-                "خلّص «\(task.title)» وشوف كوكبك ينمو",
-                "مهمة اليوم: \(task.title)",
-                "خطوة وحدة تقربك — \(task.title)",
-                "\(task.title) · \(goal.title)"
+                "«\(task.title)» في \(goal.title) قاعد ينطرك من الصبح 😅",
+                "لو خلّصت «\(task.title)» بكبّر كوكبك… وعد 🪐",
+                "مهمة اليوم: \(task.title) — يلا ولا تتمسكن 💪",
+                "خطوة وحدة صغيرة و\(goal.title) يلمع أكثر ✨",
+                "«\(task.title)»… التلفون شغّال، وين أنت؟ 📱😂",
+                "دقيقتين بس وتخلّص \(task.title)، تكفى 🙏"
             ]
             return MotivationalCopy(title: titles[index], body: bodies[index])
         }
         let titles = [
-            "Your orb is waiting ✨",
-            "Small step, bigger orbit 🪐",
-            "You're closer than you think",
-            "Time to shine",
-            "Let's finish this ⚡"
+            "Your orb misses you 🥺🪐",
+            "Knock knock… it's your task 👀",
+            "Don't make me ping you twice 😤✨",
+            "Laziness builds zero planets 🚀",
+            "Hey superstar, where you at? 🌟",
+            "Come quick before I sulk 😂"
         ]
         let bodies = [
-            "«\(task.title)» on \(goal.title)",
-            "Complete «\(task.title)» and grow your planet",
-            "Today's move: \(task.title)",
-            "One step closer — \(task.title)",
-            "\(task.title) · \(goal.title)"
+            "«\(task.title)» on \(goal.title) has been waiting all day 😅",
+            "Finish «\(task.title)» and I'll grow your planet… promise 🪐",
+            "Today's move: \(task.title) — let's gooo 💪",
+            "One tiny step and \(goal.title) shines brighter ✨",
+            "«\(task.title)»… phone's ringing, where are you? 📱😂",
+            "Two minutes tops to finish \(task.title), pretty please 🙏"
         ]
         return MotivationalCopy(title: titles[index], body: bodies[index])
     }
