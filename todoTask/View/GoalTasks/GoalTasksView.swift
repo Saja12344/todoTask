@@ -419,9 +419,11 @@ struct TaskCompletionControl: View {
                     onChange(nil)
                 } label: {
                     Image(systemName: task.isDone ? "checkmark.circle.fill" : "circle")
-                        .font(.system(size: 28))
+                        .font(.system(size: 32))
                         .foregroundStyle(task.isDone ? accent : .white.opacity(0.35))
                         .symbolEffect(.bounce, value: task.isDone)
+                        .frame(width: 44, height: 44)
+                        .contentShape(Rectangle())
                 }
                 .buttonStyle(.plain)
             }

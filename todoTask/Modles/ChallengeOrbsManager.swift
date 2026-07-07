@@ -104,6 +104,36 @@ final class ChallengeOrbsManager: ObservableObject {
         services[roomId]
     }
 
+    /// Open friend-challenge missions shown on Today's Tasks (today only).
+    func todayItems(goals: [OrbGoal], date: Date, myId: String = "") -> [TodayItem] {
+        let cal = Calendar.current
+        guard cal.isDateInToday(date) else { return [] }
+
+        var result: [TodayItem] = []
+        let dayStart = cal.startOfDay(for: date)
+
+        for goal in goals where goal.isChallenge {
+            guard let roomId = goal.challengeInfo?.challengeID,
+                  let state = liveStates[roomId],
+                  state.room.status == .active,
+                  !state.isFinished else { continue }
+
+            for ct in state.tasks where ct.completedBy == nil {
+                let taskUUID = UUID(uuidString: ct.id) ?? UUID()
+                let task = GoalTask(
+                    id: taskUUID,
+                    goalID: goal.id,
+                    title: ct.title,
+                    scheduledDate: dayStart,
+                    targetAmount: 1,
+                    completedAmount: 0
+                )
+                result.append(TodayItem(goal: goal, task: task, challengeTaskId: ct.id))
+            }
+        }
+        return result
+    }
+
     func untrack(roomId: String) {
         services[roomId]?.stopListening()
         services[roomId] = nil

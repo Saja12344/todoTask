@@ -42,6 +42,8 @@ struct CheckBoxView: View {
 struct today: View {
     @EnvironmentObject private var store: OrbGoalStore
     @EnvironmentObject private var lang: LanguageManager
+    @EnvironmentObject private var challengeOrbs: ChallengeOrbsManager
+    @EnvironmentObject private var userVM: UserViewModel
     @StateObject private var viewModel = HomeViewModel()
     @StateObject private var calVM     = MiniCalendarViewModel()
     @StateObject private var energyVM  = DailyEnergyViewModel()
@@ -56,9 +58,12 @@ struct today: View {
 
     var todayItems: [TodayItem] {
         let energy = energyVM.energy(for: selectedDate)
-        return store.todayTasks(for: selectedDate, energy: energy).map {
+        let myId = userVM.currentUser?.id ?? ""
+        var items = store.todayTasks(for: selectedDate, energy: energy).map {
             TodayItem(goal: $0.goal, task: $0.task, isLate: $0.isLate)
         }
+        items.append(contentsOf: challengeOrbs.todayItems(goals: store.goals, date: selectedDate, myId: myId))
+        return items.sorted { $0.task.scheduledDate < $1.task.scheduledDate }
     }
 
     private var dailyQuote: String {
@@ -170,20 +175,34 @@ struct today: View {
                             ScrollView {
                                 VStack(alignment: .center, spacing: 8) {
                                     ForEach(todayItems) { item in
-                                        let lines = item.goal.todayTaskLines(for: item.task, lang: lang)
+                                        let lines = challengeLines(for: item)
                                         TodayTaskRow(
                                             task: item.task,
                                             goal: item.goal,
                                             primaryText: lines.primary,
                                             secondaryText: lines.secondary,
                                             isLate: item.isLate,
-                                            onReflect: item.task.isFullyComplete ? {
+                                            onReflect: item.isChallengeMission ? nil : (item.task.isFullyComplete ? {
                                                 reflectionContext = store.reflectionContext(
                                                     goalID: item.goal.id,
                                                     taskID: item.task.id
                                                 )
-                                            } : nil
+                                            } : nil)
                                         ) { newAmount in
+                                            if let challengeId = item.challengeTaskId,
+                                               let roomId = item.goal.challengeInfo?.challengeID,
+                                               let service = challengeOrbs.service(for: roomId),
+                                               let myId = userVM.currentUser?.id {
+                                                Task {
+                                                    try? await service.completeTask(
+                                                        roomId: roomId,
+                                                        taskId: challengeId,
+                                                        userId: myId
+                                                    )
+                                                }
+                                                return
+                                            }
+
                                             let wasComplete = item.task.isFullyComplete
                                             if let newAmount {
                                                 store.setTaskCompletedAmount(
@@ -229,6 +248,7 @@ struct today: View {
             .onAppear {
                 LoginTracker.recordTodayOpened()
                 energyVM.refreshToday()
+                challengeOrbs.attach(store: store)
                 if let entry = energyVM.todayEntry {
                     selectedEnergyID = lang.energyLevels().first(where: { $0.value == entry.value })?.id.uuidString
                 }
@@ -332,6 +352,14 @@ struct today: View {
         DispatchQueue.main.asyncAfter(deadline: .now() + 0.35) {
             reflectionContext = store.reflectionContext(goalID: goalID, taskID: taskID)
         }
+    }
+
+    private func challengeLines(for item: TodayItem) -> (primary: String, secondary: String) {
+        if item.isChallengeMission {
+            let vs = item.goal.challengeInfo.map { "⚡ vs \($0.opponentName)" } ?? "⚡ \(lang.t(.challenge))"
+            return (item.task.title, vs)
+        }
+        return item.goal.todayTaskLines(for: item.task, lang: lang)
     }
 }
 

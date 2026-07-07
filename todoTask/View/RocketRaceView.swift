@@ -496,29 +496,30 @@ struct FunChallengeMissionRow: View {
                     if style == .featured {
                         HStack(spacing: 6) {
                             Image(systemName: "checkmark")
-                                .font(.system(size: 13, weight: .bold))
-                            Text(lang.t(.raceTapLaunch))
                                 .font(.system(size: 14, weight: .bold))
+                            Text(lang.t(.raceTapLaunch))
+                                .font(.system(size: 15, weight: .bold))
                         }
                         .foregroundStyle(Color.black.opacity(0.85))
-                        .padding(.horizontal, 14)
-                        .frame(height: 34)
+                        .padding(.horizontal, 16)
+                        .frame(minWidth: 44, minHeight: 44)
                         .background(Capsule().fill(accent))
                     } else {
                         ZStack {
                             Circle()
                                 .fill(accent.opacity(0.18))
-                                .frame(width: 30, height: 30)
+                                .frame(width: 44, height: 44)
                             Circle()
-                                .stroke(accent.opacity(0.8), lineWidth: 1.5)
-                                .frame(width: 30, height: 30)
+                                .stroke(accent.opacity(0.8), lineWidth: 2)
+                                .frame(width: 44, height: 44)
                             Image(systemName: "checkmark")
-                                .font(.system(size: 12, weight: .bold))
+                                .font(.system(size: 14, weight: .bold))
                                 .foregroundStyle(accent)
                         }
                     }
                 }
                 .buttonStyle(.plain)
+                .contentShape(Rectangle())
             } else if isDoneByMe {
                 Image(systemName: "checkmark.circle.fill")
                     .font(.system(size: style == .featured ? 30 : 26))
@@ -540,6 +541,10 @@ struct FunChallengeMissionRow: View {
                 RoundedRectangle(cornerRadius: 16, style: .continuous)
                     .stroke(accent.opacity(0.45), lineWidth: 1)
             }
+        }
+        .contentShape(RoundedRectangle(cornerRadius: style == .featured ? 16 : 12, style: .continuous))
+        .onTapGesture {
+            if isOpen { onTap() }
         }
     }
 

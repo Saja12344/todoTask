@@ -175,13 +175,18 @@ struct TodayItem: Identifiable {
     let goal: OrbGoal
     let task: GoalTask
     let isLate: Bool
+    /// Firebase challenge task id when this row comes from a friend challenge.
+    let challengeTaskId: String?
 
-    init(goal: OrbGoal, task: GoalTask, isLate: Bool = false) {
+    init(goal: OrbGoal, task: GoalTask, isLate: Bool = false, challengeTaskId: String? = nil) {
         self.id = task.id
         self.goal = goal
         self.task = task
         self.isLate = isLate
+        self.challengeTaskId = challengeTaskId
     }
+
+    var isChallengeMission: Bool { challengeTaskId != nil }
 }
 
 // MARK: - RGBAColor
